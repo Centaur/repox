@@ -1,0 +1,30 @@
+apply plugin: 'java'
+apply plugin: 'application'
+
+mainClassName = 'com.gtan.repox.Main'
+
+repositories {
+    mavenLocal()
+    maven {
+        url "http://nexus.gtan.com/content/groups/public"
+    }
+    mavenCentral()
+}
+
+dependencies {
+    compile "io.undertow:undertow-core:1.1.0.CR8"
+    compile "com.ning:async-http-client:1.8.14"
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src'
+        }
+    }
+    test {
+        java {
+            srcDir 'test'
+        }
+    }
+}
