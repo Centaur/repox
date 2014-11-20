@@ -30,7 +30,7 @@ object TimeoutableFuture {
     val combinedFut = Future.firstCompletedOf(List(fut, prom.future))
     fut onComplete { case result =>
       if(!timeout.isExpired){
-        println(s"future $name canceled because of peer future completion")
+        println(s"timeout for $name canceled because of peer future completion")
       }
       timeout.cancel()
     }

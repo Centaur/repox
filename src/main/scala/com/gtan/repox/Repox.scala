@@ -1,11 +1,12 @@
 package com.gtan.repox
 
 import java.net.URL
+import java.nio.ByteBuffer
 import java.util
 
 import com.ning.http.client.AsyncHandler.STATE
 import com.ning.http.client._
-import io.undertow.server.HttpServerExchange
+import io.undertow.server.{Connectors, HttpServerExchange}
 import io.undertow.util.HttpString
 
 import scala.concurrent.{Promise, Future}
@@ -88,18 +89,18 @@ object Repox {
         firstSuccess.onComplete {
           case Success(Some(Pair(statusCode, headers))) =>
             println(s"statusCode=$statusCode, headers=$headers")
-            exchange.setResponseCode(statusCode)
+            exchange.setResponseCode(204)  // no content in body
             for ((k, v) <- headers) {
               exchange.getResponseHeaders.addAll(new HttpString(k), v)
             }
-            val contentLength = exchange.getResponseHeaders.getFirst(new HttpString("Content-Length")).toLong
-            println(contentLength)
-            exchange.setResponseContentLength(contentLength)
+            exchange.getResponseChannel // just to avoid mysterious setting Content-length to 0 in endExchange, ugly
             exchange.endExchange()
           case Success(None) | Failure(_) =>
             exchange.setResponseCode(404)
             exchange.endExchange()
         }
+      case "GET" =>
+
     }
   }
 }
