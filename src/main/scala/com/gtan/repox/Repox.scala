@@ -7,6 +7,7 @@ import java.nio.channels.{FileLock, CompletionHandler, AsynchronousFileChannel}
 import java.nio.file.{StandardCopyOption, Files, Paths, Path}
 import java.util.concurrent
 
+import akka.actor.{Props, ActorSystem, Actor}
 import com.ning.http.client.AsyncHandler.STATE
 import com.ning.http.client._
 import com.typesafe.scalalogging.{LazyLogging, Logger}
@@ -27,6 +28,8 @@ object Repox extends LazyLogging {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
+  val system = ActorSystem("repox")
+
   val storage = Paths.get(System.getProperty("user.home"), ".repox", "storage")
 
   val upstreams = List(
@@ -44,88 +47,7 @@ object Repox extends LazyLogging {
 
   def tryGet(exchange: HttpServerExchange, upstream: String): Promise[(Upstream, Promise[Path])] = {
     val promise = Promise[(Upstream, Promise[Path])]()
-    var statusCode = 200
-    var tempFileChannel: AsynchronousFileChannel = null
-    var tempFile: File = null
-    var pathPromise: Promise[Path] = null
 
-    val requestHeaders = new FluentCaseInsensitiveStringsMap()
-    for (name <- exchange.getRequestHeaders.getHeaderNames.asScala) {
-      requestHeaders.add(name.toString, exchange.getRequestHeaders.get(name))
-    }
-    val upstreamUrl = upstream + exchange.getRequestURI
-    val upstreamHost = new URL(upstreamUrl).getHost
-    requestHeaders.put("Host", List(upstreamHost).asJava)
-
-    client.prepareGet(upstreamUrl)
-      .setHeaders(requestHeaders)
-      .execute(new AsyncHandler[Unit] {
-      def clearTempFile(): Unit = {
-        if (tempFileChannel.isOpen)
-          tempFileChannel.close()
-        //        if (tempFile != null)
-        //          tempFile.delete()
-      }
-
-      override def onThrowable(t: Throwable): Unit = promise.failure(t)
-
-      override def onCompleted(): Unit = {
-        if (tempFileChannel.isOpen)
-          tempFileChannel.close()
-        logger.debug(s"get file from $upstreamUrl completed. Completing pathPromise.")
-        pathPromise.success(tempFile.toPath)
-      }
-
-      override def onBodyPartReceived(bodyPart: HttpResponseBodyPart): STATE = {
-        logger.debug(s"onBodyPartReceived, pathPromise.isCompleted = ${pathPromise.isCompleted}")
-        if (pathPromise != null && !pathPromise.isCompleted) {
-          val buffer = bodyPart.getBodyByteBuffer
-          tempFileChannel.write(buffer, tempFileChannel.size())
-          //          exchange.getResponseChannel.write(buffer)
-          STATE.CONTINUE
-        } else {
-          // some other upstream got chosen
-          if (tempFileChannel.isOpen)
-            tempFileChannel.close()
-          if (tempFile != null) {
-            logger.debug(s"deleting ${tempFile.getAbsolutePath}")
-            tempFile.delete()
-          }
-          STATE.ABORT
-        }
-      }
-
-      override def onStatusReceived(responseStatus: HttpResponseStatus): STATE = {
-        if (!promise.isCompleted) {
-          statusCode = responseStatus.getStatusCode
-          logger.debug(s"statusCode from $upstreamUrl: $statusCode")
-          if (statusCode != 200) {
-            promise.failure(UnsuccessResponseStatus(responseStatus))
-            STATE.ABORT
-          } else
-            STATE.CONTINUE
-        } else {
-          // some other upstream got chosen
-          STATE.ABORT
-        }
-      }
-
-      override def onHeadersReceived(headers: HttpResponseHeaders): STATE = {
-        if (!promise.isCompleted) {
-          logger.debug(s"Got headers From $upstreamUrl")
-          logger.debug(s"headers ================== \n ${headers.getHeaders}")
-          pathPromise = Promise[Path]()
-          promise.success(upstream -> pathPromise)
-          tempFile = File.createTempFile("repox", ".tmp")
-          logger.debug(s"getting from $upstreamUrl to ${tempFile.getPath}")
-          tempFileChannel = AsynchronousFileChannel.open(tempFile.toPath)
-          STATE.CONTINUE
-        } else {
-          // some other upstream got chosen
-          STATE.ABORT
-        }
-      }
-    })
 
     promise
   }
@@ -202,40 +124,14 @@ object Repox extends LazyLogging {
             exchange.endExchange()
         }
       case "GET" =>
-        val resolvedPath = storage.resolve(exchange.getRequestURI.tail)
+        val uri = exchange.getRequestURI
+        val resolvedPath = storage.resolve(uri.tail)
         if (resolvedPath.toFile.exists()) {
           logger.debug("Already downloaded. Serve immediately.")
           Handlers.resource(new FileResourceManager(storage.toFile, 100 * 1024)).handleRequest(exchange)
         } else {
           logger.debug("Start download....")
-
-          val promises = upstreams.map(upstream => tryGet(exchange, upstream))
-          for (future <- promises.map(_.future)) {
-            future.onSuccess {
-              case (upstream, _) =>
-                for (promise <- promises if promise.future != future) {
-                  if(!promise.isCompleted) promise.failure(PeerChosen(upstream))
-                  logger.debug(s"chosen upstream $upstream")
-                }
-            }
-          }
-          val firstGotHeaders = Future.find(promises.map(_.future))(_ => true)
-          firstGotHeaders.onComplete {
-            case Success(Some((upstream, promise))) =>
-              promise.future.onComplete {
-                case Success(path) =>
-                  resolvedPath.getParent.toFile.mkdirs()
-                  Files.move(path, resolvedPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
-                  Files.delete(path)
-                  Handlers.resource(new FileResourceManager(storage.toFile, 100 * 1024)).handleRequest(exchange)
-                case Failure(e) =>
-                  exchange.setResponseCode(404)
-                  exchange.endExchange()
-              }
-            case Success(None) | Failure(_) =>
-              exchange.setResponseCode(404)
-              exchange.endExchange()
-          }
+          system.actorOf(Props(classOf[GetAnArtifact], exchange, resolvedPath), s"Parent")
         }
     }
   }
