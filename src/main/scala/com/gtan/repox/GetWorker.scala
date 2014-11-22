@@ -1,11 +1,10 @@
 package com.gtan.repox
 
-import java.io.File
-import java.nio.channels.AsynchronousFileChannel
+import java.io.{File, FileOutputStream}
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
 
-import akka.actor.{ActorRef, Actor, ActorLogging}
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import com.ning.http.client.AsyncHandler.STATE
 import com.ning.http.client._
 import com.typesafe.scalalogging.LazyLogging
@@ -16,7 +15,7 @@ import com.typesafe.scalalogging.LazyLogging
  * Date: 14/11/21
  * Time: 下午8:22
  */
-object Getter {
+object GetWorker {
 
   case class UnsuccessResponseStatus(responseStatus: HttpResponseStatus)
 
@@ -32,45 +31,53 @@ object Getter {
 
 }
 
-class Getter(upstream: String, uri: String, requestHeaders: FluentCaseInsensitiveStringsMap) extends Actor with ActorLogging {
+class GetWorker(upstream: String, uri: String, requestHeaders: FluentCaseInsensitiveStringsMap) extends Actor with ActorLogging {
 
-  var tempFileChannel: AsynchronousFileChannel = null
-  var tempFile: File = null
 
-  import com.gtan.repox.Getter._
+  import com.gtan.repox.GetWorker._
 
   val handler = new AsyncHandler[Unit] with LazyLogging{
+    var tempFileOs: FileOutputStream = null
+    var tempFile: File = null
 
     private val canceled = new AtomicBoolean(false)
 
     def cancel() {
       canceled.set(true)
+      cleanup()
     }
 
     override def onThrowable(t: Throwable): Unit = {}
 
     override def onCompleted(): Unit = {
+      logger.debug(s"$self completed, canceled: ${canceled.get}")
       if (!canceled.get) {
-        self ! Completed(tempFile.toPath)
+        if (tempFileOs != null)
+          tempFileOs.close()
+        context.parent ! Completed(tempFile.toPath)
       }
     }
 
     override def onBodyPartReceived(bodyPart: HttpResponseBodyPart): STATE = {
+      logger.debug(s"$self got bodypart, canceled: ${canceled.get}")
       if (!canceled.get()) {
-        context.self ! BodyPartGot(bodyPart)
+        bodyPart.writeTo(tempFileOs)
         STATE.CONTINUE
       } else {
+        cleanup()
         STATE.ABORT
       }
     }
 
     override def onStatusReceived(responseStatus: HttpResponseStatus): STATE = {
       if (canceled.get()) {
+        cleanup()
         STATE.ABORT
       } else {
         logger.debug(s"statusCode from $upstreamUrl: ${responseStatus.getStatusCode}")
         if (responseStatus.getStatusCode != 200) {
           UnsuccessResponseStatus(responseStatus)
+          cleanup()
           STATE.ABORT
         } else
           STATE.CONTINUE
@@ -80,52 +87,46 @@ class Getter(upstream: String, uri: String, requestHeaders: FluentCaseInsensitiv
     override def onHeadersReceived(headers: HttpResponseHeaders): STATE = {
       logger.debug(s"Got headers From $upstreamUrl")
       logger.debug(s"headers ================== \n ${headers.getHeaders}")
-      if (!
-        canceled.get()) {
-        self ! HeadersGot(headers)
+      if (!canceled.get()) {
+        tempFile = File.createTempFile("repox", ".tmp")
+        tempFileOs = new FileOutputStream(tempFile)
+        context.parent ! HeadersGot(headers)
         STATE.CONTINUE
       } else {
+        cleanup()
         STATE.ABORT
       }
     }
+
+    def cleanup(): Unit = {
+      if (tempFileOs != null) {
+        log.debug(s"$self cleaning up: closing file channel")
+        tempFileOs.close()
+      }
+      if (tempFile != null) {
+        log.debug(s"$self cleaning up: deleting ${tempFile.toPath.toString}")
+        tempFile.delete()
+      }
+      log.debug(s"$self stopping myself")
+      context.stop(self)
+    }
   }
 
-  def cleanup(): Unit = {
-    if (tempFileChannel != null && tempFileChannel.isOpen) {
-      log.debug(s"$self cleaning up: closing file channel")
-      tempFileChannel.close()
-    }
-    if (tempFile != null) {
-      log.debug(s"$self cleaning up: deleting ${tempFile.toPath.toString}")
-      tempFile.delete()
-    }
-
-  }
 
   override def receive() = {
     case Cleanup =>
-      cleanup()
+      log.debug(s"$self cleanedup.")
+      handler.cleanup()
 
     case PeerChosen(who) =>
       log.debug(s"peer $who is chosen. cancel myself $self")
       handler.cancel()
-      cleanup()
 
     case UnsuccessResponseStatus(status) =>
 
     case HeadersGot(headers) =>
-      tempFile = File.createTempFile("repox", ".tmp")
-      tempFileChannel = AsynchronousFileChannel.open(tempFile.toPath)
       context.parent ! HeadersGot(headers)
 
-    case BodyPartGot(bodyPart) =>
-      val buffer = bodyPart.getBodyByteBuffer
-      tempFileChannel.write(buffer, tempFileChannel.size())
-
-    case Completed(path) =>
-      if (tempFileChannel.isOpen)
-        tempFileChannel.close()
-      context.parent ! Completed(path)
   }
 
 

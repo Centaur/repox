@@ -19,7 +19,7 @@ import io.undertow.util.HttpString
 import scala.collection.JavaConverters._
 import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps
-import scala.util.{Failure, Success}
+import scala.util.{Random, Failure, Success}
 
 /**
  * Created by xf on 14/11/20.
@@ -36,7 +36,8 @@ object Repox extends LazyLogging {
     "http://uk.maven.org/maven2",
     "http://maven.oschina.net/content/groups/public",
     "http://repo1.maven.org/maven2",
-    "https://dl.bintray.com/sbt/sbt-plugin-releases"
+    "https://dl.bintray.com/sbt/sbt-plugin-releases",
+    "https://repo.typesafe.com/typesafe/ivy-releases"
   )
   val client = new AsyncHttpClient()
 
@@ -131,7 +132,7 @@ object Repox extends LazyLogging {
           Handlers.resource(new FileResourceManager(storage.toFile, 100 * 1024)).handleRequest(exchange)
         } else {
           logger.debug("Start download....")
-          system.actorOf(Props(classOf[GetAnArtifact], exchange, resolvedPath), s"Parent")
+          system.actorOf(Props(classOf[GetMaster], exchange, resolvedPath), s"Parent-${Random.nextInt()}")
         }
     }
   }
