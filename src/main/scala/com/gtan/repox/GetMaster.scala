@@ -3,8 +3,8 @@ package com.gtan.repox
 import java.net.URL
 import java.nio.file.{Files, Path, StandardCopyOption}
 
-import akka.actor.{ActorRef, ActorLogging, Actor, Props}
-import com.gtan.repox.GetWorker.{Cleanup, PeerChosen}
+import akka.actor._
+import com.gtan.repox.GetWorker.{WorkerDead, Cleanup, PeerChosen}
 import com.ning.http.client.FluentCaseInsensitiveStringsMap
 import io.undertow.Handlers
 import io.undertow.server.HttpServerExchange
@@ -25,14 +25,14 @@ class GetMaster(exchange: HttpServerExchange, resolvedPath: Path) extends Actor 
     requestHeaders.add(name.toString, exchange.getRequestHeaders.get(name))
   }
 
-  val children = for (upstream <- Repox.upstreams) yield {
+  val children = for (upstream <- Repox.headUpstreams) yield {
     val uri = exchange.getRequestURI
-    val upstreamUrl = upstream + uri
+    val upstreamUrl = upstream.base + uri
     val upstreamHost = new URL(upstreamUrl).getHost
     requestHeaders.put("Host", List(upstreamHost).asJava)
+    requestHeaders.put("Accept-Encoding", List("identity").asJava)
 
-    val childActorName = upstreamHost.split("\\.").mkString("_")
-    log.debug(s"childActorName = $childActorName")
+    val childActorName = upstream.name
 
     context.actorOf(
       Props(classOf[GetWorker], upstream, uri, requestHeaders),
@@ -41,15 +41,20 @@ class GetMaster(exchange: HttpServerExchange, resolvedPath: Path) extends Actor 
   }
 
   var getterChosen = false
-  var chosen : ActorRef = null
+  var chosen: ActorRef = null
 
   def receive = {
     case GetWorker.Completed(path) =>
-      log.debug(s"getter $sender completed, saved to ${path.toAbsolutePath}")
-      resolvedPath.getParent.toFile.mkdirs()
-      Files.move(path, resolvedPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
-      Handlers.resource(new FileResourceManager(Repox.storage.toFile, 100 * 1024)).handleRequest(exchange)
-      children.foreach(child => child ! Cleanup)
+      if(sender == chosen) {
+        log.debug(s"getter $sender completed, saved to ${path.toAbsolutePath}")
+        resolvedPath.getParent.toFile.mkdirs()
+        Files.move(path, resolvedPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+        Handlers.resource(new FileResourceManager(Repox.storage.toFile, 100 * 1024)).handleRequest(exchange)
+        children.foreach(child => child ! Cleanup)
+        self ! PoisonPill
+      } else {
+        sender ! Cleanup
+      }
     case GetWorker.HeadersGot(_) =>
       if (!getterChosen) {
         log.debug(s"chose $sender, canceling others.")
@@ -58,9 +63,14 @@ class GetMaster(exchange: HttpServerExchange, resolvedPath: Path) extends Actor 
         }
         chosen = sender
         getterChosen = true
-      } else {
+      } else if (sender != chosen) {
         sender ! PeerChosen(chosen)
       }
+    case WorkerDead =>
+      if(sender == chosen)
+        throw new Exception("Chosen worker dead. Restart and rechoose.")
+      else
+        sender ! Cleanup
   }
 
 

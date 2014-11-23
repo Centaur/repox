@@ -24,22 +24,15 @@ object TimeoutableFuture extends LazyLogging{
     }, after.toNanos, TimeUnit.NANOSECONDS)
   }
 
-  def apply[T](originalPromise: Promise[T], after: Duration, name: String)(implicit ec: ExecutionContext) = {
-    val fut = originalPromise.future
+  def apply[T](fut: Future[T], after: Duration, name: String)(implicit ec: ExecutionContext) = {
     val prom = Promise[T]()
     val timeout = scheduleTimeout(name, prom, after)
     val combinedFut = Future.firstCompletedOf(List(fut, prom.future))
     fut onComplete { case result =>
-      if(!timeout.isExpired){
-        logger.debug(s"timeout for $name canceled because of peer future completion")
-      }
+//      if(!timeout.isExpired){
+//        logger.debug(s"timeout for $name canceled because of peer future completion")
+//      }
       timeout.cancel()
-    }
-    prom.future.onFailure {
-      case e =>
-        println(e.getMessage)
-        if(!fut.isCompleted)
-          originalPromise.failure(e)
     }
     combinedFut
   }

@@ -9,7 +9,7 @@ import io.undertow.server.{HttpServerExchange, HttpHandler}
 object Main {
   def main(args: Array[String]) {
     val server: Undertow = Undertow.builder
-      .addHttpListener(8078, "localhost")
+      .addHttpListener(8078, "0.0.0.0")
       .setHandler(new HttpHandler() {
       override def handleRequest(httpServerExchange: HttpServerExchange): Unit = {
         httpServerExchange.dispatch(scala.concurrent.ExecutionContext.Implicits.global, new Runnable {

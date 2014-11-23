@@ -1,10 +1,11 @@
 package com.gtan.repox
 
-import java.io.{File, FileOutputStream}
+import java.io.{OutputStream, File, FileOutputStream}
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.zip.GZIPOutputStream
 
-import akka.actor.{Actor, ActorLogging, ActorRef}
+import akka.actor._
 import com.ning.http.client.AsyncHandler.STATE
 import com.ning.http.client._
 import com.typesafe.scalalogging.LazyLogging
@@ -29,15 +30,18 @@ object GetWorker {
 
   case object Cleanup
 
+  case class HeartBeat(length: Int)
+
+  case object WorkerDead
+
+  case class AsyncHandlerThrows(t: Throwable)
 }
 
-class GetWorker(upstream: String, uri: String, requestHeaders: FluentCaseInsensitiveStringsMap) extends Actor with ActorLogging {
-
-
+class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensitiveStringsMap) extends Actor with Stash with ActorLogging {
   import com.gtan.repox.GetWorker._
 
-  val handler = new AsyncHandler[Unit] with LazyLogging{
-    var tempFileOs: FileOutputStream = null
+  val handler = new AsyncHandler[Unit] with LazyLogging {
+    var tempFileOs: OutputStream = null
     var tempFile: File = null
 
     private val canceled = new AtomicBoolean(false)
@@ -47,21 +51,25 @@ class GetWorker(upstream: String, uri: String, requestHeaders: FluentCaseInsensi
       cleanup()
     }
 
-    override def onThrowable(t: Throwable): Unit = {}
+    override def onThrowable(t: Throwable): Unit = {
+      self ! AsyncHandlerThrows(t)
+    }
 
     override def onCompleted(): Unit = {
-      logger.debug(s"$self completed, canceled: ${canceled.get}")
-      if (!canceled.get) {
+      if (!canceled.get()) {
+        logger.debug(s"asynchandler of $self completed")
         if (tempFileOs != null)
           tempFileOs.close()
-        context.parent ! Completed(tempFile.toPath)
+        if(tempFile != null) { // completed before parent notify PeerChosen or self cancel
+          context.parent ! Completed(tempFile.toPath)
+        }
       }
     }
 
     override def onBodyPartReceived(bodyPart: HttpResponseBodyPart): STATE = {
-      logger.debug(s"$self got bodypart, canceled: ${canceled.get}")
       if (!canceled.get()) {
         bodyPart.writeTo(tempFileOs)
+        self ! HeartBeat(bodyPart.length())
         STATE.CONTINUE
       } else {
         cleanup()
@@ -74,8 +82,8 @@ class GetWorker(upstream: String, uri: String, requestHeaders: FluentCaseInsensi
         cleanup()
         STATE.ABORT
       } else {
-        logger.debug(s"statusCode from $upstreamUrl: ${responseStatus.getStatusCode}")
         if (responseStatus.getStatusCode != 200) {
+          logger.debug(s"Get $upstreamUrl ${responseStatus.getStatusCode}")
           UnsuccessResponseStatus(responseStatus)
           cleanup()
           STATE.ABORT
@@ -85,11 +93,11 @@ class GetWorker(upstream: String, uri: String, requestHeaders: FluentCaseInsensi
     }
 
     override def onHeadersReceived(headers: HttpResponseHeaders): STATE = {
-      logger.debug(s"Got headers From $upstreamUrl")
-      logger.debug(s"headers ================== \n ${headers.getHeaders}")
+      logger.debug(s"$upstreamUrl 200 headers ================== \n ${headers.getHeaders}")
       if (!canceled.get()) {
         tempFile = File.createTempFile("repox", ".tmp")
         tempFileOs = new FileOutputStream(tempFile)
+        self ! HeadersGot(headers)
         context.parent ! HeadersGot(headers)
         STATE.CONTINUE
       } else {
@@ -100,23 +108,32 @@ class GetWorker(upstream: String, uri: String, requestHeaders: FluentCaseInsensi
 
     def cleanup(): Unit = {
       if (tempFileOs != null) {
-        log.debug(s"$self cleaning up: closing file channel")
+        log.debug(s"$self closing file channel")
         tempFileOs.close()
       }
       if (tempFile != null) {
-        log.debug(s"$self cleaning up: deleting ${tempFile.toPath.toString}")
+        log.debug(s"$self deleting ${tempFile.toPath.toString}")
         tempFile.delete()
       }
       log.debug(s"$self stopping myself")
-      context.stop(self)
+      self ! PoisonPill
     }
   }
 
+  import scala.concurrent.duration._
 
-  override def receive() = {
+  var downloaded = 0
+  var percentage = 0.0
+  var contentLength = -1L
+  var headersGot = false
+
+  override def receive = {
+    case AsyncHandlerThrows(t) =>
+      throw t
+
     case Cleanup =>
-      log.debug(s"$self cleanedup.")
-      handler.cleanup()
+      log.debug(s"Parent asking cleanup. cancel myself $self")
+      handler.cancel()
 
     case PeerChosen(who) =>
       log.debug(s"peer $who is chosen. cancel myself $self")
@@ -124,13 +141,33 @@ class GetWorker(upstream: String, uri: String, requestHeaders: FluentCaseInsensi
 
     case UnsuccessResponseStatus(status) =>
 
-    case HeadersGot(headers) =>
-      context.parent ! HeadersGot(headers)
+    case ReceiveTimeout =>
+      context.parent ! WorkerDead
 
+    case HeartBeat(length) =>
+      downloaded += length
+      if(contentLength != -1) {
+        val newPercentage = downloaded * 100.0 / contentLength
+        if(newPercentage - percentage > 10.0 || downloaded == contentLength) {
+          log.debug(f"downloaded $downloaded%s bytes. $newPercentage%.2f %%")
+          percentage = newPercentage
+        }
+      } else {
+        log.debug("Heartbeat")
+      }
+
+    case HeadersGot(headers) =>
+      val contentLengthHeader = headers.getHeaders.getFirstValue("Content-Length")
+      if(contentLengthHeader != null) {
+        log.debug(s"contentLengthHeader=$contentLengthHeader")
+        contentLength = contentLengthHeader.toLong
+      }
+      context.setReceiveTimeout(10 seconds)
+      headersGot = true
   }
 
 
-  val upstreamUrl = upstream + uri
+  val upstreamUrl = upstream.base + uri
 
   Repox.client.prepareGet(upstreamUrl)
     .setHeaders(requestHeaders)

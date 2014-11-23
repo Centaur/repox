@@ -17,3 +17,5 @@ libraryDependencies ++= Seq(
 fork := true
 
 Revolver.settings
+
+assemblySettings
