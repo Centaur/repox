@@ -1,27 +1,22 @@
 package com.gtan.repox
 
-import java.io.File
 import java.net.URL
-import java.nio.ByteBuffer
-import java.nio.channels.{FileLock, CompletionHandler, AsynchronousFileChannel}
-import java.nio.file.{StandardCopyOption, Files, Paths, Path}
-import java.util.concurrent
+import java.nio.file.Paths
 
-import akka.actor.{Props, ActorSystem, Actor}
+import akka.actor.ActorSystem
 import com.ning.http.client.AsyncHandler.STATE
 import com.ning.http.client._
 import com.ning.http.client.resumable.ResumableIOExceptionFilter
-import com.typesafe.scalalogging.{LazyLogging, Logger}
+import com.typesafe.scalalogging.LazyLogging
 import io.undertow.Handlers
 import io.undertow.server.HttpServerExchange
 import io.undertow.server.handlers.resource.FileResourceManager
 import io.undertow.util.HttpString
 
-import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps
-import scala.util.{Random, Failure, Success}
+import scala.util.{Failure, Success}
 
 /**
  * Created by xf on 14/11/20.
@@ -34,41 +29,44 @@ object Repox extends LazyLogging {
 
   val storage = Paths.get(System.getProperty("user.home"), ".repox", "storage")
 
-  val getUpstreams = List(
-    Repo("osc", "http://maven.oschina.net/content/groups/public"),
-    Repo("sbt-plugin", "https://dl.bintray.com/sbt/sbt-plugin-releases"),
-    Repo("typesafe-ivy", "https://repo.typesafe.com/typesafe/ivy-releases"),
-    Repo("typesafe", "http://repo.typesafe.com/typesafe/releases"),
+  val upstreams = List(
+    Repo("osc", "http://maven.oschina.net/content/groups/public", priority = 1),
+    Repo("sbt-plugin", "https://dl.bintray.com/sbt/sbt-plugin-releases", priority = 2),
+    Repo("typesafe", "https://repo.typesafe.com/typesafe/releases", priority = 2),
+    Repo("sonatype", "https://oss.sonatype.org/content/repositories/releases", priority = 2),
     Repo("spray", "http://repo.spray.io"),
-    Repo("scalaz", "http://dl.bintray.com/scalaz/releases")
-  )
-  val headUpstreams = getUpstreams ++ List(
-    Repo("uk", "http://uk.maven.org/maven2"),
-    Repo("central", "http://repo1.maven.org/maven2"),
-    Repo("sonatype", "https://oss.sonatype.org/content/repositories/releases/")
+    Repo("scalaz", "http://dl.bintray.com/scalaz/releases"),
+    Repo("uk", "http://uk.maven.org/maven2", priority = 5),
+    Repo("central", "http://repo1.maven.org/maven2", priority = 5)
   )
 
   val immediat404Rules = List(
-    Immediat404Rule( """.+-parent.*.jar"""), // parent have no jar
-    Immediat404Rule( """/org/scala-sbt/.*""", exclude = Some( """/org/scala-sbt/test-interface/.*""")), // ivy only artifact have no maven uri
-    Immediat404Rule( """/org/scala-tools/.*"""), // ivy only artifact have no maven uri
-    Immediat404Rule( """/com/eed3si9n/.*"""), // ivy only artifact have no maven uri
-    Immediat404Rule( """/io\.spray/.*""", exclude = Some( """/io\.spray/sbt-revolver/.*""")), // maven only artifact have no ivy uri
-    Immediat404Rule( """/org/jboss/xnio/xnio-all/.+\.jar"""),
-    Immediat404Rule( """/org\.jboss\.xnio/xnio-all/.+\.jar"""),
-    Immediat404Rule( """/org/apache/apache/(\d+)/\.jar"""),
-    Immediat404Rule( """/org\.apache/apache/(\d+)/.+\.jar"""),
-    Immediat404Rule( """/com/google/google/(\d+)/\.jar"""),
-    Immediat404Rule( """/com\.google/google/(\d+)/.+\.jar"""),
-    Immediat404Rule( """/org/ow2/ow2/.+\.jar"""),
-    Immediat404Rule( """/org\.ow2/ow2/.+\.jar"""),
-    Immediat404Rule( """/com/github/mpeltonen/sbt-idea/.*\.jar"""),
-    Immediat404Rule( """/com\.github\.mpeltonen/sbt-idea/.*\.jar""")
+    Immediate404Rule( """.+-javadoc.jar"""), // we don't want javadoc
+    Immediate404Rule( """.+-parent.*.jar"""), // parent have no jar
+    Immediate404Rule( """/org/scala-sbt/.*""", exclude = Some( """/org/scala-sbt/test-interface/.*""")), // ivy only artifact have no maven uri
+    //    Immediat404Rule( """/org/scala-tools/.*"""), // ivy only artifact have no maven uri
+    Immediate404Rule( """/com/eed3si9n/.*"""), // ivy only artifact have no maven uri
+    Immediate404Rule( """/io\.spray/.*""", exclude = Some( """/io\.spray/sbt-revolver.*""")), // maven only artifact have no ivy uri
+    Immediate404Rule( """/org/jboss/xnio/xnio-all/.+\.jar"""),
+    Immediate404Rule( """/org\.jboss\.xnio/xnio-all/.+\.jar"""),
+    Immediate404Rule( """/org/apache/apache/(\d+)/.+\.jar"""),
+    Immediate404Rule( """/org\.apache/apache/(\d+)/.+\.jar"""),
+    Immediate404Rule( """/com/google/google/(\d+)/.+\.jar"""),
+    Immediate404Rule( """/com\.google/google/(\d+)/.+\.jar"""),
+    Immediate404Rule( """/org/ow2/ow2/.+\.jar"""),
+    Immediate404Rule( """/org\.ow2/ow2/.+\.jar"""),
+    Immediate404Rule( """/com/github/mpeltonen/sbt-idea/.*\.jar"""),
+    Immediate404Rule( """/com\.github\.mpeltonen/sbt-idea/.*\.jar"""),
+    Immediate404Rule( """/org/fusesource/leveldbjni/.+-sources.jar"""),
+    Immediate404Rule( """/org\.fusesource\.leveldbjni/.+-sources.jar"""),
+    Immediate404Rule( """.*/jsr305.*\-sources.jar""")
   )
   val client = new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
     .addIOExceptionFilter(new ResumableIOExceptionFilter())
     .setRequestTimeoutInMs(Int.MaxValue)
     .setConnectionTimeoutInMs(6000)
+    .setAllowPoolingConnection(true)
+    .setIdleConnectionInPoolTimeoutInMs(600000)
     .setFollowRedirects(true)
     .build()
   )
@@ -93,7 +91,7 @@ object Repox extends LazyLogging {
 
     client.prepareHead(upstreamUrl)
       .setHeaders(requestHeaders)
-      .execute(new AsyncHandler[Unit] {
+      .execute(new AsyncHandler[Unit] with LazyLogging{
       override def onThrowable(t: Throwable): Unit = promise.failure(t)
 
       override def onCompleted(): Unit = {
@@ -142,10 +140,8 @@ object Repox extends LazyLogging {
         exchange.setResponseCode(404)
         exchange.endExchange()
       } else {
-        val firstSuccess = Future.find(headUpstreams.map(upstream => headWorker(exchange, upstream))) {
-          case (_, 200, _) => true
-          case _ => false
-        }
+        val firstSuccess = Future.find(upstreams.map(upstream => headWorker(exchange, upstream)))(_._2 == 200)
+
         firstSuccess.onComplete {
           case Success(Some(Tuple3(upstream, statusCode, headers))) =>
             logger.info(s"200 HEAD in ${upstream.name} for $uri")
@@ -172,8 +168,13 @@ object Repox extends LazyLogging {
           logger.debug(s"$uri Already downloaded. Serve immediately.")
           Handlers.resource(new FileResourceManager(storage.toFile, 100 * 1024)).handleRequest(exchange)
         } else {
+          val candidates = upstreams.groupBy(_.priority).toList.sortBy(_._1).map(_._2)
           logger.debug("Start download....")
-          system.actorOf(Props(classOf[GetMaster], exchange, resolvedPath), s"Parent-${Random.nextInt()}")
+          val filtered =
+            if (uri.endsWith("ivy.xml") || uri.endsWith("ivy.xml.sha1"))
+              candidates.tail
+            else candidates
+          GetMaster.run(exchange, resolvedPath, filtered)
         }
     }
   }

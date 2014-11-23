@@ -84,7 +84,7 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
       } else {
         if (responseStatus.getStatusCode != 200) {
           logger.debug(s"Get $upstreamUrl ${responseStatus.getStatusCode}")
-          UnsuccessResponseStatus(responseStatus)
+          context.parent ! UnsuccessResponseStatus(responseStatus)
           cleanup()
           STATE.ABORT
         } else
@@ -115,7 +115,6 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
         log.debug(s"$self deleting ${tempFile.toPath.toString}")
         tempFile.delete()
       }
-      log.debug(s"$self stopping myself")
       self ! PoisonPill
     }
   }
@@ -159,7 +158,7 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
     case HeadersGot(headers) =>
       val contentLengthHeader = headers.getHeaders.getFirstValue("Content-Length")
       if(contentLengthHeader != null) {
-        log.debug(s"contentLengthHeader=$contentLengthHeader")
+        log.debug(s"contentLength=$contentLengthHeader")
         contentLength = contentLengthHeader.toLong
       }
       context.setReceiveTimeout(10 seconds)

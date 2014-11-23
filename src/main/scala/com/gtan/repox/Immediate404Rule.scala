@@ -6,7 +6,7 @@ package com.gtan.repox
  * Date: 14/11/23
  * Time: 下午12:15
  */
-case class Immediat404Rule(include: String, exclude: Option[String] = None) {
+case class Immediate404Rule(include: String, exclude: Option[String] = None) {
   def matches(uri: String): Boolean = {
     val included = uri.matches(include)
     exclude match {
