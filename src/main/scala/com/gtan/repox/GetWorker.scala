@@ -86,7 +86,7 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
         log.debug(s"contentLength=$contentLengthHeader")
         contentLength = contentLengthHeader.toLong
       }
-      context.setReceiveTimeout(10 seconds)
+      context.setReceiveTimeout(20 seconds)
       headersGot = true
   }
 

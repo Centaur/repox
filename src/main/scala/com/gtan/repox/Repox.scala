@@ -4,7 +4,8 @@ import java.net.URL
 import java.nio.file.Paths
 import java.util.Date
 
-import akka.actor.ActorSystem
+import akka.actor.{Props, ActorSystem}
+import com.gtan.repox.HeaderCache.Query
 import com.ning.http.client._
 import com.ning.http.client.resumable.ResumableIOExceptionFilter
 import com.typesafe.scalalogging.LazyLogging
@@ -16,6 +17,7 @@ import io.undertow.util.{StatusCodes, MimeMappings, Headers, HttpString}
 import scala.collection.JavaConverters._
 import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps
+import scala.util.{Failure, Success}
 
 
 object Repox extends LazyLogging {
@@ -67,8 +69,8 @@ object Repox extends LazyLogging {
     .setAllowSslConnectionPool(true)
     .setMaximumConnectionsPerHost(10)
     .setMaximumConnectionsTotal(100)
-    .setIdleConnectionInPoolTimeoutInMs(Int.MaxValue)
-    .setIdleConnectionTimeoutInMs(Int.MaxValue)
+//    .setIdleConnectionInPoolTimeoutInMs(Int.MaxValue)
+//    .setIdleConnectionTimeoutInMs(Int.MaxValue)
     .setFollowRedirects(true)
     .build()
   )
@@ -78,7 +80,12 @@ object Repox extends LazyLogging {
   type ResponseHeaders = Map[String, java.util.List[String]]
   type HeaderResponse = (Repo, StatusCode, ResponseHeaders)
 
+  val candidates = upstreams.groupBy(_.priority).toList.sortBy(_._1).map(_._2)
+  val headerCache = system.actorOf(Props[HeaderCache])
 
+  private def reduce(xss: List[List[Repo]], remain: List[Repo]): List[List[Repo]] = {
+    xss.map(_.filter(remain.contains)).filter(_.nonEmpty)
+  }
 
   def handle(exchange: HttpServerExchange): Unit = {
     val uri = exchange.getRequestURI
@@ -106,13 +113,28 @@ object Repox extends LazyLogging {
           logger.debug(s"$uri Already downloaded. Serve immediately.")
           Handlers.resource(resourceManager).handleRequest(exchange)
         } else {
-          val candidates = upstreams.groupBy(_.priority).toList.sortBy(_._1).map(_._2)
-          logger.debug("Start download....")
-          val filtered =
-            if (!uri.endsWith(".jar"))
-              candidates.tail
-            else candidates
-          GetMaster.run(exchange, resolvedPath, filtered)
+          import akka.pattern.ask
+          import concurrent.duration._
+          implicit val timeout = akka.util.Timeout(1 second)
+          (headerCache ? Query(uri)).onComplete {
+            case Success(None) => // no previous head request, download
+              logger.debug("Start download....")
+              val filtered =
+                if (!uri.endsWith(".jar"))
+                  candidates.tail
+                else candidates
+              GetMaster.run(exchange, resolvedPath, filtered)
+            case Success(Some(list: List[Repo])) => // previous head request found candidates
+              logger.debug("Start download....")
+              val filtered = reduce(candidates, remain = list)
+              GetMaster.run(exchange, resolvedPath, filtered)
+            case Success(Some(Nil)) => // previous head request found nothing, 404
+              exchange.setResponseCode(StatusCodes.NOT_FOUND)
+              exchange.endExchange()
+            case Failure(t) =>
+              exchange.setResponseCode(StatusCodes.INTERNAL_SERVER_ERROR)
+              exchange.endExchange()
+          }
         }
     }
   }
