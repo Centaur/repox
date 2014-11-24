@@ -17,3 +17,5 @@ case class Immediate404Rule(include: String, exclude: Option[String] = None) {
     }
   }
 }
+
+case class BlacklistRule(pattern: String, repoName: String)

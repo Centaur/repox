@@ -2,6 +2,7 @@ package com.gtan.repox
 
 import java.net.URL
 
+import com.gtan.repox.HeaderCache.{Found, NotFound}
 import com.gtan.repox.Repox._
 import com.ning.http.client.FluentCaseInsensitiveStringsMap
 import com.typesafe.scalalogging.LazyLogging
@@ -13,7 +14,8 @@ import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.collection.JavaConverters._
 
-class HeadWorker(val exchange: HttpServerExchange) extends LazyLogging{
+class HeadWorker(val exchange: HttpServerExchange) extends LazyLogging {
+
   import scala.concurrent.ExecutionContext.Implicits.global
 
   val uri = exchange.getRequestURI
@@ -22,7 +24,7 @@ class HeadWorker(val exchange: HttpServerExchange) extends LazyLogging{
     Repox.immediat404Rules.exists(_.matches(uri))
   }
 
-  def `try`(times: Int): Unit ={
+  def `try`(times: Int): Unit = {
     if (immediat404(uri)) {
       logger.debug(s"$uri immediat 404")
       exchange.setResponseCode(StatusCodes.NOT_FOUND)
@@ -32,11 +34,19 @@ class HeadWorker(val exchange: HttpServerExchange) extends LazyLogging{
       exchange.setResponseCode(StatusCodes.NOT_FOUND)
       exchange.endExchange()
     } else {
-      val firstSuccess = Future.find(upstreams.map(run))(_._2 == StatusCodes.OK)
+      val blacklistedUpstreams = upstreams.filterNot { repo =>
+        Repox.blacklistRules.exists { rule =>
+          uri.matches(rule.pattern) && rule.repoName == repo.name
+        }
+      }
+      if(blacklistedUpstreams != upstreams) {
+        logger.debug(s"blacklistedUpstream: ${blacklistedUpstreams.map(_.name)}, $uri")
+      }
+      val firstSuccess = Future.find(blacklistedUpstreams.map(run))(_._2 == StatusCodes.OK)
 
       firstSuccess.onComplete {
         case Success(Some(Tuple3(upstream, statusCode, headers))) =>
-          logger.info(s"200 HEAD in ${upstream.name} for $uri")
+          logger.info(s"Chose 200 HEAD in ${upstream.name} for $uri")
           exchange.setResponseCode(StatusCodes.NO_CONTENT) // no content in body
           for ((k, v) <- headers) {
             exchange.getResponseHeaders.addAll(new HttpString(k), v.asScala.distinct.asJava)
@@ -64,12 +74,24 @@ class HeadWorker(val exchange: HttpServerExchange) extends LazyLogging{
     requestHeaders.put(Headers.HOST_STRING, List(upstreamHost).asJava)
 
     val promise = Promise[HeaderResponse]()
-    client.prepareHead(upstreamUrl)
+    val jfuture = client.prepareHead(upstreamUrl)
       .setHeaders(requestHeaders)
       .execute(new HeadAsyncHandler(upstream, promise))
 
     import scala.concurrent.duration._
-    TimeoutableFuture(promise.future, after = 3 seconds, name = upstreamHost)
+    val result = TimeoutableFuture(promise.future, after = 3 seconds, name = upstreamHost)
+    result.onComplete {
+      case Success((repo, statusCode, _)) =>
+        if (statusCode != StatusCodes.OK) {
+          Repox.headerCache ! NotFound(uri, repo)
+        } else {
+          Repox.headerCache ! Found(uri, repo)
+        }
+      case Failure(t) =>
+    }
+    result
   }
-
 }
+
+
+

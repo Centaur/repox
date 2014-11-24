@@ -51,18 +51,26 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
   var downloaded = 0
   var percentage = 0.0
   var contentLength = -1L
-  var headersGot = false
+
+  val client = upstream.name match {
+    case "typesafe" => Repox.proxyClient
+    case _ => Repox.client
+  }
+
+  val future = client.prepareGet(upstreamUrl)
+    .setHeaders(requestHeaders)
+    .execute(handler)
 
   override def receive = {
     case AsyncHandlerThrows(t) =>
         throw t // retry myself
 
     case Cleanup =>
-      log.debug(s"Parent asking cleanup. cancel myself $self")
+      log.debug(s"Parent asking cleanup. cancel myself ${self.path.name}")
       handler.cancel()
 
     case PeerChosen(who) =>
-      log.debug(s"peer $who is chosen. cancel myself $self")
+      log.debug(s"peer ${who.path.name} is chosen. cancel myself ${self.path.name}")
       handler.cancel()
 
     case ReceiveTimeout =>
@@ -86,13 +94,12 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
         log.debug(s"contentLength=$contentLengthHeader")
         contentLength = contentLengthHeader.toLong
       }
-      context.setReceiveTimeout(10 seconds)
-      headersGot = true
+      downloaded = 0
+      percentage = 0.0
+      context.setReceiveTimeout(20 seconds)
   }
 
-  val future = Repox.client.prepareGet(upstreamUrl)
-    .setHeaders(requestHeaders)
-    .execute(handler)
+
 }
 
 

@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.{PoisonPill, ActorRef}
 import com.gtan.repox.GetWorker._
+import com.gtan.repox.HeaderCache.Found
 import com.ning.http.client.AsyncHandler.STATE
 import com.ning.http.client.{HttpResponseHeaders, HttpResponseStatus, HttpResponseBodyPart, AsyncHandler}
 import com.typesafe.scalalogging.LazyLogging
@@ -26,7 +27,7 @@ class GetAsyncHandler(val upstreamUrl: String, val worker: ActorRef, val master:
 
   override def onCompleted(): Unit = {
     if (!canceled.get()) {
-      logger.debug(s"asynchandler of $worker completed")
+      logger.debug(s"asynchandler of ${worker.path.name} completed")
       if (tempFileOs != null)
         tempFileOs.close()
       if (tempFile != null) {
@@ -65,10 +66,17 @@ class GetAsyncHandler(val upstreamUrl: String, val worker: ActorRef, val master:
   override def onHeadersReceived(headers: HttpResponseHeaders): STATE = {
     logger.debug(s"$upstreamUrl 200 headers ================== \n ${headers.getHeaders}")
     if (!canceled.get()) {
-      tempFile = File.createTempFile("repox", ".tmp")
-      tempFileOs = new FileOutputStream(tempFile)
-      worker ! HeadersGot(headers)
-      master.!(HeadersGot(headers))(worker)
+      if(tempFile != null){
+        logger.debug("Lantern interrupted. Resync data.")
+        tempFileOs.close()
+        tempFileOs = new FileOutputStream(tempFile)
+        worker ! HeadersGot(headers)
+      } else {
+        tempFile = File.createTempFile("repox", ".tmp")
+        tempFileOs = new FileOutputStream(tempFile)
+        worker ! HeadersGot(headers)
+        master.!(HeadersGot(headers))(worker)
+      }
       STATE.CONTINUE
     } else {
       cleanup()
@@ -78,11 +86,11 @@ class GetAsyncHandler(val upstreamUrl: String, val worker: ActorRef, val master:
 
   def cleanup(): Unit = {
     if (tempFileOs != null) {
-      logger.debug(s"$worker closing file channel")
+      logger.debug(s"${worker.path.name} closing file channel")
       tempFileOs.close()
     }
     if (tempFile != null) {
-      logger.debug(s"$worker deleting ${tempFile.toPath.toString}")
+      logger.debug(s"${worker.path.name} deleting ${tempFile.toPath.toString}")
       tempFile.delete()
     }
     worker ! PoisonPill

@@ -25,11 +25,7 @@ import scala.util.Random
 object GetMaster {
   def run(exchange: HttpServerExchange, resolvedPath: Path, candidates: List[List[Repo]]): Unit = candidates match {
     case head :: tail =>
-      val filtered =
-        if (exchange.getRequestURI.endsWith("pom.sha1") || exchange.getRequestURI.endsWith(".pom"))
-          head.filterNot(_.name == "typesafe")
-        else head
-      Repox.system.actorOf(Props(classOf[GetMaster], exchange, resolvedPath, filtered, tail), s"Parent-${Random.nextInt()}")
+      Repox.system.actorOf(Props(classOf[GetMaster], exchange, resolvedPath, head, tail), s"Parent-${Random.nextInt()}")
     case Nil =>
       exchange.setResponseCode(404)
       exchange.endExchange()
@@ -79,7 +75,7 @@ class GetMaster(exchange: HttpServerExchange,
       }
     case GetWorker.Completed(path) =>
       if (sender == chosen) {
-        log.debug(s"getter $sender completed, saved to ${path.toAbsolutePath}")
+        log.debug(s"getter ${sender.path.name} completed, saved to ${path.toAbsolutePath}")
         resolvedPath.getParent.toFile.mkdirs()
         Files.move(path, resolvedPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
         Handlers.resource(new FileResourceManager(Repox.storage.toFile, 100 * 1024)).handleRequest(exchange)
@@ -90,7 +86,7 @@ class GetMaster(exchange: HttpServerExchange,
       }
     case GetWorker.HeadersGot(_) =>
       if (!getterChosen) {
-        log.debug(s"chose $sender, canceling others.")
+        log.debug(s"chose ${sender.path.name}, canceling others.")
         for (others <- children.filterNot(_ == sender())) {
           others ! PeerChosen(sender)
         }
