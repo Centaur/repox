@@ -3,6 +3,7 @@ package com.gtan.repox
 import java.net.URL
 import java.nio.file.{Files, Path, StandardCopyOption}
 
+import akka.actor.SupervisorStrategy.{Escalate, Resume}
 import akka.actor._
 import com.gtan.repox.GetWorker.{WorkerDead, Cleanup, PeerChosen}
 import com.ning.http.client.FluentCaseInsensitiveStringsMap
@@ -11,6 +12,7 @@ import io.undertow.server.HttpServerExchange
 import io.undertow.server.handlers.resource.FileResourceManager
 
 import scala.collection.JavaConverters._
+import scala.language.postfixOps
 import scala.util.Random
 
 /**
@@ -24,8 +26,8 @@ object GetMaster {
   def run(exchange: HttpServerExchange, resolvedPath: Path, candidates: List[List[Repo]]): Unit = candidates match {
     case head :: tail =>
       val filtered =
-        if(exchange.getRequestURI.endsWith("pom.sha1") || exchange.getRequestURI.endsWith(".pom"))
-        head.filterNot(_.name == "typesafe")
+        if (exchange.getRequestURI.endsWith("pom.sha1") || exchange.getRequestURI.endsWith(".pom"))
+          head.filterNot(_.name == "typesafe")
         else head
       Repox.system.actorOf(Props(classOf[GetMaster], exchange, resolvedPath, filtered, tail), s"Parent-${Random.nextInt()}")
     case Nil =>
@@ -38,11 +40,15 @@ class GetMaster(exchange: HttpServerExchange,
                 resolvedPath: Path,
                 thisLevel: List[Repo],
                 nextLevel: List[List[Repo]]) extends Actor with ActorLogging {
+  import scala.concurrent.duration._
 
   val requestHeaders = new FluentCaseInsensitiveStringsMap()
   for (name <- exchange.getRequestHeaders.getHeaderNames.asScala) {
     requestHeaders.add(name.toString, exchange.getRequestHeaders.get(name))
   }
+
+  override val supervisorStrategy =
+    OneForOneStrategy(maxNrOfRetries = 3, withinTimeRange = 1 minute)(super.supervisorStrategy.decider)
 
   val children = for (upstream <- thisLevel) yield {
     val uri = exchange.getRequestURI
@@ -66,7 +72,7 @@ class GetMaster(exchange: HttpServerExchange,
   def receive = {
     case GetWorker.UnsuccessResponseStatus(status) =>
       child404Count += 1
-      if(child404Count == children.length) {
+      if (child404Count == children.length) {
         log.debug(s"all child failed. to next level.")
         GetMaster.run(exchange, resolvedPath, nextLevel)
         self ! PoisonPill
@@ -94,10 +100,9 @@ class GetMaster(exchange: HttpServerExchange,
         sender ! PeerChosen(chosen)
       }
     case WorkerDead =>
-      if (sender == chosen)
-        throw new Exception("Chosen worker dead. Restart and rechoose.")
-      else
+      if (sender != chosen)
         sender ! Cleanup
+      else throw new Exception("Chosen worker dead. Restart and rechoose.")
   }
 
 
