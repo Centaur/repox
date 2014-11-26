@@ -1,6 +1,6 @@
 package com.gtan.repox
 
-import com.gtan.repox.HeaderCache.Found
+import com.gtan.repox.HeaderCache.NotFound
 import com.gtan.repox.Repox.HeaderResponse
 import com.ning.http.client.AsyncHandler.STATE
 import com.ning.http.client.{HttpResponseHeaders, HttpResponseStatus, HttpResponseBodyPart, AsyncHandler}

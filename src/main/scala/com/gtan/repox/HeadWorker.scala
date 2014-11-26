@@ -2,7 +2,7 @@ package com.gtan.repox
 
 import java.net.URL
 
-import com.gtan.repox.HeaderCache.{Found, NotFound}
+import com.gtan.repox.HeaderCache.{Query, NotFound}
 import com.gtan.repox.Repox._
 import com.ning.http.client.FluentCaseInsensitiveStringsMap
 import com.typesafe.scalalogging.LazyLogging
@@ -14,49 +14,58 @@ import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scala.collection.JavaConverters._
 
-class HeadWorker(val exchange: HttpServerExchange) extends LazyLogging {
+class HeadWorker(val exchange: HttpServerExchange, val upstreams: List[Repo]) extends LazyLogging {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
   val uri = exchange.getRequestURI
 
-  private def immediat404(uri: String): Boolean = {
-    Repox.immediat404Rules.exists(_.matches(uri))
-  }
 
   def `try`(times: Int): Unit = {
-    if (immediat404(uri)) {
-      logger.debug(s"$uri immediat 404")
-      exchange.setResponseCode(StatusCodes.NOT_FOUND)
-      exchange.endExchange()
-    } else if (times == 0) {
+    if (times == 0) {
       logger.debug(s"Tried 3 times. Give up.")
       exchange.setResponseCode(StatusCodes.NOT_FOUND)
       exchange.endExchange()
     } else {
-      val blacklistedUpstreams = upstreams.filterNot { repo =>
-        Repox.blacklistRules.exists { rule =>
-          uri.matches(rule.pattern) && rule.repoName == repo.name
-        }
-      }
-      if(blacklistedUpstreams != upstreams) {
-        logger.debug(s"blacklistedUpstream: ${blacklistedUpstreams.map(_.name)}, $uri")
-      }
-      val firstSuccess = Future.find(blacklistedUpstreams.map(run))(_._2 == StatusCodes.OK)
-
-      firstSuccess.onComplete {
-        case Success(Some(Tuple3(upstream, statusCode, headers))) =>
-          logger.info(s"Chose 200 HEAD in ${upstream.name} for $uri")
-          exchange.setResponseCode(StatusCodes.NO_CONTENT) // no content in body
-          for ((k, v) <- headers) {
-            exchange.getResponseHeaders.addAll(new HttpString(k), v.asScala.distinct.asJava)
+      import akka.pattern.ask
+      val filteredUpstreams: Future[List[Repo]] = (headerCache ? Query(uri)).map {
+        case None => // no previous head request, ask
+          logger.debug(s"All candidates will be check for head: $uri....")
+          upstreams
+        case Some(Entry(repos, _)) => // previous head request found candidates
+          if (repos.isEmpty) {
+            logger.debug(s"All candidates will be check for head: $uri")
+            upstreams
+          } else if (repos.size == upstreams.size) {
+            List.empty[Repo]
+          } else {
+            val result = upstreams.filterNot(repos.contains)
+            logger.debug(s"Only check ${result.map(_.name)} for head: $uri....")
+            result
           }
-          exchange.getResponseHeaders.add(new HttpString("Data-Source"), upstream.name)
-          exchange.getResponseChannel // just to avoid mysterious setting Content-length to 0 in endExchange, ugly
+      }
+      for (remain <- filteredUpstreams) {
+        if (remain.isEmpty) {
+          exchange.setResponseCode(StatusCodes.NOT_FOUND)
           exchange.endExchange()
-        case Success(None) | Failure(_) =>
-          logger.info(s"! No headers found for ${exchange.getRequestURI} ")
-          `try`(times - 1)
+        } else {
+          val firstSuccess = Future.find(remain.map(run))(_._2 == StatusCodes.OK)
+
+          firstSuccess.onComplete {
+            case Success(Some(Tuple3(upstream, statusCode, headers))) =>
+              logger.info(s"Chose 200 HEAD in ${upstream.name} for $uri")
+              exchange.setResponseCode(StatusCodes.NO_CONTENT) // no content in body
+              for ((k, v) <- headers) {
+                exchange.getResponseHeaders.addAll(new HttpString(k), v.asScala.distinct.asJava)
+              }
+              exchange.getResponseHeaders.add(new HttpString("Data-Source"), upstream.name)
+              exchange.getResponseChannel // just to avoid mysterious setting Content-length to 0 in endExchange, ugly
+              exchange.endExchange()
+            case Success(None) | Failure(_) =>
+              logger.info(s"! No headers found for ${exchange.getRequestURI} ")
+              `try`(times - 1)
+          }
+        }
       }
     }
   }
@@ -74,18 +83,16 @@ class HeadWorker(val exchange: HttpServerExchange) extends LazyLogging {
     requestHeaders.put(Headers.HOST_STRING, List(upstreamHost).asJava)
 
     val promise = Promise[HeaderResponse]()
-    val jfuture = client.prepareHead(upstreamUrl)
+    client.prepareHead(upstreamUrl)
       .setHeaders(requestHeaders)
       .execute(new HeadAsyncHandler(upstream, promise))
 
     import scala.concurrent.duration._
     val result = TimeoutableFuture(promise.future, after = 3 seconds, name = upstreamHost)
-    result.onComplete {
+    promise.future.onComplete {
       case Success((repo, statusCode, _)) =>
-        if (statusCode != StatusCodes.OK) {
+        if (statusCode == 404) {
           Repox.headerCache ! NotFound(uri, repo)
-        } else {
-          Repox.headerCache ! Found(uri, repo)
         }
       case Failure(t) =>
     }

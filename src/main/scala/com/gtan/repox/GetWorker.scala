@@ -44,7 +44,7 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
   import com.gtan.repox.GetWorker._
 
   val upstreamUrl = upstream.base + uri
-  val handler = new GetAsyncHandler(upstreamUrl, context.self, context.parent)
+  val handler = new GetAsyncHandler(uri, upstream, context.self, context.parent)
 
   import scala.concurrent.duration._
 

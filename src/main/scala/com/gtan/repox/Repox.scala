@@ -31,15 +31,15 @@ object Repox extends LazyLogging {
   val storage = Paths.get(System.getProperty("user.home"), ".repox", "storage")
 
   val upstreams = List(
-    Repo("osc", "http://maven.oschina.net/content/groups/public", priority = 2),
+//    Repo("osc", "http://maven.oschina.net/content/groups/public", priority = 2),
     Repo("koala", "http://nexus.openkoala.org/nexus/content/groups/Koala-release", priority = 1),
     Repo("sbt-plugin", "http://dl.bintray.com/sbt/sbt-plugin-releases", priority = 3),
     Repo("typesafe", "http://repo.typesafe.com/typesafe/releases", priority = 6),
     Repo("sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 3),
 //    Repo("spray", "http://repo.spray.io"),
     Repo("scalaz", "http://dl.bintray.com/scalaz/releases"),
-//    Repo("uk", "http://uk.maven.org/maven2", priority = 5),
-    Repo("central", "http://repo1.maven.org/maven2", priority = 5)
+    Repo("uk", "http://uk.maven.org/maven2", priority = 5)
+//    Repo("central", "http://repo1.maven.org/maven2", priority = 5)
   )
   val blacklistRules = List(
     BlacklistRule("""/org/slf4j/slf4j-parent/.+/slf4j-parent-.+\.pom.*""", "typesafe"),
@@ -109,13 +109,17 @@ object Repox extends LazyLogging {
   val candidates = upstreams.groupBy(_.priority).toList.sortBy(_._1).map(_._2)
   val headerCache = system.actorOf(Props[HeaderCache], "HeaderCache")
 
-  private def reduce(xss: List[List[Repo]], foundIn: Set[Repo]): List[List[Repo]] = {
-    xss.map(_.filter(foundIn.contains)).filter(_.nonEmpty)
+  private def reduce(xss: List[List[Repo]], notFoundIn: Set[Repo]): List[List[Repo]] = {
+    xss.map(_.filterNot(notFoundIn.contains)).filter(_.nonEmpty)
   }
 
   import akka.pattern.ask
   import concurrent.duration._
   implicit val timeout = akka.util.Timeout(1 second)
+
+  private def immediat404(uri: String): Boolean = {
+    Repox.immediat404Rules.exists(_.matches(uri))
+  }
 
   def handle(exchange: HttpServerExchange): Unit = {
     val uri = exchange.getRequestURI
@@ -134,29 +138,19 @@ object Repox extends LazyLogging {
             .put(Headers.CONTENT_TYPE, resource.getContentType(MimeMappings.DEFAULT))
             .put(Headers.LAST_MODIFIED, resource.getLastModifiedString)
           exchange.endExchange()
-          (headerCache ? Query(uri)).onSuccess {
-            case Success(Some(Entry(repos, _))) =>
-              logger.debug(s"Direct HEAD $uri. Found in ${repos.map(_.name)}")
-          }
+          logger.debug(s"Direct HEAD $uri. ")
         } else {
-          (headerCache ? Query(uri)).onComplete {
-            case Success(None) => // no previous head request, ask
-              logger.debug(s"No previous head. Retrieve from upstream $uri....")
-              new HeadWorker(exchange).`try`(times = 3)
-            case Success(Some(Entry(repos, _))) => // previous head request found candidates
-              if (repos.isEmpty) {
-                logger.debug(s"Previous head request found nothing. $uri")
-                new HeadWorker(exchange).`try`(times = 1)
-              } else {
-                logger.debug(s"Head previous got ${repos.map(_.name)}. Retrieve $uri....")
-                new HeadWorker(exchange).`try`(times = 1)
+          if (immediat404(uri)) {
+            logger.debug(s"$uri immediat 404")
+            exchange.setResponseCode(StatusCodes.NOT_FOUND)
+            exchange.endExchange()
+          } else {
+            val blacklistedUpstreams = upstreams.filterNot(_.name == "osc").filterNot { repo =>
+              Repox.blacklistRules.exists { rule =>
+                uri.matches(rule.pattern) && rule.repoName == repo.name
               }
-            case Failure(t) =>
-              t.printStackTrace()
-              exchange.setResponseCode(StatusCodes.INTERNAL_SERVER_ERROR)
-              exchange.endExchange()
-            case _ =>
-              logger.error("this should not happen")
+            }
+            new HeadWorker(exchange, blacklistedUpstreams).`try`(times = 3)
           }
         }
       case "GET" =>
@@ -164,23 +158,19 @@ object Repox extends LazyLogging {
           logger.debug(s"$uri Already downloaded. Serve immediately.")
           Handlers.resource(resourceManager).handleRequest(exchange)
         } else {
+          val smallFileRepo = candidates//if(uri.endsWith(".jar")) candidates else candidates.tail
+
           (headerCache ? Query(uri)).onComplete {
-            case Success(None) => // no previous head request, download
-              logger.debug("No previous head. Start download....")
-              val filtered =
-                if (!uri.endsWith(".jar"))
-                  candidates.tail
-                else candidates
-              GetMaster.run(exchange, resolvedPath, filtered)
+            case Success(None) => // all
+              logger.debug(s"All candidates will be check. Start download $uri ....")
+              GetMaster.run(exchange, resolvedPath, smallFileRepo)
             case Success(Some(Entry(repos, _))) => // previous head request found candidates
               if (repos.isEmpty) {
-                logger.debug("Previous head request found nothing. ")
-                exchange.setResponseCode(StatusCodes.NOT_FOUND)
-                exchange.endExchange()
+                logger.debug(s"All candidates will be check. Start download $uri ....")
+                GetMaster.run(exchange, resolvedPath, smallFileRepo)
               } else {
-                logger.debug(s"Head previous got. Start download $uri ....")
-                val filtered = reduce(candidates, foundIn = repos)
-                logger.debug(s"filtered = ${filtered.map(_.map(_.name))}")
+                val filtered = reduce(smallFileRepo, notFoundIn = repos)
+                logger.debug(s"Check ${filtered.map(_.map(_.name))} only. Start download $uri ....")
                 GetMaster.run(exchange, resolvedPath, filtered)
               }
             case Failure(t) =>

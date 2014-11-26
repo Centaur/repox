@@ -5,12 +5,15 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.{PoisonPill, ActorRef}
 import com.gtan.repox.GetWorker._
-import com.gtan.repox.HeaderCache.Found
+import com.gtan.repox.HeaderCache.NotFound
 import com.ning.http.client.AsyncHandler.STATE
 import com.ning.http.client.{HttpResponseHeaders, HttpResponseStatus, HttpResponseBodyPart, AsyncHandler}
 import com.typesafe.scalalogging.LazyLogging
+import io.undertow.util.StatusCodes
 
-class GetAsyncHandler(val upstreamUrl: String, val worker: ActorRef, val master: ActorRef) extends AsyncHandler[Unit] with LazyLogging {
+class GetAsyncHandler(val uri: String, val repo: Repo, val worker: ActorRef, val master: ActorRef) extends AsyncHandler[Unit] with LazyLogging {
+  val upstreamUrl: String = repo.base + uri
+
   var tempFileOs: OutputStream = null
   var tempFile: File = null
 
@@ -49,6 +52,9 @@ class GetAsyncHandler(val upstreamUrl: String, val worker: ActorRef, val master:
   }
 
   override def onStatusReceived(responseStatus: HttpResponseStatus): STATE = {
+    if(responseStatus.getStatusCode == StatusCodes.NOT_FOUND) {
+      Repox.headerCache ! NotFound(uri, repo)
+    }
     if (canceled.get()) {
       cleanup()
       STATE.ABORT
