@@ -36,7 +36,7 @@ object Repox extends LazyLogging {
     Repo("sbt-plugin", "http://dl.bintray.com/sbt/sbt-plugin-releases", priority = 3),
     Repo("typesafe", "http://repo.typesafe.com/typesafe/releases", priority = 6),
     Repo("sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 3),
-    Repo("spray", "http://repo.spray.io"),
+//    Repo("spray", "http://repo.spray.io"),
     Repo("scalaz", "http://dl.bintray.com/scalaz/releases"),
 //    Repo("uk", "http://uk.maven.org/maven2", priority = 5),
     Repo("central", "http://repo1.maven.org/maven2", priority = 5)
@@ -125,7 +125,6 @@ object Repox extends LazyLogging {
       case "HEAD" =>
         val file = resolvedPath.toFile
         if (file.exists()) {
-          logger.debug(s"Direct HEAD $uri")
           val resource = resourceManager.getResource(uri)
           exchange.setResponseCode(StatusCodes.NO_CONTENT)
           val headers = exchange.getResponseHeaders
@@ -135,6 +134,10 @@ object Repox extends LazyLogging {
             .put(Headers.CONTENT_TYPE, resource.getContentType(MimeMappings.DEFAULT))
             .put(Headers.LAST_MODIFIED, resource.getLastModifiedString)
           exchange.endExchange()
+          (headerCache ? Query(uri)).onSuccess {
+            case Success(Some(Entry(repos, _))) =>
+              logger.debug(s"Direct HEAD $uri. Found in ${repos.map(_.name)}")
+          }
         } else {
           (headerCache ? Query(uri)).onComplete {
             case Success(None) => // no previous head request, ask
