@@ -31,15 +31,14 @@ object Repox extends LazyLogging {
   val storage = Paths.get(System.getProperty("user.home"), ".repox", "storage")
 
   val upstreams = List(
-//    Repo("osc", "http://maven.oschina.net/content/groups/public", priority = 2),
-    Repo("koala", "http://nexus.openkoala.org/nexus/content/groups/Koala-release", priority = 1),
+    Repo("koala", "http://nexus.openkoala.org/nexus/content/groups/Koala-release",
+      priority = 1, getOnly = true),
+    Repo("typesafe", "http://repo.typesafe.com/typesafe/releases", priority = 1),
+    Repo("ibiblio", "http://mirrors.ibiblio.org/maven2/", priority = 2),
+    Repo("sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 2),
     Repo("sbt-plugin", "http://dl.bintray.com/sbt/sbt-plugin-releases", priority = 3),
-    Repo("typesafe", "http://repo.typesafe.com/typesafe/releases", priority = 6),
-    Repo("sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 3),
-//    Repo("spray", "http://repo.spray.io"),
-    Repo("scalaz", "http://dl.bintray.com/scalaz/releases"),
-    Repo("uk", "http://uk.maven.org/maven2", priority = 5)
-//    Repo("central", "http://repo1.maven.org/maven2", priority = 5)
+    Repo("scalaz", "http://dl.bintray.com/scalaz/releases", priority = 3),
+    Repo("central", "http://repo1.maven.org/maven2", priority = 5)
   )
   val blacklistRules = List(
     BlacklistRule("""/org/slf4j/slf4j-parent/.+/slf4j-parent-.+\.pom.*""", "typesafe"),
@@ -48,7 +47,8 @@ object Repox extends LazyLogging {
     BlacklistRule("""/org/apache/commons/commons-parent/.+/commons-parent-.+\.pom.*""", "typesafe"),
     BlacklistRule("""/commons-io/commons-io/.+/commons-io-.+\.pom.*""", "typesafe"),
     BlacklistRule("""/org/sonatype/oss/oss-parent/.+/oss-parent-.+\.pom.*""", "typesafe"),
-    BlacklistRule("""/org/ow2/asm/.+\.pom.*""", "typesafe")
+    BlacklistRule("""/org/ow2/asm/.+\.pom.*""", "typesafe"),
+    BlacklistRule("""/com/ning/.+\.pom.*""", "typesafe")
   )
 
   val immediat404Rules = List(
@@ -91,8 +91,8 @@ object Repox extends LazyLogging {
     .setConnectionTimeoutInMs(6000)
     .setAllowPoolingConnection(true)
     .setAllowSslConnectionPool(true)
-    .setMaximumConnectionsPerHost(1)
-    .setMaximumConnectionsTotal(2)
+    .setMaximumConnectionsPerHost(20)
+    .setMaximumConnectionsTotal(20)
     .setProxyServer(new ProxyServer("127.0.0.1", 8787))
     //    .setIdleConnectionInPoolTimeoutInMs(Int.MaxValue)
     //    .setIdleConnectionTimeoutInMs(Int.MaxValue)
@@ -108,6 +108,7 @@ object Repox extends LazyLogging {
 
   val candidates = upstreams.groupBy(_.priority).toList.sortBy(_._1).map(_._2)
   val headerCache = system.actorOf(Props[HeaderCache], "HeaderCache")
+  val sourceCache = system.actorOf(Props[SourceCache], "SourceCache")
 
   private def reduce(xss: List[List[Repo]], notFoundIn: Set[Repo]): List[List[Repo]] = {
     xss.map(_.filterNot(notFoundIn.contains)).filter(_.nonEmpty)

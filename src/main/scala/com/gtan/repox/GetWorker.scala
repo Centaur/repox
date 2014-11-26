@@ -27,7 +27,7 @@ object GetWorker {
 
   case class HeadersGot(headers: HttpResponseHeaders)
 
-  case class Completed(path: Path)
+  case class Completed(path: Path, repo: Repo)
 
   case class PeerChosen(who: ActorRef)
 

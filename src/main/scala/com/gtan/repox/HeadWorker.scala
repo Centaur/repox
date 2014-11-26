@@ -83,7 +83,10 @@ class HeadWorker(val exchange: HttpServerExchange, val upstreams: List[Repo]) ex
     requestHeaders.put(Headers.HOST_STRING, List(upstreamHost).asJava)
 
     val promise = Promise[HeaderResponse]()
-    client.prepareHead(upstreamUrl)
+
+    val requestMethod = if(upstream.getOnly) client.prepareGet _ else client.prepareHead _
+
+    requestMethod.apply(upstreamUrl)
       .setHeaders(requestHeaders)
       .execute(new HeadAsyncHandler(upstream, promise))
 

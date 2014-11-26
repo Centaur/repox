@@ -35,7 +35,7 @@ class GetAsyncHandler(val uri: String, val repo: Repo, val worker: ActorRef, val
         tempFileOs.close()
       if (tempFile != null) {
         // completed before parent notify PeerChosen or self cancel
-        master.!(Completed(tempFile.toPath))(worker)
+        master.!(Completed(tempFile.toPath, repo))(worker)
       }
     }
   }
