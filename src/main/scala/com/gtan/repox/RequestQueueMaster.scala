@@ -19,7 +19,7 @@ class RequestQueueMaster extends Actor with ActorLogging {
       } else {
         children.get(req) match {
           case None =>
-            val childName = s"RequestQueueWorker_${Random.nextInt()}"
+            val childName = s"GetQueueWorker_${Random.nextInt()}"
             val worker = context.actorOf(Props(classOf[GetQueueWorker]), name = childName)
             children = children.updated(req, worker)
             worker ! req

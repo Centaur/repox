@@ -32,11 +32,11 @@ object Repox extends LazyLogging {
   val upstreams      = List(
     Repo("koala", "http://nexus.openkoala.org/nexus/content/groups/Koala-release",
       priority = 1, getOnly = true),
-    Repo("typesafe", "http://repo.typesafe.com/typesafe/releases", priority = 1),
-    Repo("ibiblio", "http://mirrors.ibiblio.org/maven2/", priority = 2),
-    Repo("sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 2),
-    Repo("sbt-plugin", "http://dl.bintray.com/sbt/sbt-plugin-releases", priority = 3),
-    Repo("scalaz", "http://dl.bintray.com/scalaz/releases", priority = 3),
+    Repo("typesafe", "http://repo.typesafe.com/typesafe/releases", priority = 2),
+    Repo("ibiblio", "http://mirrors.ibiblio.org/maven2/", priority = 3),
+    Repo("sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 3),
+    Repo("sbt-plugin", "http://dl.bintray.com/sbt/sbt-plugin-releases", priority = 4),
+    Repo("scalaz", "http://dl.bintray.com/scalaz/releases", priority = 4),
     Repo("central", "http://repo1.maven.org/maven2", priority = 5)
   )
   val blacklistRules = List(
@@ -108,6 +108,7 @@ object Repox extends LazyLogging {
   val candidates  = upstreams.groupBy(_.priority).toList.sortBy(_._1).map(_._2)
   val headResultCache = system.actorOf(Props[HeadResultCache], "HeaderCache")
   val sourceCache = system.actorOf(Props[SourceCache], "SourceCache")
+  val requestQueueMaster = system.actorOf(Props[RequestQueueMaster], "RequestQueueMaster")
 
   private def reduce(xss: List[List[Repo]], notFoundIn: Set[Repo]): List[List[Repo]] = {
     xss.map(_.filterNot(notFoundIn.contains)).filter(_.nonEmpty)
@@ -171,57 +172,9 @@ object Repox extends LazyLogging {
 
     exchange.getRequestMethod.toString.toUpperCase match {
       case "HEAD" =>
-        val file = resolvedPath.toFile
-        if (file.exists()) {
-          val resource = resourceManager.getResource(uri)
-          exchange.setResponseCode(StatusCodes.NO_CONTENT)
-          val headers = exchange.getResponseHeaders
-          headers.put(Headers.CONTENT_LENGTH, file.length())
-          .put(Headers.SERVER, "repox")
-          .put(Headers.CONNECTION, Headers.KEEP_ALIVE.toString)
-          .put(Headers.CONTENT_TYPE, resource.getContentType(MimeMappings.DEFAULT))
-          .put(Headers.LAST_MODIFIED, resource.getLastModifiedString)
-          exchange.endExchange()
-          logger.debug(s"Direct HEAD $uri. ")
-        } else {
-          if (Repox.immediat404Rules.exists(_.matches(uri))) {
-            immediate404(exchange)
-          } else {
-            val blacklistedUpstreams = upstreams.filterNot(_.name == "osc").filterNot { repo =>
-              Repox.blacklistRules.exists { rule =>
-                uri.matches(rule.pattern) && rule.repoName == repo.name
-              }
-            }
-            new OldHeadWorker(exchange, blacklistedUpstreams).`try`(times = 3)
-          }
-        }
+        requestQueueMaster ! Requests.Head(exchange)
       case "GET" =>
-        if (resolvedPath.toFile.exists()) {
-          immediateFile(exchange)
-        } else {
-          val smallFileRepo = candidates //if(uri.endsWith(".jar")) candidates else candidates.tail
-
-          (headResultCache ? Query(uri)).onComplete {
-            case Success(None) => // all
-              logger.debug(s"All candidates will be check. Start download $uri ....")
-              GetMaster.run(exchange, resolvedPath, smallFileRepo)
-            case Success(Some(Entry(repos, _))) => // previous head request found candidates
-              if (repos.isEmpty) {
-                logger.debug(s"All candidates will be check. Start download $uri ....")
-                GetMaster.run(exchange, resolvedPath, smallFileRepo)
-              } else {
-                val filtered = reduce(smallFileRepo, notFoundIn = repos)
-                logger.debug(s"Check ${filtered.map(_.map(_.name))} only. Start download $uri ....")
-                GetMaster.run(exchange, resolvedPath, filtered)
-              }
-            case Failure(t) =>
-              t.printStackTrace()
-              exchange.setResponseCode(StatusCodes.INTERNAL_SERVER_ERROR)
-              exchange.endExchange()
-            case _ =>
-              logger.error("this should not happen")
-          }
-        }
+        requestQueueMaster ! Requests.Get(exchange)
     }
   }
 

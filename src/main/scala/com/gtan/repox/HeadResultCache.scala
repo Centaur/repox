@@ -14,19 +14,21 @@ import scala.language.postfixOps
  */
 object HeadResultCache {
 
-  case class Query(uri: String)
+  case class Query(uri: String) // answer Set[Repo]
 
   case class NotFound(uri: String, repo: Repo)
+
+  case class ExcludeRepos(repos: Set[Repo])
 
   import scala.concurrent.duration._
 
   val idleTimeout = 1 days
 }
 
-case class Entry(repos: Set[Repo], timestamp: Timestamp)
-
 class HeadResultCache extends Actor with ActorLogging {
-  var data = Map.empty[String, Entry]
+  import HeadResultCache._
+
+  var data = Map.empty[String, Map[Repo, Timestamp]]
 
   def expired(timestamp: Timestamp): Boolean =
     (timestamp + HeadResultCache.idleTimeout).isPast
@@ -34,25 +36,23 @@ class HeadResultCache extends Actor with ActorLogging {
   override def receive = {
     case Query(uri) =>
       data.get(uri) match {
-        case None => sender ! None
-        case entry@Some(Entry(repos, timestamp)) =>
-          if (expired(timestamp)) {
+        case None => sender ! ExcludeRepos(Set.empty[Repo])
+        case Some(map) =>
+          val notFoundAndNotExpired = map.filterNot { case (_, timestamp) => !expired(timestamp)}
+          if(notFoundAndNotExpired.isEmpty){
             data = data - uri
-            sender ! None
           } else {
-            sender ! entry
+            data = data.updated(uri, notFoundAndNotExpired)
           }
+          sender ! ExcludeRepos(notFoundAndNotExpired.keySet)
       }
     case NotFound(uri, repo) =>
       data.get(uri) match {
         case None =>
-          data = data.updated(uri, Entry(Set(repo), Timestamp.now))
-        case Some(Entry(repos, timestamp)) =>
-          if (expired(timestamp)) {
-            data = data.updated(uri, Entry(Set(repo), Timestamp.now))
-          } else {
-            data = data.updated(uri, Entry(repos + repo, Timestamp.now))
-          }
+          data = data.updated(uri, Map(repo -> Timestamp.now))
+        case Some(map) =>
+          val notFoundAndNotExpired = map.filterNot { case (_, timestamp) => !expired(timestamp)}
+          data = data.updated(uri, notFoundAndNotExpired + (repo -> Timestamp.now))
       }
   }
 }

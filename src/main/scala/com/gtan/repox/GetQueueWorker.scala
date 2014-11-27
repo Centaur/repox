@@ -24,7 +24,7 @@ class GetQueueWorker extends Actor with Stash with ActorLogging {
   def working: Receive = {
     case Requests.Get(_) =>
       stash()
-    case result @ GetWorker.Completed(path) =>
+    case result @ GetWorker.Completed(path, repo) =>
       unstashAll()
       context.setReceiveTimeout(1 second)
       context become flushWaiting

@@ -8,7 +8,7 @@ import com.ning.http.client.{AsyncHandler, HttpResponseBodyPart, HttpResponseHea
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.util.StatusCodes
 
-class HeadAsyncHandler(val worker: ActorRef) extends AsyncHandler[Unit] with LazyLogging {
+class HeadAsyncHandler(val worker: ActorRef,val uri: String, val repo: Repo) extends AsyncHandler[Unit] with LazyLogging {
   var statusCode = 200
 
   private val canceled = new AtomicBoolean(false)
@@ -34,8 +34,8 @@ class HeadAsyncHandler(val worker: ActorRef) extends AsyncHandler[Unit] with Laz
     if (!canceled.get) {
       statusCode = responseStatus.getStatusCode
       statusCode match {
-        case StatusCodes.OK =>
-          Repox.headResultCache !
+        case StatusCodes.NOT_FOUND =>
+          Repox.headResultCache ! HeadResultCache.NotFound(uri, repo)
       }
       STATE.CONTINUE
     } else STATE.ABORT
@@ -44,7 +44,7 @@ class HeadAsyncHandler(val worker: ActorRef) extends AsyncHandler[Unit] with Laz
   override def onHeadersReceived(headers: HttpResponseHeaders): STATE = {
     if (!canceled.get) {
       import scala.collection.JavaConverters._
-      worker ! HeadWorker.Returned(statusCode, mapAsScalaMapConverter(headers.getHeaders).asScala.toMap)
+      worker ! HeadWorker.Responded(statusCode, mapAsScalaMapConverter(headers.getHeaders).asScala.toMap)
     }
     STATE.ABORT
   }
