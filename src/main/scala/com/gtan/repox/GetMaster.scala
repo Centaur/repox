@@ -6,7 +6,7 @@ import java.nio.file.{Files, Path, StandardCopyOption}
 import akka.actor.SupervisorStrategy.{Escalate, Resume}
 import akka.actor._
 import com.gtan.repox.GetWorker.{WorkerDead, Cleanup, PeerChosen}
-import com.gtan.repox.HeaderCache.Query
+import com.gtan.repox.HeadResultCache.Query
 import com.gtan.repox.SourceCache.{WhichRepo, Clear, Source}
 import com.ning.http.client.FluentCaseInsensitiveStringsMap
 import com.typesafe.scalalogging.LazyLogging
@@ -45,8 +45,7 @@ object GetMaster extends LazyLogging {
         } else
           Repox.system.actorOf(Props(classOf[GetMaster], exchange, resolvedPath, head, tail), s"Parent-${Random.nextInt()}")
       case Nil =>
-        exchange.setResponseCode(404)
-        exchange.endExchange()
+        Repox.respond404(exchange, cause = "no head found in any of upstream repos")
     }
   }
 }

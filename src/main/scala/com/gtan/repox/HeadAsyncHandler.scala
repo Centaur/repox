@@ -1,18 +1,25 @@
 package com.gtan.repox
 
-import com.gtan.repox.HeaderCache.NotFound
-import com.gtan.repox.Repox.HeaderResponse
+import java.util.concurrent.atomic.AtomicBoolean
+
+import akka.actor.ActorRef
 import com.ning.http.client.AsyncHandler.STATE
-import com.ning.http.client.{HttpResponseHeaders, HttpResponseStatus, HttpResponseBodyPart, AsyncHandler}
+import com.ning.http.client.{AsyncHandler, HttpResponseBodyPart, HttpResponseHeaders, HttpResponseStatus}
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.util.StatusCodes
 
-import scala.concurrent.Promise
-
-class HeadAsyncHandler(val upstream: Repo, val promise: Promise[HeaderResponse]) extends AsyncHandler[Unit] with LazyLogging{
+class HeadAsyncHandler(val worker: ActorRef) extends AsyncHandler[Unit] with LazyLogging {
   var statusCode = 200
 
-  override def onThrowable(t: Throwable): Unit = promise.failure(t)
+  private val canceled = new AtomicBoolean(false)
+
+  def cancel(): Unit = {
+    canceled.set(true)
+  }
+
+  override def onThrowable(t: Throwable): Unit = {
+    worker ! HeadWorker.Failed(t)
+  }
 
   override def onCompleted(): Unit = {
     /* we don't get here actually */
@@ -24,16 +31,20 @@ class HeadAsyncHandler(val upstream: Repo, val promise: Promise[HeaderResponse])
   }
 
   override def onStatusReceived(responseStatus: HttpResponseStatus): STATE = {
-    if (!promise.isCompleted) {
+    if (!canceled.get) {
       statusCode = responseStatus.getStatusCode
+      statusCode match {
+        case StatusCodes.OK =>
+          Repox.headResultCache !
+      }
       STATE.CONTINUE
     } else STATE.ABORT
   }
 
   override def onHeadersReceived(headers: HttpResponseHeaders): STATE = {
-    if (!promise.isCompleted) {
+    if (!canceled.get) {
       import scala.collection.JavaConverters._
-      promise.success(upstream, statusCode, mapAsScalaMapConverter(headers.getHeaders).asScala.toMap)
+      worker ! HeadWorker.Returned(statusCode, mapAsScalaMapConverter(headers.getHeaders).asScala.toMap)
     }
     STATE.ABORT
   }

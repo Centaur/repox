@@ -1,7 +1,7 @@
 package com.gtan.repox
 
 import akka.actor.{Actor, ActorLogging}
-import com.gtan.repox.HeaderCache.{NotFound, Query}
+import com.gtan.repox.HeadResultCache.{NotFound, Query}
 
 import scala.language.postfixOps
 
@@ -12,7 +12,7 @@ import scala.language.postfixOps
  * Date: 14/11/24
  * Time: 下午10:55
  */
-object HeaderCache {
+object HeadResultCache {
 
   case class Query(uri: String)
 
@@ -25,11 +25,11 @@ object HeaderCache {
 
 case class Entry(repos: Set[Repo], timestamp: Timestamp)
 
-class HeaderCache extends Actor with ActorLogging {
+class HeadResultCache extends Actor with ActorLogging {
   var data = Map.empty[String, Entry]
 
   def expired(timestamp: Timestamp): Boolean =
-    (timestamp + HeaderCache.idleTimeout).isPast
+    (timestamp + HeadResultCache.idleTimeout).isPast
 
   override def receive = {
     case Query(uri) =>

@@ -5,21 +5,20 @@ import java.nio.file.Paths
 import java.util.Date
 
 import akka.actor.{Props, ActorSystem}
-import com.gtan.repox.HeaderCache.Query
+import com.gtan.repox.HeadResultCache.Query
 import com.ning.http.client._
 import com.ning.http.client.resumable.ResumableIOExceptionFilter
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.Handlers
 import io.undertow.server.HttpServerExchange
 import io.undertow.server.handlers.resource.FileResourceManager
-import io.undertow.util.{StatusCodes, MimeMappings, Headers, HttpString}
+import io.undertow.util._
 
 import scala.collection.JavaConverters._
 import scala.collection.Set
 import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
-
 
 object Repox extends LazyLogging {
 
@@ -30,7 +29,7 @@ object Repox extends LazyLogging {
 
   val storage = Paths.get(System.getProperty("user.home"), ".repox", "storage")
 
-  val upstreams = List(
+  val upstreams      = List(
     Repo("koala", "http://nexus.openkoala.org/nexus/content/groups/Koala-release",
       priority = 1, getOnly = true),
     Repo("typesafe", "http://repo.typesafe.com/typesafe/releases", priority = 1),
@@ -41,14 +40,14 @@ object Repox extends LazyLogging {
     Repo("central", "http://repo1.maven.org/maven2", priority = 5)
   )
   val blacklistRules = List(
-    BlacklistRule("""/org/slf4j/slf4j-parent/.+/slf4j-parent-.+\.pom.*""", "typesafe"),
-    BlacklistRule("""/com/ning/async-http-client/.+/async-http-client-.+\.pom.*""", "typesafe"),
-    BlacklistRule("""/org/apache/apache/.+/apache-.+\.pom*""", "typesafe"),
-    BlacklistRule("""/org/apache/commons/commons-parent/.+/commons-parent-.+\.pom.*""", "typesafe"),
-    BlacklistRule("""/commons-io/commons-io/.+/commons-io-.+\.pom.*""", "typesafe"),
-    BlacklistRule("""/org/sonatype/oss/oss-parent/.+/oss-parent-.+\.pom.*""", "typesafe"),
-    BlacklistRule("""/org/ow2/asm/.+\.pom.*""", "typesafe"),
-    BlacklistRule("""/com/ning/.+\.pom.*""", "typesafe")
+    BlacklistRule( """/org/slf4j/slf4j-parent/.+/slf4j-parent-.+\.pom.*""", "typesafe"),
+    BlacklistRule( """/com/ning/async-http-client/.+/async-http-client-.+\.pom.*""", "typesafe"),
+    BlacklistRule( """/org/apache/apache/.+/apache-.+\.pom*""", "typesafe"),
+    BlacklistRule( """/org/apache/commons/commons-parent/.+/commons-parent-.+\.pom.*""", "typesafe"),
+    BlacklistRule( """/commons-io/commons-io/.+/commons-io-.+\.pom.*""", "typesafe"),
+    BlacklistRule( """/org/sonatype/oss/oss-parent/.+/oss-parent-.+\.pom.*""", "typesafe"),
+    BlacklistRule( """/org/ow2/asm/.+\.pom.*""", "typesafe"),
+    BlacklistRule( """/com/ning/.+\.pom.*""", "typesafe")
   )
 
   val immediat404Rules = List(
@@ -72,32 +71,32 @@ object Repox extends LazyLogging {
     Immediate404Rule( """/org\.fusesource\.leveldbjni/.+-sources\.jar"""),
     Immediate404Rule( """.*/jsr305.*\-sources\.jar""")
   )
-  val client = new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
-    .addIOExceptionFilter(new ResumableIOExceptionFilter())
-    .setRequestTimeoutInMs(Int.MaxValue)
-    .setConnectionTimeoutInMs(6000)
-    .setAllowPoolingConnection(true)
-    .setAllowSslConnectionPool(true)
-    .setMaximumConnectionsPerHost(10)
-    .setMaximumConnectionsTotal(200)
-    //    .setIdleConnectionInPoolTimeoutInMs(Int.MaxValue)
-    //    .setIdleConnectionTimeoutInMs(Int.MaxValue)
-    .setFollowRedirects(true)
-    .build()
+  val client           = new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
+                                             .addIOExceptionFilter(new ResumableIOExceptionFilter())
+                                             .setRequestTimeoutInMs(Int.MaxValue)
+                                             .setConnectionTimeoutInMs(6000)
+                                             .setAllowPoolingConnection(true)
+                                             .setAllowSslConnectionPool(true)
+                                             .setMaximumConnectionsPerHost(10)
+                                             .setMaximumConnectionsTotal(200)
+                                             //    .setIdleConnectionInPoolTimeoutInMs(Int.MaxValue)
+                                             //    .setIdleConnectionTimeoutInMs(Int.MaxValue)
+                                             .setFollowRedirects(true)
+                                             .build()
   )
-  val proxyClient = new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
-    .addIOExceptionFilter(new ResumableIOExceptionFilter())
-    .setRequestTimeoutInMs(Int.MaxValue)
-    .setConnectionTimeoutInMs(6000)
-    .setAllowPoolingConnection(true)
-    .setAllowSslConnectionPool(true)
-    .setMaximumConnectionsPerHost(20)
-    .setMaximumConnectionsTotal(20)
-    .setProxyServer(new ProxyServer("127.0.0.1", 8787))
-    //    .setIdleConnectionInPoolTimeoutInMs(Int.MaxValue)
-    //    .setIdleConnectionTimeoutInMs(Int.MaxValue)
-    .setFollowRedirects(true)
-    .build()
+  val proxyClient      = new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
+                                             .addIOExceptionFilter(new ResumableIOExceptionFilter())
+                                             .setRequestTimeoutInMs(Int.MaxValue)
+                                             .setConnectionTimeoutInMs(6000)
+                                             .setAllowPoolingConnection(true)
+                                             .setAllowSslConnectionPool(true)
+                                             .setMaximumConnectionsPerHost(20)
+                                             .setMaximumConnectionsTotal(20)
+                                             .setProxyServer(new ProxyServer("127.0.0.1", 8787))
+                                             //    .setIdleConnectionInPoolTimeoutInMs(Int.MaxValue)
+                                             //    .setIdleConnectionTimeoutInMs(Int.MaxValue)
+                                             .setFollowRedirects(true)
+                                             .build()
   )
 
   val resourceManager = new FileResourceManager(storage.toFile, 100 * 1024)
@@ -106,8 +105,8 @@ object Repox extends LazyLogging {
   type ResponseHeaders = Map[String, java.util.List[String]]
   type HeaderResponse = (Repo, StatusCode, ResponseHeaders)
 
-  val candidates = upstreams.groupBy(_.priority).toList.sortBy(_._1).map(_._2)
-  val headerCache = system.actorOf(Props[HeaderCache], "HeaderCache")
+  val candidates  = upstreams.groupBy(_.priority).toList.sortBy(_._1).map(_._2)
+  val headResultCache = system.actorOf(Props[HeadResultCache], "HeaderCache")
   val sourceCache = system.actorOf(Props[SourceCache], "SourceCache")
 
   private def reduce(xss: List[List[Repo]], notFoundIn: Set[Repo]): List[List[Repo]] = {
@@ -118,8 +117,52 @@ object Repox extends LazyLogging {
   import concurrent.duration._
   implicit val timeout = akka.util.Timeout(1 second)
 
-  private def immediat404(uri: String): Boolean = {
-    Repox.immediat404Rules.exists(_.matches(uri))
+  def respond404(exchange: HttpServerExchange, cause: String): Unit = {
+    exchange.setResponseCode(StatusCodes.NOT_FOUND)
+    exchange.endExchange()
+    logger.debug(cause)
+  }
+
+  def immediate404(exchange: HttpServerExchange): Unit ={
+    respond404(exchange, cause = s"Immediate 404 ${exchange.getRequestURI}.")
+  }
+
+  /**
+   * this is the one and only truth
+   * @param uri resource to get or query
+   * @return
+   */
+  def downloaded(uri: String): Boolean = {
+    storage.resolve(uri.tail).toFile.exists
+  }
+
+  def immediateFile(exchange: HttpServerExchange): Unit = {
+    Handlers.resource(resourceManager).handleRequest(exchange)
+    logger.debug(s"Immediate file ${exchange.getRequestURI}.")
+  }
+
+  def respondHead(exchange: HttpServerExchange, headers: ResponseHeaders): Unit = {
+    exchange.setResponseCode(StatusCodes.NO_CONTENT)
+    val target = exchange.getResponseHeaders
+    for((k, v) <- headers)
+      target.putAll(new HttpString(k), v)
+    exchange.getResponseChannel // just to avoid mysterious setting Content-length to 0 in endExchange, ugly
+    exchange.endExchange()
+  }
+
+  def immediateHead(exchange: HttpServerExchange): Unit = {
+    val uri = exchange.getRequestURI
+    val resource = resourceManager.getResource(uri)
+    exchange.setResponseCode(StatusCodes.NO_CONTENT)
+    val headers = exchange.getResponseHeaders
+    headers.put(Headers.CONTENT_LENGTH, resource.getContentLength)
+    .put(Headers.SERVER, "repox")
+    .put(Headers.CONNECTION, Headers.KEEP_ALIVE.toString)
+    .put(Headers.CONTENT_TYPE, resource.getContentType(MimeMappings.DEFAULT))
+    .put(Headers.LAST_MODIFIED, resource.getLastModifiedString)
+    exchange.getResponseChannel // just to avoid mysterious setting Content-length to 0 in endExchange, ugly
+    exchange.endExchange()
+    logger.debug(s"Immediate head $uri. ")
   }
 
   def handle(exchange: HttpServerExchange): Unit = {
@@ -133,35 +176,32 @@ object Repox extends LazyLogging {
           val resource = resourceManager.getResource(uri)
           exchange.setResponseCode(StatusCodes.NO_CONTENT)
           val headers = exchange.getResponseHeaders
-          headers.put(Headers.CONTENT_TYPE, file.length())
-            .put(Headers.SERVER, "repox")
-            .put(Headers.CONNECTION, Headers.KEEP_ALIVE.toString)
-            .put(Headers.CONTENT_TYPE, resource.getContentType(MimeMappings.DEFAULT))
-            .put(Headers.LAST_MODIFIED, resource.getLastModifiedString)
+          headers.put(Headers.CONTENT_LENGTH, file.length())
+          .put(Headers.SERVER, "repox")
+          .put(Headers.CONNECTION, Headers.KEEP_ALIVE.toString)
+          .put(Headers.CONTENT_TYPE, resource.getContentType(MimeMappings.DEFAULT))
+          .put(Headers.LAST_MODIFIED, resource.getLastModifiedString)
           exchange.endExchange()
           logger.debug(s"Direct HEAD $uri. ")
         } else {
-          if (immediat404(uri)) {
-            logger.debug(s"$uri immediat 404")
-            exchange.setResponseCode(StatusCodes.NOT_FOUND)
-            exchange.endExchange()
+          if (Repox.immediat404Rules.exists(_.matches(uri))) {
+            immediate404(exchange)
           } else {
             val blacklistedUpstreams = upstreams.filterNot(_.name == "osc").filterNot { repo =>
               Repox.blacklistRules.exists { rule =>
                 uri.matches(rule.pattern) && rule.repoName == repo.name
               }
             }
-            new HeadWorker(exchange, blacklistedUpstreams).`try`(times = 3)
+            new OldHeadWorker(exchange, blacklistedUpstreams).`try`(times = 3)
           }
         }
       case "GET" =>
         if (resolvedPath.toFile.exists()) {
-          logger.debug(s"$uri Already downloaded. Serve immediately.")
-          Handlers.resource(resourceManager).handleRequest(exchange)
+          immediateFile(exchange)
         } else {
-          val smallFileRepo = candidates//if(uri.endsWith(".jar")) candidates else candidates.tail
+          val smallFileRepo = candidates //if(uri.endsWith(".jar")) candidates else candidates.tail
 
-          (headerCache ? Query(uri)).onComplete {
+          (headResultCache ? Query(uri)).onComplete {
             case Success(None) => // all
               logger.debug(s"All candidates will be check. Start download $uri ....")
               GetMaster.run(exchange, resolvedPath, smallFileRepo)

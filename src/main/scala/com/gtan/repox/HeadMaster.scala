@@ -3,8 +3,11 @@ package com.gtan.repox
 import akka.actor.Actor.Receive
 import akka.actor._
 import com.gtan.repox.Repox.ResponseHeaders
+import com.ning.http.client.FluentCaseInsensitiveStringsMap
 import io.undertow.server.HttpServerExchange
-import io.undertow.util.StatusCodes
+import io.undertow.util.{Headers, StatusCodes}
+import collection.JavaConverters._
+import scala.util.Random
 
 /**
  * Created by xf on 14/11/26.
@@ -12,32 +15,28 @@ import io.undertow.util.StatusCodes
 
 object HeadMaster {
   trait HeadResult
-  case class FoundIn(repo: Repo, headers: ResponseHeaders) extends HeadResult
-  case class NotFound(repo: Repo, statusCode: Int) extends HeadResult
+  case class FoundIn(repo: Repo, headers: ResponseHeaders, exchange: HttpServerExchange) extends HeadResult
+  case class NotFound(repo: Repo, exchange: HttpServerExchange) extends HeadResult
   case class HeadTimeout(repo: Repo) extends HeadResult
 }
 
-class HeadMaster(exchange: HttpServerExchange) extends Actor with ActorLogging{
+class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLogging{
   import com.gtan.repox.HeadMaster._
 
   val uri = exchange.getRequestURI
 
-  private def immediat404(uri: String): Boolean = {
-    Repox.immediat404Rules.exists(_.matches(uri))
+  val requestHeaders = new FluentCaseInsensitiveStringsMap()
+  for (name <- exchange.getRequestHeaders.getHeaderNames.asScala) {
+    requestHeaders.add(name.toString, exchange.getRequestHeaders.get(name))
   }
+  requestHeaders.put(Headers.ACCEPT_ENCODING_STRING, List("identity").asJava)
 
-  if(immediat404(uri)) {
-    log.debug(s"$uri immediat 404")
-    exchange.setResponseCode(StatusCodes.NOT_FOUND)
-    exchange.endExchange()
-    self ! PoisonPill
-  }
 
   val children = for(upstream <- Repox.upstreams) yield {
-    val childName = upstream.name
+    val childName = s"HeaderWorker_${upstream.name}_${Random.nextInt()}"
     context.actorOf(
-      Props(classOf[HeadWorker], upstream, uri),
-      name = s"Header_$childName")
+      Props(classOf[HeadWorker], upstream, uri, requestHeaders),
+      name = childName)
   }
 
   var resultMap = Map.empty[ActorRef, HeadResult]
@@ -49,23 +48,18 @@ class HeadMaster(exchange: HttpServerExchange) extends Actor with ActorLogging{
       finishedChildren += 1
       resultMap = resultMap.updated(sender(), msg)
       if(resultMap.isEmpty){ // first 200
-        exchange.setResponseCode(StatusCodes.NO_CONTENT) // no content in body
-        exchange.getResponseHeaders
-        exchange.getResponseChannel // just to avoid mysterious setting Content-length to 0 in endExchange, ugly
-        exchange.endExchange()
+        context.parent ! Foundin(repo, headers, exchange)
+        self ! PoisonPill
       }
       if(finishedChildren == children.size) {
-        Repox.headerCache ! resultMap
         self ! PoisonPill
       }
     case msg @ NotFound(repo, statusCode) =>
       finishedChildren += 1
       resultMap = resultMap.updated(sender(), msg)
-      if(finishedChildren == children.size) {
+      if(finishedChildren == children.size) { // all return 404
         if(retryTimes == 3) {
-          exchange.setResponseCode(StatusCodes.NOT_FOUND)
-          exchange.endExchange()
-          Repox.headerCache ! resultMap
+          context.parent ! NotFound(exchange)
           self ! PoisonPill
         } else {
         }
@@ -76,7 +70,7 @@ class HeadMaster(exchange: HttpServerExchange) extends Actor with ActorLogging{
       if(finishedChildren == children.size) {
         exchange.setResponseCode(StatusCodes.NOT_FOUND)
         exchange.endExchange()
-        Repox.headerCache ! resultMap
+        Repox.headResultCache ! resultMap
         self ! PoisonPill
       }
 
