@@ -19,9 +19,6 @@ object HeadWorker {
 
   case class Failed(t: Throwable)
 
-  // send by HeaderMaster
-  case class PeerChosen(peer: Repo)
-
 }
 
 class HeadWorker(val repo: Repo,
@@ -47,22 +44,22 @@ class HeadWorker(val repo: Repo,
     case Responded(statusCode, headers) =>
       statusCode match {
         case StatusCodes.OK =>
+          log.debug(s"HeadWorker ${repo.name} 200. $uri")
           context.parent ! HeadMaster.FoundIn(repo, headers)
         case StatusCodes.NOT_FOUND =>
+          log.debug(s"HeadWorker ${repo.name} got 404.  $uri")
           context.parent ! HeadMaster.NotFound(repo)
         case _ =>
           // server error? further feature may use failed time information
+          log.debug(s"HeadWorker ${repo.name} got undetermined result. $uri")
           context.parent ! HeadMaster.HeadTimeout(repo)
       }
     case Failed(t) =>
       // further feature may use failed time information
+      log.debug(s"HeadWorker ${repo.name} failed. $uri")
       context.parent ! HeadMaster.HeadTimeout(repo)
     case ReceiveTimeout =>
+      log.debug(s"HeadWorker ${repo.name} timeout. $uri")
       context.parent ! HeadMaster.HeadTimeout(repo)
-    case PeerChosen(peer) =>
-      log.debug(s"HeadMaster chose ${repo.name}, cancel myself ${sender().path.name}.")
-      handler.cancel()
-      self ! PoisonPill
-
   }
 }

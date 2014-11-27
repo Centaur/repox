@@ -90,7 +90,7 @@ object Repox extends LazyLogging {
                                              .setConnectionTimeoutInMs(6000)
                                              .setAllowPoolingConnection(true)
                                              .setAllowSslConnectionPool(true)
-                                             .setMaximumConnectionsPerHost(20)
+                                             .setMaximumConnectionsPerHost(10)
                                              .setMaximumConnectionsTotal(20)
                                              .setProxyServer(new ProxyServer("127.0.0.1", 8787))
                                              //    .setIdleConnectionInPoolTimeoutInMs(Int.MaxValue)

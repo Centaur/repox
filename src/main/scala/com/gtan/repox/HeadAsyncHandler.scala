@@ -18,6 +18,7 @@ class HeadAsyncHandler(val worker: ActorRef,val uri: String, val repo: Repo) ext
   }
 
   override def onThrowable(t: Throwable): Unit = {
+    t.printStackTrace()
     worker ! HeadWorker.Failed(t)
   }
 
@@ -36,12 +37,14 @@ class HeadAsyncHandler(val worker: ActorRef,val uri: String, val repo: Repo) ext
       statusCode match {
         case StatusCodes.NOT_FOUND =>
           Repox.headResultCache ! HeadResultCache.NotFound(uri, repo)
+        case _ =>
       }
       STATE.CONTINUE
     } else STATE.ABORT
   }
 
   override def onHeadersReceived(headers: HttpResponseHeaders): STATE = {
+    logger.debug(s"HeadAsyncHandler of ${worker.path.name} got header. canceled = ${canceled.get}")
     if (!canceled.get) {
       import scala.collection.JavaConverters._
       worker ! HeadWorker.Responded(statusCode, mapAsScalaMapConverter(headers.getHeaders).asScala.toMap)

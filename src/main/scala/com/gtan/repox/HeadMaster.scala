@@ -51,7 +51,7 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
         self ! PoisonPill
       }
       children = for(upstream <- candidateRepos) yield {
-        val childName = s"HeaderWorker_${upstream.name}_${Random.nextInt()}"
+        val childName = s"HeadWorker_${upstream.name}_${Random.nextInt()}"
         context.actorOf(
           Props(classOf[HeadWorker], upstream, uri, requestHeaders),
           name = childName)
@@ -62,15 +62,18 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
 
   def working: Receive = {
     case msg @ FoundIn(repo, headers) =>
+      log.debug(s"HeadMaster $uri found in ${repo.name}")
       finishedChildren += 1
       if(finishedChildren == 1){ // first 200
         context.parent ! HeadQueueWorker.FoundIn(repo, headers, exchange)
         self ! PoisonPill
       }
     case msg @ NotFound(repo) =>
+      log.debug(s"HeadMaster $uri not found in ${repo.name}")
       finishedChildren += 1
       allReturned()
     case msg @ HeadTimeout(repo) =>
+      log.debug(s"HeadMaster $uri timeout")
       finishedChildren += 1
       allReturned()
   }
@@ -80,6 +83,7 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
       retryTimes += 1
       if(retryTimes == 3) {
         context.parent ! HeadQueueWorker.NotFound(exchange)
+        log.debug(s"retried 3 times, give up.")
         self ! PoisonPill
       } else {
         log.debug("All headworkers return 404. retry.")
