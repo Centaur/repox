@@ -12,16 +12,24 @@ import scala.util.Random
 
 object GetQueueWorker {
   case class Get404(uri: String)
-  case class Completed(path: Path, repo: Repo, exchange: HttpServerExchange)
+  case class Completed(path: Path, repo: Repo)
 }
-class GetQueueWorker extends Actor with Stash with ActorLogging {
+class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging {
   import GetQueueWorker._
 
   override def receive = idle
 
   def idle: Receive = {
-    case Requests.Get(exchange) =>
-      val uri = exchange.getRequestURI
+    case Requests.Download(u) =>
+      assert(u == uri)
+      if(!Repox.downloaded(uri)){
+        log.info(s"$uri not downloaded. Downloading.")
+        val resolvedPath = Repox.storage.resolve(uri.tail)
+        context.actorOf(Props(classOf[GetMaster], uri, resolvedPath), s"DownloadMaster_${Random.nextInt()}")
+      }
+      context become working
+    case msg@Requests.Get(exchange) =>
+      assert(uri == exchange.getRequestURI)
       if (Repox.downloaded(uri)) {
         log.info(s"$uri downloaded. Serve immediately.")
         Repox.immediateFile(exchange)
@@ -29,7 +37,10 @@ class GetQueueWorker extends Actor with Stash with ActorLogging {
       } else {
         log.info(s"$uri not downloaded. Downloading.")
         val resolvedPath = Repox.storage.resolve(uri.tail)
-        context.actorOf(Props(classOf[GetMaster], exchange, resolvedPath), s"GetMaster_${Random.nextInt}")
+        context.actorOf(Props(classOf[GetMaster], uri, resolvedPath), s"GetMaster_${Random.nextInt()}")
+        self ! msg
+        if(!uri.endsWith(".sha1"))
+          context.parent ! Requests.Download(uri + ".sha1")
         context become working
       }
   }
@@ -37,14 +48,13 @@ class GetQueueWorker extends Actor with Stash with ActorLogging {
   def working: Receive = {
     case Requests.Get(_) =>
       stash()
-    case result @ Completed(path, repo, exchange) =>
-      log.debug(s"GetQueue completed $path")
-      Repox.immediateFile(exchange)
+    case result @ Completed(path, repo) =>
+      log.debug(s"GetQueueWorker completed $uri")
       unstashAll()
       context.setReceiveTimeout(1 second)
       context become flushWaiting
-    case Get404(uri) =>
-      log.debug(s"GetQueueWorker 404 $uri")
+    case Get404(u) =>
+      log.debug(s"GetQueueWorker 404 $u")
       unstashAll()
       context.setReceiveTimeout(1 second)
       context become flushWaiting
@@ -52,8 +62,9 @@ class GetQueueWorker extends Actor with Stash with ActorLogging {
 
   def flushWaiting: Receive = {
     case Requests.Get(exchange) =>
+      log.debug(s"flushWaiting $exchange")
       Repox.immediateFile(exchange)
-      exchange.endExchange
+//      exchange.endExchange
     case ReceiveTimeout =>
       self ! PoisonPill
   }

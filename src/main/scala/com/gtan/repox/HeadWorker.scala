@@ -4,7 +4,6 @@ import java.net.URL
 
 import akka.actor._
 import com.gtan.repox.HeadMaster.{HeadTimeout, NotFound, FoundIn}
-import com.gtan.repox.Repox._
 import com.ning.http.client.FluentCaseInsensitiveStringsMap
 import io.undertow.server.HttpServerExchange
 import io.undertow.util.{Headers, StatusCodes}
@@ -34,6 +33,11 @@ class HeadWorker(val repo: Repo,
 
   val upstreamHost = new URL(upstreamUrl).getHost
   requestHeaders.put(Headers.HOST_STRING, List(upstreamHost).asJava)
+
+  val client = repo.name match {
+    case "typesafe" => Repox.proxyClient
+    case _ => Repox.client
+  }
 
   val requestMethod = if (repo.getOnly) client.prepareGet _ else client.prepareHead _
   requestMethod.apply(upstreamUrl)

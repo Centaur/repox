@@ -76,7 +76,9 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
       handler.cancel()
 
     case ReceiveTimeout =>
-      context.parent ! WorkerDead
+      context.parent ! Failed(new RuntimeException("Chosen worker timeout"))
+      handler.cancel()
+      self ! PoisonPill
 
     case HeartBeat(length) =>
       downloaded += length
@@ -98,7 +100,7 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
       }
       downloaded = 0
       percentage = 0.0
-      context.setReceiveTimeout(20 seconds)
+      context.setReceiveTimeout(9 seconds)
   }
 
 

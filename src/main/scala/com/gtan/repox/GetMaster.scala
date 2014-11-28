@@ -17,6 +17,7 @@ import io.undertow.server.handlers.resource.FileResourceManager
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.Random
+import scala.util.Random
 
 /**
  * Created by IntelliJ IDEA.
@@ -35,16 +36,15 @@ object GetMaster extends LazyLogging {
   implicit val timeout = new akka.util.Timeout(1 seconds)
 }
 
-class GetMaster(exchange: HttpServerExchange,
+class GetMaster(uri: String,
                 resolvedPath: Path) extends Actor with ActorLogging {
 
   import scala.concurrent.duration._
 
-  val uri = exchange.getRequestURI
-  val requestHeaders = new FluentCaseInsensitiveStringsMap()
-  for (name <- exchange.getRequestHeaders.getHeaderNames.asScala) {
-    requestHeaders.add(name.toString, exchange.getRequestHeaders.get(name))
-  }
+//  val requestHeaders = new FluentCaseInsensitiveStringsMap()
+//  for (name <- exchange.getRequestHeaders.getHeaderNames.asScala) {
+//    requestHeaders.add(name.toString, exchange.getRequestHeaders.get(name))
+//  }
 
   override val supervisorStrategy =
     OneForOneStrategy(maxNrOfRetries = 3, withinTimeRange = 1 minute)(super.supervisorStrategy.decider)
@@ -72,9 +72,10 @@ class GetMaster(exchange: HttpServerExchange,
       children = for (upstream <- thisLevel) yield {
         val upstreamUrl = upstream.base + uri
         val upstreamHost = new URL(upstreamUrl).getHost
+        val requestHeaders = new FluentCaseInsensitiveStringsMap()
         requestHeaders.put("Host", List(upstreamHost).asJava)
         requestHeaders.put("Accept-Encoding", List("identity").asJava)
-        val childActorName = upstream.name
+        val childActorName = s"${upstream.name}_${Random.nextInt()}"
         context.actorOf(
           Props(classOf[GetWorker], upstream, uri, requestHeaders),
           name = s"GetWorker_$childActorName"
@@ -84,7 +85,7 @@ class GetMaster(exchange: HttpServerExchange,
   }
 
   def askHead404Cache(): Unit = {
-    Repox.head404Cache ! Query(exchange.getRequestURI)
+    Repox.head404Cache ! Query(uri)
   }
 
   askHead404Cache()
@@ -93,19 +94,26 @@ class GetMaster(exchange: HttpServerExchange,
 
   def working: Receive = {
     case GetWorker.Failed(t) =>
-      childFailCount += 1
-      if (childFailCount == children.length) {
-        candidateRepos match {
-          case Nil =>
-            log.info(s"GetMaster all child failed. 404")
-            context.parent ! GetQueueWorker.Get404(uri)
-            self ! PoisonPill
-          case head :: tail =>
-            log.info(s"all child failed. to next level.")
-            candidateRepos = tail
-            childFailCount = 0
-            askHead404Cache()
-            context become waitFor404Cache
+      if(chosen == sender()) {
+        log.debug(s"Chosen worker dead. Rechoose")
+        childFailCount = 0
+        askHead404Cache()
+        context become waitFor404Cache
+      } else {
+        childFailCount += 1
+        if (childFailCount == children.length) {
+          candidateRepos match {
+            case Nil =>
+              log.info(s"GetMaster all child failed. 404")
+              context.parent ! GetQueueWorker.Get404(uri)
+              self ! PoisonPill
+            case head :: tail =>
+              log.info(s"all child failed. to next level.")
+              candidateRepos = tail
+              childFailCount = 0
+              askHead404Cache()
+              context become waitFor404Cache
+          }
         }
       }
     case GetWorker.UnsuccessResponseStatus(status) =>
@@ -128,13 +136,13 @@ class GetMaster(exchange: HttpServerExchange,
       if (sender == chosen) {
         resolvedPath.getParent.toFile.mkdirs()
         Files.move(path, resolvedPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
-        log.info(s"GetWorker ${sender().path.name} completed. GetMaster served GET request ${exchange.getRequestURI}.")
-        context.parent ! GetQueueWorker.Completed(path, repo, exchange)
+        log.info(s"GetWorker ${sender().path.name} completed $uri.")
+        context.parent ! GetQueueWorker.Completed(path, repo)
         children.foreach(child => child ! Cleanup)
         if (!path.endsWith(".sha1")) {
-          Repox.sourceCache ! Source(exchange.getRequestURI, repo)
+          Repox.sourceCache ! Source(uri, repo)
         } else {
-          Repox.sourceCache ! Clear(exchange.getRequestURI)
+          Repox.sourceCache ! Clear(uri)
         }
         self ! PoisonPill
       } else {
