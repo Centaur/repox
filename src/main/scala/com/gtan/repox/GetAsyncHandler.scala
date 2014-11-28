@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.{PoisonPill, ActorRef}
 import com.gtan.repox.GetWorker._
-import com.gtan.repox.HeadResultCache.NotFound
+import com.gtan.repox.Head404Cache.NotFound
 import com.ning.http.client.AsyncHandler.STATE
 import com.ning.http.client.{HttpResponseHeaders, HttpResponseStatus, HttpResponseBodyPart, AsyncHandler}
 import com.typesafe.scalalogging.LazyLogging
@@ -30,7 +30,6 @@ class GetAsyncHandler(val uri: String, val repo: Repo, val worker: ActorRef, val
 
   override def onCompleted(): Unit = {
     if (!canceled.get()) {
-      logger.debug(s"asynchandler of ${worker.path.name} completed")
       if (tempFileOs != null)
         tempFileOs.close()
       if (tempFile != null) {
@@ -53,7 +52,7 @@ class GetAsyncHandler(val uri: String, val repo: Repo, val worker: ActorRef, val
 
   override def onStatusReceived(responseStatus: HttpResponseStatus): STATE = {
     if(responseStatus.getStatusCode == StatusCodes.NOT_FOUND) {
-      Repox.headResultCache ! NotFound(uri, repo)
+      Repox.head404Cache ! NotFound(uri, repo)
     }
     if (canceled.get()) {
       cleanup()
@@ -92,11 +91,9 @@ class GetAsyncHandler(val uri: String, val repo: Repo, val worker: ActorRef, val
 
   def cleanup(): Unit = {
     if (tempFileOs != null) {
-      logger.debug(s"${worker.path.name} closing file channel")
       tempFileOs.close()
     }
     if (tempFile != null) {
-      logger.debug(s"${worker.path.name} deleting ${tempFile.toPath.toString}")
       tempFile.delete()
     }
     worker ! PoisonPill

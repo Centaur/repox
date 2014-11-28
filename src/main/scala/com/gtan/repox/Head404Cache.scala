@@ -1,7 +1,7 @@
 package com.gtan.repox
 
 import akka.actor.{Actor, ActorLogging}
-import com.gtan.repox.HeadResultCache.{NotFound, Query}
+import com.gtan.repox.Head404Cache.{NotFound, Query}
 
 import scala.language.postfixOps
 
@@ -12,7 +12,7 @@ import scala.language.postfixOps
  * Date: 14/11/24
  * Time: 下午10:55
  */
-object HeadResultCache {
+object Head404Cache {
 
   case class Query(uri: String) // answer Set[Repo]
 
@@ -25,20 +25,20 @@ object HeadResultCache {
   val idleTimeout = 1 days
 }
 
-class HeadResultCache extends Actor with ActorLogging {
-  import HeadResultCache._
+class Head404Cache extends Actor with ActorLogging {
+  import Head404Cache._
 
   var data = Map.empty[String, Map[Repo, Timestamp]]
 
   def expired(timestamp: Timestamp): Boolean =
-    (timestamp + HeadResultCache.idleTimeout).isPast
+    (timestamp + Head404Cache.idleTimeout).isPast
 
   override def receive = {
     case Query(uri) =>
       data.get(uri) match {
         case None => sender ! ExcludeRepos(Set.empty[Repo])
         case Some(map) =>
-          val notFoundAndNotExpired = map.filterNot { case (_, timestamp) => !expired(timestamp)}
+          val notFoundAndNotExpired = map.filter { case (_, timestamp) => !expired(timestamp)}
           if(notFoundAndNotExpired.isEmpty){
             data = data - uri
           } else {
@@ -51,7 +51,7 @@ class HeadResultCache extends Actor with ActorLogging {
         case None =>
           data = data.updated(uri, Map(repo -> Timestamp.now))
         case Some(map) =>
-          val notFoundAndNotExpired = map.filterNot { case (_, timestamp) => !expired(timestamp)}
+          val notFoundAndNotExpired = map.filter { case (_, timestamp) => !expired(timestamp)}
           data = data.updated(uri, notFoundAndNotExpired + (repo -> Timestamp.now))
       }
   }

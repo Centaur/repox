@@ -39,12 +39,14 @@ class HeadQueueWorker extends Actor with Stash with ActorLogging {
       found = true
       resultHeaders = headers
       Repox.respondHead(exchange, headers)
+      log.info(s"Request HEAD for ${exchange.getRequestURI} respond 200.")
       unstashAll()
       context.setReceiveTimeout(1 second)
       context become flushWaiting
     case result @ NotFound(exchange) =>
       found = false
-      Repox.respond404(exchange, cause = "Tried 3 times. Give up.")
+      Repox.respond404(exchange)
+      log.info(s"Tried 3 times. Give up. Respond with 404. ${exchange.getRequestURI}")
       unstashAll()
       context.setReceiveTimeout(1 second)
       context become flushWaiting
@@ -55,7 +57,7 @@ class HeadQueueWorker extends Actor with Stash with ActorLogging {
       if(found)
         Repox.respondHead(exchange, resultHeaders)
       else
-        Repox.respond404(exchange, cause = "Tried 3 times. Give up.")
+        Repox.respond404(exchange)
     case ReceiveTimeout =>
       self ! PoisonPill
   }

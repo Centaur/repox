@@ -5,7 +5,7 @@ import java.nio.file.Paths
 import java.util.Date
 
 import akka.actor.{Props, ActorSystem}
-import com.gtan.repox.HeadResultCache.Query
+import com.gtan.repox.Head404Cache.Query
 import com.ning.http.client._
 import com.ning.http.client.resumable.ResumableIOExceptionFilter
 import com.typesafe.scalalogging.LazyLogging
@@ -106,26 +106,23 @@ object Repox extends LazyLogging {
   type HeaderResponse = (Repo, StatusCode, ResponseHeaders)
 
   val candidates  = upstreams.groupBy(_.priority).toList.sortBy(_._1).map(_._2)
-  val headResultCache = system.actorOf(Props[HeadResultCache], "HeaderCache")
+  val head404Cache = system.actorOf(Props[Head404Cache], "HeaderCache")
   val sourceCache = system.actorOf(Props[SourceCache], "SourceCache")
   val requestQueueMaster = system.actorOf(Props[RequestQueueMaster], "RequestQueueMaster")
 
-  private def reduce(xss: List[List[Repo]], notFoundIn: Set[Repo]): List[List[Repo]] = {
-    xss.map(_.filterNot(notFoundIn.contains)).filter(_.nonEmpty)
-  }
 
   import akka.pattern.ask
   import concurrent.duration._
   implicit val timeout = akka.util.Timeout(1 second)
 
-  def respond404(exchange: HttpServerExchange, cause: String): Unit = {
+  def respond404(exchange: HttpServerExchange): Unit = {
     exchange.setResponseCode(StatusCodes.NOT_FOUND)
     exchange.endExchange()
-    logger.debug(cause)
   }
 
   def immediate404(exchange: HttpServerExchange): Unit ={
-    respond404(exchange, cause = s"Immediate 404 ${exchange.getRequestURI}.")
+    respond404(exchange)
+    logger.info(s"Immediate 404 ${exchange.getRequestURI}.")
   }
 
   /**

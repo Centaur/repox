@@ -66,11 +66,9 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
         throw t // retry myself
 
     case Cleanup =>
-      log.debug(s"Parent asking cleanup. cancel myself ${self.path.name}")
       handler.cancel()
 
     case PeerChosen(who) =>
-      log.debug(s"peer ${who.path.name} is chosen. cancel myself ${self.path.name}")
       handler.cancel()
 
     case ReceiveTimeout =>

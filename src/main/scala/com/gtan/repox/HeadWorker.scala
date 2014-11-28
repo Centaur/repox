@@ -2,7 +2,7 @@ package com.gtan.repox
 
 import java.net.URL
 
-import akka.actor.{PoisonPill, ReceiveTimeout, Actor, ActorLogging}
+import akka.actor._
 import com.gtan.repox.HeadMaster.{HeadTimeout, NotFound, FoundIn}
 import com.gtan.repox.Repox._
 import com.ning.http.client.FluentCaseInsensitiveStringsMap
@@ -42,6 +42,7 @@ class HeadWorker(val repo: Repo,
 
   override def receive = {
     case Responded(statusCode, headers) =>
+      handler.cancel()
       statusCode match {
         case StatusCodes.OK =>
           log.debug(s"HeadWorker ${repo.name} 200. $uri")
@@ -54,12 +55,17 @@ class HeadWorker(val repo: Repo,
           log.debug(s"HeadWorker ${repo.name} got undetermined result. $uri")
           context.parent ! HeadMaster.HeadTimeout(repo)
       }
+      self ! PoisonPill
     case Failed(t) =>
       // further feature may use failed time information
+      handler.cancel()
       log.debug(s"HeadWorker ${repo.name} failed. $uri")
       context.parent ! HeadMaster.HeadTimeout(repo)
+      self ! PoisonPill
     case ReceiveTimeout =>
+      handler.cancel()
       log.debug(s"HeadWorker ${repo.name} timeout. $uri")
       context.parent ! HeadMaster.HeadTimeout(repo)
+      self ! PoisonPill
   }
 }
