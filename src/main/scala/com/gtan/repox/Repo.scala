@@ -6,4 +6,4 @@ package com.gtan.repox
  * Date: 14/11/23
  * Time: 下午3:55
  */
-case class Repo(name: String, base: String, priority: Int = 10, getOnly: Boolean = false)
+case class Repo(name: String, base: String, priority: Int, getOnly: Boolean = false, maven: Boolean = false)

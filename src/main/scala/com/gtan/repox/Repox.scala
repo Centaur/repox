@@ -31,14 +31,16 @@ object Repox extends LazyLogging {
 
   val upstreams      = List(
     Repo("koala", "http://nexus.openkoala.org/nexus/content/groups/Koala-release",
-      priority = 1, getOnly = true),
+      priority = 1, getOnly = true, maven = true),
+    Repo("ibiblio", "http://mirrors.ibiblio.org/maven2/", priority = 2, maven = true),
     Repo("typesafe", "http://repo.typesafe.com/typesafe/releases", priority = 2),
-    Repo("ibiblio", "http://mirrors.ibiblio.org/maven2/", priority = 3),
     Repo("sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 3),
     Repo("sbt-plugin", "http://dl.bintray.com/sbt/sbt-plugin-releases", priority = 4),
     Repo("scalaz", "http://dl.bintray.com/scalaz/releases", priority = 4),
-    Repo("central", "http://repo1.maven.org/maven2", priority = 5)
+    Repo("central", "http://repo1.maven.org/maven2", priority = 5, maven =true)
   )
+  val excludeMavenUpstreams = upstreams.filterNot(_.maven)
+
   val blacklistRules = List(
     BlacklistRule( """/org/slf4j/slf4j-parent/.+/slf4j-parent-.+\.pom.*""", "typesafe"),
     BlacklistRule( """/com/ning/async-http-client/.+/async-http-client-.+\.pom.*""", "typesafe"),
@@ -79,8 +81,8 @@ object Repox extends LazyLogging {
                                              .setAllowSslConnectionPool(true)
                                              .setMaximumConnectionsPerHost(10)
                                              .setMaximumConnectionsTotal(200)
-                                             //    .setIdleConnectionInPoolTimeoutInMs(Int.MaxValue)
-                                             //    .setIdleConnectionTimeoutInMs(Int.MaxValue)
+                                             .setIdleConnectionInPoolTimeoutInMs(10000)
+                                             .setIdleConnectionTimeoutInMs(10000)
                                              .setFollowRedirects(true)
                                              .build()
   )
@@ -93,8 +95,8 @@ object Repox extends LazyLogging {
                                              .setMaximumConnectionsPerHost(10)
                                              .setMaximumConnectionsTotal(20)
                                              .setProxyServer(new ProxyServer("127.0.0.1", 8787))
-                                             //    .setIdleConnectionInPoolTimeoutInMs(Int.MaxValue)
-                                             //    .setIdleConnectionTimeoutInMs(Int.MaxValue)
+                                             .setIdleConnectionInPoolTimeoutInMs(10000)
+                                             .setIdleConnectionTimeoutInMs(10000)
                                              .setFollowRedirects(true)
                                              .build()
   )
@@ -106,6 +108,8 @@ object Repox extends LazyLogging {
   type HeaderResponse = (Repo, StatusCode, ResponseHeaders)
 
   val candidates  = upstreams.groupBy(_.priority).toList.sortBy(_._1).map(_._2)
+  def isIvyUri(uri: String) = uri.matches("""/[^/]+?\.[^/]+?/.+""")
+
   val head404Cache = system.actorOf(Props[Head404Cache], "HeaderCache")
   val sourceCache = system.actorOf(Props[SourceCache], "SourceCache")
   val requestQueueMaster = system.actorOf(Props[RequestQueueMaster], "RequestQueueMaster")

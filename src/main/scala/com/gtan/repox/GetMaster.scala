@@ -56,8 +56,11 @@ class GetMaster(exchange: HttpServerExchange,
 
   var getterChosen = false
   var chosen: ActorRef = null
-  var child404Count = 0
-  var candidateRepos = Repox.candidates
+  var childFailCount = 0
+  var candidateRepos = if (Repox.isIvyUri(uri)) {
+    Repox.upstreams.filterNot(_.maven).groupBy(_.priority).toList.sortBy(_._1).map(_._2)
+  } else Repox.candidates
+
   var thisLevel: List[Repo] = _
   var children: List[ActorRef] = _
 
@@ -85,12 +88,13 @@ class GetMaster(exchange: HttpServerExchange,
   }
 
   askHead404Cache()
+
   def receive = waitFor404Cache
 
   def working: Receive = {
-    case GetWorker.UnsuccessResponseStatus(status) =>
-      child404Count += 1
-      if (child404Count == children.length) {
+    case GetWorker.Failed(t) =>
+      childFailCount += 1
+      if (childFailCount == children.length) {
         candidateRepos match {
           case Nil =>
             log.info(s"GetMaster all child failed. 404")
@@ -99,12 +103,28 @@ class GetMaster(exchange: HttpServerExchange,
           case head :: tail =>
             log.info(s"all child failed. to next level.")
             candidateRepos = tail
-            child404Count = 0
+            childFailCount = 0
             askHead404Cache()
             context become waitFor404Cache
         }
       }
-    case msg @ GetWorker.Completed(path, repo) =>
+    case GetWorker.UnsuccessResponseStatus(status) =>
+      childFailCount += 1
+      if (childFailCount == children.length) {
+        candidateRepos match {
+          case Nil =>
+            log.info(s"GetMaster all child failed. 404")
+            context.parent ! GetQueueWorker.Get404(uri)
+            self ! PoisonPill
+          case head :: tail =>
+            log.info(s"all child failed. to next level.")
+            candidateRepos = tail
+            childFailCount = 0
+            askHead404Cache()
+            context become waitFor404Cache
+        }
+      }
+    case msg@GetWorker.Completed(path, repo) =>
       if (sender == chosen) {
         resolvedPath.getParent.toFile.mkdirs()
         Files.move(path, resolvedPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)

@@ -23,6 +23,8 @@ object GetWorker {
 
   case class UnsuccessResponseStatus(responseStatus: HttpResponseStatus)
 
+  case class Failed(t: Throwable)
+
   case class BodyPartGot(bodyPart: HttpResponseBodyPart)
 
   case class HeadersGot(headers: HttpResponseHeaders)
@@ -63,7 +65,9 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
 
   override def receive = {
     case AsyncHandlerThrows(t) =>
-        throw t // retry myself
+        t.printStackTrace()
+        context.parent ! Failed(t)
+        self ! PoisonPill
 
     case Cleanup =>
       handler.cancel()

@@ -46,7 +46,6 @@ class HeadAsyncHandler(val worker: ActorRef,val uri: String, val repo: Repo) ext
   }
 
   override def onHeadersReceived(headers: HttpResponseHeaders): STATE = {
-    logger.debug(s"HeadAsyncHandler of ${worker.path.name} statusCode = $statusCode canceled = ${canceled.get} $uri")
     if (!canceled.get) {
       import scala.collection.JavaConverters._
       worker ! HeadWorker.Responded(statusCode, mapAsScalaMapConverter(headers.getHeaders).asScala.toMap)

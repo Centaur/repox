@@ -32,6 +32,7 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
   import com.gtan.repox.HeadMaster._
 
   val uri = exchange.getRequestURI
+  val upstreams = if(Repox.isIvyUri(uri)) Repox.excludeMavenUpstreams else Repox.upstreams
 
   val requestHeaders = new FluentCaseInsensitiveStringsMap()
   for (name <- exchange.getRequestHeaders.getHeaderNames.asScala) {
@@ -52,7 +53,7 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
 
   def start: Receive = {
     case Head404Cache.ExcludeRepos(repos) =>
-      candidateRepos = Repox.upstreams.filterNot(repos.contains)
+      candidateRepos = upstreams.filterNot(repos.contains)
       log.debug(s"CandidateRepos: ${candidateRepos.map(_.name)}")
       if (candidateRepos.isEmpty) {
         context.parent ! HeadQueueWorker.NotFound(exchange)
