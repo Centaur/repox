@@ -1,22 +1,16 @@
 package com.gtan.repox
 
 import java.net.URL
-import java.nio.file.{Files, Path, StandardCopyOption}
+import java.nio.file.{Files, StandardCopyOption}
 
-import akka.actor.SupervisorStrategy.{Escalate, Resume}
 import akka.actor._
-import com.gtan.repox.GetWorker.{WorkerDead, Cleanup, PeerChosen}
+import com.gtan.repox.GetWorker.{Cleanup, PeerChosen, WorkerDead}
 import com.gtan.repox.Head404Cache.Query
-import com.gtan.repox.SourceCache.{WhichRepo, Clear, Source}
 import com.ning.http.client.FluentCaseInsensitiveStringsMap
 import com.typesafe.scalalogging.LazyLogging
-import io.undertow.Handlers
-import io.undertow.server.HttpServerExchange
-import io.undertow.server.handlers.resource.FileResourceManager
+import collection.JavaConverters._
 
-import scala.collection.JavaConverters._
 import scala.language.postfixOps
-import scala.util.Random
 import scala.util.Random
 
 /**
@@ -26,25 +20,16 @@ import scala.util.Random
  * Time: 下午10:01
  */
 
-import akka.pattern.ask
-
 object GetMaster extends LazyLogging {
 
-  import concurrent.duration._
-  import scala.concurrent.ExecutionContext.Implicits.global
+  import scala.concurrent.duration._
 
   implicit val timeout = new akka.util.Timeout(1 seconds)
 }
 
-class GetMaster(uri: String,
-                resolvedPath: Path) extends Actor with ActorLogging {
+class GetMaster(val uri: String, val from: List[Repo]) extends Actor with ActorLogging {
 
   import scala.concurrent.duration._
-
-//  val requestHeaders = new FluentCaseInsensitiveStringsMap()
-//  for (name <- exchange.getRequestHeaders.getHeaderNames.asScala) {
-//    requestHeaders.add(name.toString, exchange.getRequestHeaders.get(name))
-//  }
 
   override val supervisorStrategy =
     OneForOneStrategy(maxNrOfRetries = 3, withinTimeRange = 1 minute)(super.supervisorStrategy.decider)
@@ -54,12 +39,15 @@ class GetMaster(uri: String,
     xss.map(_.filterNot(notFoundIn.contains)).filter(_.nonEmpty)
   }
 
+  val resolvedPath = Repox.resolveToPath(uri)
   var getterChosen = false
   var chosen: ActorRef = null
   var childFailCount = 0
-  var candidateRepos = if (Repox.isIvyUri(uri)) {
-    Repox.upstreams.filterNot(_.maven).groupBy(_.priority).toList.sortBy(_._1).map(_._2)
-  } else Repox.candidates
+  var candidateRepos = Repox.orderByPriority(
+    if (Repox.isIvyUri(uri))
+      from.filterNot(_.maven)
+    else from
+  )
 
   var thisLevel: List[Repo] = _
   var children: List[ActorRef] = _
@@ -94,25 +82,21 @@ class GetMaster(uri: String,
 
   def working: Receive = {
     case GetWorker.Failed(t) =>
-      if(chosen == sender()) {
+      if (chosen == sender()) {
         log.debug(s"Chosen worker dead. Rechoose")
-        childFailCount = 0
-        askHead404Cache()
-        context become waitFor404Cache
+        reset()
       } else {
         childFailCount += 1
         if (childFailCount == children.length) {
           candidateRepos match {
             case Nil =>
-              log.info(s"GetMaster all child failed. 404")
+              log.debug(s"GetMaster all child failed. 404")
               context.parent ! GetQueueWorker.Get404(uri)
               self ! PoisonPill
             case head :: tail =>
-              log.info(s"all child failed. to next level.")
+              log.debug(s"all child failed. to next level.")
               candidateRepos = tail
-              childFailCount = 0
-              askHead404Cache()
-              context become waitFor404Cache
+              reset()
           }
         }
       }
@@ -127,9 +111,7 @@ class GetMaster(uri: String,
           case head :: tail =>
             log.info(s"all child failed. to next level.")
             candidateRepos = tail
-            childFailCount = 0
-            askHead404Cache()
-            context become waitFor404Cache
+            reset()
         }
       }
     case msg@GetWorker.Completed(path, repo) =>
@@ -139,11 +121,6 @@ class GetMaster(uri: String,
         log.info(s"GetWorker ${sender().path.name} completed $uri.")
         context.parent ! GetQueueWorker.Completed(path, repo)
         children.foreach(child => child ! Cleanup)
-        if (!path.endsWith(".sha1")) {
-          Repox.sourceCache ! Source(uri, repo)
-        } else {
-          Repox.sourceCache ! Clear(uri)
-        }
         self ! PoisonPill
       } else {
         sender ! Cleanup
@@ -166,4 +143,12 @@ class GetMaster(uri: String,
   }
 
 
+  private def reset() = {
+    childFailCount = 0
+    chosen = null
+    getterChosen = false
+    for (child <- children) child ! PoisonPill
+    askHead404Cache()
+    context become waitFor404Cache
+  }
 }

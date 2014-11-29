@@ -29,7 +29,7 @@ object Repox extends LazyLogging {
 
   val storage = Paths.get(System.getProperty("user.home"), ".repox", "storage")
 
-  val upstreams      = List(
+  val upstreams = List(
     Repo("koala", "http://nexus.openkoala.org/nexus/content/groups/Koala-release",
       priority = 1, getOnly = true, maven = true),
     Repo("ibiblio", "http://mirrors.ibiblio.org/maven2/", priority = 2, maven = true),
@@ -37,7 +37,7 @@ object Repox extends LazyLogging {
     Repo("sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 3),
     Repo("sbt-plugin", "http://dl.bintray.com/sbt/sbt-plugin-releases", priority = 4),
     Repo("scalaz", "http://dl.bintray.com/scalaz/releases", priority = 4),
-    Repo("central", "http://repo1.maven.org/maven2", priority = 5, maven =true)
+    Repo("central", "http://repo1.maven.org/maven2", priority = 5, maven = true)
   )
   val excludeMavenUpstreams = upstreams.filterNot(_.maven)
 
@@ -73,32 +73,32 @@ object Repox extends LazyLogging {
     Immediate404Rule( """/org\.fusesource\.leveldbjni/.+-sources\.jar"""),
     Immediate404Rule( """.*/jsr305.*\-sources\.jar""")
   )
-  val client           = new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
-                                             .addIOExceptionFilter(new ResumableIOExceptionFilter())
-                                             .setRequestTimeoutInMs(Int.MaxValue)
-                                             .setConnectionTimeoutInMs(6000)
-                                             .setAllowPoolingConnection(true)
-                                             .setAllowSslConnectionPool(true)
-                                             .setMaximumConnectionsPerHost(10)
-                                             .setMaximumConnectionsTotal(200)
-                                             .setIdleConnectionInPoolTimeoutInMs(10000)
-                                             .setIdleConnectionTimeoutInMs(10000)
-                                             .setFollowRedirects(true)
-                                             .build()
+  val client = new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
+    .addIOExceptionFilter(new ResumableIOExceptionFilter())
+    .setRequestTimeoutInMs(Int.MaxValue)
+    .setConnectionTimeoutInMs(6000)
+    .setAllowPoolingConnection(true)
+    .setAllowSslConnectionPool(true)
+    .setMaximumConnectionsPerHost(10)
+    .setMaximumConnectionsTotal(200)
+    .setIdleConnectionInPoolTimeoutInMs(10000)
+    .setIdleConnectionTimeoutInMs(10000)
+    .setFollowRedirects(true)
+    .build()
   )
-  val proxyClient      = new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
-                                             .addIOExceptionFilter(new ResumableIOExceptionFilter())
-                                             .setRequestTimeoutInMs(Int.MaxValue)
-                                             .setConnectionTimeoutInMs(6000)
-                                             .setAllowPoolingConnection(true)
-                                             .setAllowSslConnectionPool(true)
-                                             .setMaximumConnectionsPerHost(10)
-                                             .setMaximumConnectionsTotal(20)
-                                             .setProxyServer(new ProxyServer("127.0.0.1", 8787))
-                                             .setIdleConnectionInPoolTimeoutInMs(10000)
-                                             .setIdleConnectionTimeoutInMs(10000)
-                                             .setFollowRedirects(true)
-                                             .build()
+  val proxyClient = new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
+    .addIOExceptionFilter(new ResumableIOExceptionFilter())
+    .setRequestTimeoutInMs(Int.MaxValue)
+    .setConnectionTimeoutInMs(6000)
+    .setAllowPoolingConnection(true)
+    .setAllowSslConnectionPool(true)
+    .setMaximumConnectionsPerHost(10)
+    .setMaximumConnectionsTotal(20)
+    .setProxyServer(new ProxyServer("127.0.0.1", 8787))
+    .setIdleConnectionInPoolTimeoutInMs(10000)
+    .setIdleConnectionTimeoutInMs(10000)
+    .setFollowRedirects(true)
+    .build()
   )
 
   val resourceManager = new FileResourceManager(storage.toFile, 100 * 1024)
@@ -107,24 +107,30 @@ object Repox extends LazyLogging {
   type ResponseHeaders = Map[String, java.util.List[String]]
   type HeaderResponse = (Repo, StatusCode, ResponseHeaders)
 
-  val candidates  = upstreams.groupBy(_.priority).toList.sortBy(_._1).map(_._2)
-  def isIvyUri(uri: String) = uri.matches("""/[^/]+?\.[^/]+?/.+""")
+  val candidates = upstreams.groupBy(_.priority).toList.sortBy(_._1).map(_._2)
+
+  def isIvyUri(uri: String) = uri.matches( """/[^/]+?\.[^/]+?/.+""")
 
   val head404Cache = system.actorOf(Props[Head404Cache], "HeaderCache")
-  val sourceCache = system.actorOf(Props[SourceCache], "SourceCache")
   val requestQueueMaster = system.actorOf(Props[RequestQueueMaster], "RequestQueueMaster")
 
 
   import akka.pattern.ask
   import concurrent.duration._
+
   implicit val timeout = akka.util.Timeout(1 second)
+
+  def resolveToPath(uri: String) = Repox.storage.resolve(uri.tail)
+
+  def orderByPriority(candidates: List[Repo]): List[List[Repo]] =
+    candidates.groupBy(_.priority).toList.sortBy(_._1).map(_._2)
 
   def respond404(exchange: HttpServerExchange): Unit = {
     exchange.setResponseCode(StatusCodes.NOT_FOUND)
     exchange.endExchange()
   }
 
-  def immediate404(exchange: HttpServerExchange): Unit ={
+  def immediate404(exchange: HttpServerExchange): Unit = {
     respond404(exchange)
     logger.info(s"Immediate 404 ${exchange.getRequestURI}.")
   }
@@ -146,7 +152,7 @@ object Repox extends LazyLogging {
   def respondHead(exchange: HttpServerExchange, headers: ResponseHeaders): Unit = {
     exchange.setResponseCode(StatusCodes.NO_CONTENT)
     val target = exchange.getResponseHeaders
-    for((k, v) <- headers)
+    for ((k, v) <- headers)
       target.putAll(new HttpString(k), v)
     exchange.getResponseChannel // just to avoid mysterious setting Content-length to 0 in endExchange, ugly
     exchange.endExchange()
@@ -158,10 +164,10 @@ object Repox extends LazyLogging {
     exchange.setResponseCode(StatusCodes.NO_CONTENT)
     val headers = exchange.getResponseHeaders
     headers.put(Headers.CONTENT_LENGTH, resource.getContentLength)
-    .put(Headers.SERVER, "repox")
-    .put(Headers.CONNECTION, Headers.KEEP_ALIVE.toString)
-    .put(Headers.CONTENT_TYPE, resource.getContentType(MimeMappings.DEFAULT))
-    .put(Headers.LAST_MODIFIED, resource.getLastModifiedString)
+      .put(Headers.SERVER, "repox")
+      .put(Headers.CONNECTION, Headers.KEEP_ALIVE.toString)
+      .put(Headers.CONTENT_TYPE, resource.getContentType(MimeMappings.DEFAULT))
+      .put(Headers.LAST_MODIFIED, resource.getLastModifiedString)
     exchange.getResponseChannel // just to avoid mysterious setting Content-length to 0 in endExchange, ugly
     exchange.endExchange()
     logger.debug(s"Immediate head $uri. ")

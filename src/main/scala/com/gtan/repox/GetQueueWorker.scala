@@ -17,15 +17,14 @@ object GetQueueWorker {
 class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging {
   import GetQueueWorker._
 
-  override def receive = idle
+  override def receive = start
 
-  def idle: Receive = {
-    case Requests.Download(u) =>
+  def start: Receive = {
+    case Requests.Download(u, from) =>
       assert(u == uri)
       if(!Repox.downloaded(uri)){
         log.info(s"$uri not downloaded. Downloading.")
-        val resolvedPath = Repox.storage.resolve(uri.tail)
-        context.actorOf(Props(classOf[GetMaster], uri, resolvedPath), s"DownloadMaster_${Random.nextInt()}")
+        context.actorOf(Props(classOf[GetMaster], uri, from :: Nil), s"DownloadMaster_${Random.nextInt()}")
       }
       context become working
     case msg@Requests.Get(exchange) =>
@@ -36,11 +35,8 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
         self ! PoisonPill
       } else {
         log.info(s"$uri not downloaded. Downloading.")
-        val resolvedPath = Repox.storage.resolve(uri.tail)
-        context.actorOf(Props(classOf[GetMaster], uri, resolvedPath), s"GetMaster_${Random.nextInt()}")
+        context.actorOf(Props(classOf[GetMaster], uri, Repox.upstreams), s"GetMaster_${Random.nextInt()}")
         self ! msg
-        if(!uri.endsWith(".sha1"))
-          context.parent ! Requests.Download(uri + ".sha1")
         context become working
       }
   }
@@ -50,6 +46,10 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
       stash()
     case result @ Completed(path, repo) =>
       log.debug(s"GetQueueWorker completed $uri")
+      if(!uri.endsWith(".sha1")) {
+        log.debug(s"prefetch $uri.sha1")
+        context.parent ! Requests.Download(uri + ".sha1", repo)
+      }
       unstashAll()
       context.setReceiveTimeout(1 second)
       context become flushWaiting

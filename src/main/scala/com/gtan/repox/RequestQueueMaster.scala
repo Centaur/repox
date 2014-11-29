@@ -12,13 +12,17 @@ class RequestQueueMaster extends Actor with ActorLogging {
   var children = Map.empty[Queue, ActorRef] // Quuee -> Get/HeadQueueWorker
 
   override def receive = {
-    case req@Requests.Download(uri) =>
+    case req@Requests.Download(uri, from) =>
       val queue = Queue('get, uri)
       if (!Repox.downloaded(uri)) {
-        val childName = s"DownloadQueueWorker_${Random.nextInt()}"
-        val worker = context.actorOf(Props(classOf[GetQueueWorker], uri), name = childName)
-        children = children.updated(queue, worker)
-        worker ! req
+        children.get(queue) match {
+          case None =>
+            val childName = s"DownloadQueueWorker_${Random.nextInt()}_from_${from.name}"
+            val worker = context.actorOf(Props(classOf[GetQueueWorker], uri), name = childName)
+            children = children.updated(queue, worker)
+            worker ! req
+          case _ => // downloading proceeding, ignore this one
+        }
       } else {
         for (worker <- children.get(queue)) {
           worker ! PoisonPill
