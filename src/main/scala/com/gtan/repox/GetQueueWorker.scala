@@ -32,7 +32,7 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
       if (Repox.downloaded(uri)) {
         log.info(s"$uri downloaded. Serve immediately.")
         Repox.immediateFile(exchange)
-        self ! PoisonPill
+        suicide()
       } else {
         log.info(s"$uri not downloaded. Downloading.")
         context.actorOf(Props(classOf[GetMaster], uri, Repox.upstreams), s"GetMaster_${Random.nextInt()}")
@@ -41,13 +41,15 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
       }
   }
 
+  var found = false
   def working: Receive = {
     case Requests.Get(_) =>
       stash()
     case result @ Completed(path, repo) =>
       log.debug(s"GetQueueWorker completed $uri")
+      found = true
       if(!uri.endsWith(".sha1")) {
-        log.debug(s"prefetch $uri.sha1")
+        log.debug(s"Prefetch $uri.sha1")
         context.parent ! Requests.Download(uri + ".sha1", repo)
       }
       unstashAll()
@@ -55,6 +57,7 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
       context become flushWaiting
     case Get404(u) =>
       log.debug(s"GetQueueWorker 404 $u")
+      found = false
       unstashAll()
       context.setReceiveTimeout(1 second)
       context become flushWaiting
@@ -62,10 +65,20 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
 
   def flushWaiting: Receive = {
     case Requests.Get(exchange) =>
-      log.debug(s"flushWaiting $exchange")
-      Repox.immediateFile(exchange)
-//      exchange.endExchange
+      if(found) {
+        log.debug(s"flushWaiting $exchange 200")
+        Repox.immediateFile(exchange)
+      } else {
+        log.debug(s"flushWaiting $exchange 404")
+        Repox.respond404(exchange)
+      }
     case ReceiveTimeout =>
-      self ! PoisonPill
+      suicide()
   }
+
+  private def suicide(): Unit ={
+    context.parent ! RequestQueueMaster.Dead(Queue('get, uri))
+    self ! PoisonPill
+  }
+
 }

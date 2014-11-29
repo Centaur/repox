@@ -32,7 +32,7 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
   import com.gtan.repox.HeadMaster._
 
   val uri = exchange.getRequestURI
-  val upstreams = if(Repox.isIvyUri(uri)) Repox.excludeMavenUpstreams else Repox.upstreams
+  val upstreams = if(Repox.isIvyUri(uri)) Repox.upstreams.filterNot(_.maven) else Repox.upstreams
 
   val requestHeaders = new FluentCaseInsensitiveStringsMap()
   for (name <- exchange.getRequestHeaders.getHeaderNames.asScala) {
@@ -43,7 +43,6 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
 
   var children: List[ActorRef] = _
 
-  var resultMap = Map.empty[ActorRef, HeadResult]
   var finishedChildren = 0
   var retryTimes = 0
 
@@ -87,15 +86,14 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
     if (finishedChildren == children.size) {
       // all returned
       retryTimes += 1
-      log.debug(s"retryTimes = $retryTimes")
       if (retryTimes == 3) {
         context.parent ! HeadQueueWorker.NotFound(exchange)
         log.debug(s"retried 3 times, give up.")
         self ! PoisonPill
       } else {
         log.debug("All headworkers return 404. retry.")
-        Repox.head404Cache ! Query(uri)
         finishedChildren = 0
+        Repox.head404Cache ! Query(uri)
         context become start
       }
     }

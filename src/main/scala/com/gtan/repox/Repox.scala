@@ -1,11 +1,8 @@
 package com.gtan.repox
 
-import java.net.URL
 import java.nio.file.Paths
-import java.util.Date
 
-import akka.actor.{Props, ActorSystem}
-import com.gtan.repox.Head404Cache.Query
+import akka.actor.{ActorSystem, Props}
 import com.ning.http.client._
 import com.ning.http.client.resumable.ResumableIOExceptionFilter
 import com.typesafe.scalalogging.LazyLogging
@@ -14,16 +11,9 @@ import io.undertow.server.HttpServerExchange
 import io.undertow.server.handlers.resource.FileResourceManager
 import io.undertow.util._
 
-import scala.collection.JavaConverters._
-import scala.collection.Set
-import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps
-import scala.util.{Failure, Success}
 
 object Repox extends LazyLogging {
-
-  import scala.concurrent.ExecutionContext.Implicits.global
-  import concurrent.duration._
 
   val system = ActorSystem("repox")
 
@@ -32,29 +22,19 @@ object Repox extends LazyLogging {
   val upstreams = List(
     Repo("koala", "http://nexus.openkoala.org/nexus/content/groups/Koala-release",
       priority = 1, getOnly = true, maven = true),
-    Repo("ibiblio", "http://mirrors.ibiblio.org/maven2/", priority = 2, maven = true),
+    Repo("sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 2),
     Repo("typesafe", "http://repo.typesafe.com/typesafe/releases", priority = 2),
-    Repo("sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 3),
+    Repo("oschina", "http://maven.oschina.net/content/groups/public",
+      priority = 2, getOnly = true, maven = true),
     Repo("sbt-plugin", "http://dl.bintray.com/sbt/sbt-plugin-releases", priority = 4),
     Repo("scalaz", "http://dl.bintray.com/scalaz/releases", priority = 4),
-    Repo("central", "http://repo1.maven.org/maven2", priority = 5, maven = true)
-  )
-  val excludeMavenUpstreams = upstreams.filterNot(_.maven)
-
-  val blacklistRules = List(
-    BlacklistRule( """/org/slf4j/slf4j-parent/.+/slf4j-parent-.+\.pom.*""", "typesafe"),
-    BlacklistRule( """/com/ning/async-http-client/.+/async-http-client-.+\.pom.*""", "typesafe"),
-    BlacklistRule( """/org/apache/apache/.+/apache-.+\.pom*""", "typesafe"),
-    BlacklistRule( """/org/apache/commons/commons-parent/.+/commons-parent-.+\.pom.*""", "typesafe"),
-    BlacklistRule( """/commons-io/commons-io/.+/commons-io-.+\.pom.*""", "typesafe"),
-    BlacklistRule( """/org/sonatype/oss/oss-parent/.+/oss-parent-.+\.pom.*""", "typesafe"),
-    BlacklistRule( """/org/ow2/asm/.+\.pom.*""", "typesafe"),
-    BlacklistRule( """/com/ning/.+\.pom.*""", "typesafe")
+    Repo("central", "http://repo1.maven.org/maven2", priority = 4, maven = true),
+    Repo("ibiblio", "http://mirrors.ibiblio.org/maven2", priority = 5, maven = true)
   )
 
   val immediat404Rules = List(
-    Immediate404Rule( """.+-javadoc.jar"""), // we don't want javadoc
-    Immediate404Rule( """.+-parent.*.jar"""), // parent have no jar
+    Immediate404Rule( """.+-javadoc\.jar"""), // we don't want javadoc
+    Immediate404Rule( """.+-parent.*\.jar"""), // parent have no jar
     Immediate404Rule( """/org/scala-sbt/.*""", exclude = Some( """/org/scala-sbt/test-interface/.*""")), // ivy only artifact have no maven uri
     //    Immediat404Rule( """/org/scala-tools/.*"""), // ivy only artifact have no maven uri
     Immediate404Rule( """/com/eed3si9n/.*"""), // ivy only artifact have no maven uri
@@ -107,18 +87,16 @@ object Repox extends LazyLogging {
   type ResponseHeaders = Map[String, java.util.List[String]]
   type HeaderResponse = (Repo, StatusCode, ResponseHeaders)
 
-  val candidates = upstreams.groupBy(_.priority).toList.sortBy(_._1).map(_._2)
-
-  def isIvyUri(uri: String) = uri.matches( """/[^/]+?\.[^/]+?/.+""")
 
   val head404Cache = system.actorOf(Props[Head404Cache], "HeaderCache")
   val requestQueueMaster = system.actorOf(Props[RequestQueueMaster], "RequestQueueMaster")
 
 
-  import akka.pattern.ask
-  import concurrent.duration._
+  import scala.concurrent.duration._
 
   implicit val timeout = akka.util.Timeout(1 second)
+
+  def isIvyUri(uri: String) = uri.matches( """/[^/]+?\.[^/]+?/.+""")
 
   def resolveToPath(uri: String) = Repox.storage.resolve(uri.tail)
 
@@ -174,13 +152,10 @@ object Repox extends LazyLogging {
   }
 
   def handle(exchange: HttpServerExchange): Unit = {
-    val uri = exchange.getRequestURI
-    val resolvedPath = storage.resolve(uri.tail)
-
-    exchange.getRequestMethod.toString.toUpperCase match {
-      case "HEAD" =>
+    exchange.getRequestMethod match {
+      case Methods.HEAD =>
         requestQueueMaster ! Requests.Head(exchange)
-      case "GET" =>
+      case Methods.GET =>
         requestQueueMaster ! Requests.Get(exchange)
     }
   }

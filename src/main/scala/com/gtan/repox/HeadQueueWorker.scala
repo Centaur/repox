@@ -11,21 +11,23 @@ import scala.util.Random
 object HeadQueueWorker {
   case class NotFound(exchange: HttpServerExchange)
   case class FoundIn(repo: Repo, headers: Repox.ResponseHeaders, exchange: HttpServerExchange)
+
 }
 
-class HeadQueueWorker extends Actor with Stash with ActorLogging {
+class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLogging {
   import HeadQueueWorker._
 
-  override def receive = idle
+  override def receive = start
 
   var found = false
   var resultHeaders: Repox.ResponseHeaders = _
 
-  def idle: Receive = {
+  def start: Receive = {
     case Requests.Head(exchange) =>
-      if(Repox.downloaded(exchange.getRequestURI)){
+      assert(exchange.getRequestURI == uri)
+      if(Repox.downloaded(uri)){
         Repox.immediateHead(exchange)
-        self ! PoisonPill
+        suicide()
       } else {
         context.actorOf(Props(classOf[HeadMaster], exchange), name = s"HeadMaster_${Random.nextInt()}")
         context become working
@@ -33,20 +35,21 @@ class HeadQueueWorker extends Actor with Stash with ActorLogging {
   }
 
   def working: Receive = {
-    case Requests.Head(_) =>
+    case Requests.Head(exchange) =>
+      assert(exchange.getRequestURI == uri)
       stash()
     case result @ FoundIn(repo, headers, exchange) =>
       found = true
       resultHeaders = headers
       Repox.respondHead(exchange, headers)
-      log.info(s"Request HEAD for ${exchange.getRequestURI} respond 200.")
+      log.info(s"Request HEAD for $uri respond 200.")
       unstashAll()
       context.setReceiveTimeout(1 second)
       context become flushWaiting
     case result @ NotFound(exchange) =>
       found = false
       Repox.respond404(exchange)
-      log.info(s"Tried 3 times. Give up. Respond with 404. ${exchange.getRequestURI}")
+      log.info(s"Tried 3 times. Give up. Respond with 404. $uri")
       unstashAll()
       context.setReceiveTimeout(1 second)
       context become flushWaiting
@@ -59,6 +62,12 @@ class HeadQueueWorker extends Actor with Stash with ActorLogging {
       else
         Repox.respond404(exchange)
     case ReceiveTimeout =>
-      self ! PoisonPill
+      suicide()
+  }
+
+  def suicide(): Unit ={
+    val queue = Queue('head, uri)
+    log.debug(s"$queue suicide.")
+    context.parent ! RequestQueueMaster.Dead(queue)
   }
 }

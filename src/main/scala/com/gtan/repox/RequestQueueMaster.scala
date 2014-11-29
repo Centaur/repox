@@ -8,10 +8,23 @@ import scala.util.Random
 
 case class Queue(method: Symbol, uri: String)
 
+object RequestQueueMaster {
+  case class Dead(queue: Queue)
+}
+
 class RequestQueueMaster extends Actor with ActorLogging {
+  import RequestQueueMaster._
+
   var children = Map.empty[Queue, ActorRef] // Quuee -> Get/HeadQueueWorker
 
   override def receive = {
+    case Dead(queue) =>
+      for(worker <- children.get(queue)) {
+        log.debug(s"RequestQueueMaster stopping worker ${worker.path.name}")
+        worker ! PoisonPill
+      }
+      children = children - queue
+
     case req@Requests.Download(uri, from) =>
       val queue = Queue('get, uri)
       if (!Repox.downloaded(uri)) {
@@ -64,10 +77,12 @@ class RequestQueueMaster extends Actor with ActorLogging {
         children.get(queue) match {
           case None =>
             val childName = s"HeadQueueWorker_${Random.nextInt()}"
-            val worker = context.actorOf(Props(classOf[HeadQueueWorker]), name = childName)
+            val worker = context.actorOf(Props(classOf[HeadQueueWorker], uri), name = childName)
+            log.debug(s"create HeadQueueWorker $childName")
             children = children.updated(queue, worker)
             worker ! req
           case Some(worker) =>
+            log.debug(s"Enqueue to HeadQueueWorker ${worker.path.name} $uri")
             worker ! req
         }
       }

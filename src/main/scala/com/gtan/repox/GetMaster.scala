@@ -55,21 +55,27 @@ class GetMaster(val uri: String, val from: List[Repo]) extends Actor with ActorL
   def waitFor404Cache: Receive = {
     case Head404Cache.ExcludeRepos(repos) =>
       candidateRepos = reduce(candidateRepos, repos)
-      log.debug(s"Try ${candidateRepos.map(_.map(_.name))} $uri")
-      thisLevel = candidateRepos.head
-      children = for (upstream <- thisLevel) yield {
-        val upstreamUrl = upstream.base + uri
-        val upstreamHost = new URL(upstreamUrl).getHost
-        val requestHeaders = new FluentCaseInsensitiveStringsMap()
-        requestHeaders.put("Host", List(upstreamHost).asJava)
-        requestHeaders.put("Accept-Encoding", List("identity").asJava)
-        val childActorName = s"${upstream.name}_${Random.nextInt()}"
-        context.actorOf(
-          Props(classOf[GetWorker], upstream, uri, requestHeaders),
-          name = s"GetWorker_$childActorName"
-        )
+      if (candidateRepos.isEmpty) {
+        context.parent ! GetQueueWorker.Get404(uri)
+        self ! PoisonPill
+      } else {
+
+        log.debug(s"Try ${candidateRepos.map(_.map(_.name))} $uri")
+        thisLevel = candidateRepos.head
+        children = for (upstream <- thisLevel) yield {
+          val upstreamUrl = upstream.base + uri
+          val upstreamHost = new URL(upstreamUrl).getHost
+          val requestHeaders = new FluentCaseInsensitiveStringsMap()
+          requestHeaders.put("Host", List(upstreamHost).asJava)
+          requestHeaders.put("Accept-Encoding", List("identity").asJava)
+          val childActorName = s"${upstream.name}_${Random.nextInt()}"
+          context.actorOf(
+            Props(classOf[GetWorker], upstream, uri, requestHeaders),
+            name = s"GetWorker_$childActorName"
+          )
+        }
+        context become working
       }
-      context become working
   }
 
   def askHead404Cache(): Unit = {
@@ -125,9 +131,9 @@ class GetMaster(val uri: String, val from: List[Repo]) extends Actor with ActorL
       } else {
         sender ! Cleanup
       }
-    case GetWorker.HeadersGot(_) =>
+    case GetWorker.HeadersGot(headers) =>
       if (!getterChosen) {
-        log.debug(s"chose ${sender().path.name}, canceling others.")
+        log.debug(s"chose ${sender().path.name}, canceling others. ")
         for (others <- children.filterNot(_ == sender())) {
           others ! PeerChosen(sender())
         }
