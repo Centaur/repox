@@ -24,7 +24,7 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
       assert(u == uri)
       if(!Repox.downloaded(uri)){
         log.info(s"$uri not downloaded. Downloading.")
-        context.actorOf(Props(classOf[GetMaster], uri, from :: Nil), s"DownloadMaster_${Random.nextInt()}")
+        context.actorOf(Props(classOf[GetMaster], uri, Vector(from)), s"DownloadMaster_${Random.nextInt()}")
       }
       context become working
     case msg@Requests.Get(exchange) =>
@@ -35,7 +35,7 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
         suicide()
       } else {
         log.info(s"$uri not downloaded. Downloading.")
-        context.actorOf(Props(classOf[GetMaster], uri, Repox.upstreams), s"GetMaster_${Random.nextInt()}")
+        context.actorOf(Props(classOf[GetMaster], uri, Config.repos), s"GetMaster_${Random.nextInt()}")
         self ! msg
         context become working
       }

@@ -34,10 +34,7 @@ class HeadWorker(val repo: Repo,
   val upstreamHost = new URL(upstreamUrl).getHost
   requestHeaders.put(Headers.HOST_STRING, List(upstreamHost).asJava)
 
-  val client = repo.name match {
-    case "typesafe" => Repox.proxyClient
-    case _ => Repox.client
-  }
+  val client = Config.clientOf(repo)
 
   val requestMethod = if (repo.getOnly) client.prepareGet _ else client.prepareHead _
   requestMethod.apply(upstreamUrl)

@@ -32,7 +32,7 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
   import com.gtan.repox.HeadMaster._
 
   val uri = exchange.getRequestURI
-  val upstreams = if(Repox.isIvyUri(uri)) Repox.upstreams.filterNot(_.maven) else Repox.upstreams
+  val upstreams = if(Repox.isIvyUri(uri)) Config.repos.filterNot(_.maven) else Config.repos
 
   val requestHeaders = new FluentCaseInsensitiveStringsMap()
   for (name <- exchange.getRequestHeaders.getHeaderNames.asScala) {
@@ -41,12 +41,12 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
   requestHeaders.put(Headers.ACCEPT_ENCODING_STRING, List("identity").asJava)
 
 
-  var children: List[ActorRef] = _
+  var children: Seq[ActorRef] = _
 
   var finishedChildren = 0
   var retryTimes = 0
 
-  var candidateRepos: List[Repo] = _
+  var candidateRepos: Seq[Repo] = _
 
   Repox.head404Cache ! Query(uri)
 

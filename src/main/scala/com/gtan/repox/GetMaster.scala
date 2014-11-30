@@ -27,7 +27,7 @@ object GetMaster extends LazyLogging {
   implicit val timeout = new akka.util.Timeout(1 seconds)
 }
 
-class GetMaster(val uri: String, val from: List[Repo]) extends Actor with ActorLogging {
+class GetMaster(val uri: String, val from: Vector[Repo]) extends Actor with ActorLogging {
 
   import scala.concurrent.duration._
 
@@ -35,7 +35,7 @@ class GetMaster(val uri: String, val from: List[Repo]) extends Actor with ActorL
     OneForOneStrategy(maxNrOfRetries = 3, withinTimeRange = 1 minute)(super.supervisorStrategy.decider)
 
 
-  private def reduce(xss: List[List[Repo]], notFoundIn: Set[Repo]): List[List[Repo]] = {
+  private def reduce(xss: Seq[Seq[Repo]], notFoundIn: Set[Repo]): Seq[Seq[Repo]] = {
     xss.map(_.filterNot(notFoundIn.contains)).filter(_.nonEmpty)
   }
 
@@ -49,8 +49,8 @@ class GetMaster(val uri: String, val from: List[Repo]) extends Actor with ActorL
     else from
   )
 
-  var thisLevel: List[Repo] = _
-  var children: List[ActorRef] = _
+  var thisLevel: Seq[Repo] = _
+  var children: Seq[ActorRef] = _
 
   def waitFor404Cache: Receive = {
     case Head404Cache.ExcludeRepos(repos) =>
@@ -94,7 +94,7 @@ class GetMaster(val uri: String, val from: List[Repo]) extends Actor with ActorL
       } else {
         childFailCount += 1
         if (childFailCount == children.length) {
-          candidateRepos match {
+          candidateRepos.toList match {
             case Nil =>
               log.debug(s"GetMaster all child failed. 404")
               context.parent ! GetQueueWorker.Get404(uri)
@@ -109,7 +109,7 @@ class GetMaster(val uri: String, val from: List[Repo]) extends Actor with ActorL
     case GetWorker.UnsuccessResponseStatus(status) =>
       childFailCount += 1
       if (childFailCount == children.length) {
-        candidateRepos match {
+        candidateRepos.toList match {
           case Nil =>
             log.info(s"GetMaster all child failed. 404")
             context.parent ! GetQueueWorker.Get404(uri)

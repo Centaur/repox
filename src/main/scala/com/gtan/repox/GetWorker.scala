@@ -54,10 +54,7 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
   var percentage = 0.0
   var contentLength = -1L
 
-  val client = upstream.name match {
-    case "typesafe" => Repox.proxyClient
-    case _ => Repox.client
-  }
+  val client = Config.clientOf(upstream)
 
   val future = client.prepareGet(upstreamUrl)
     .setHeaders(requestHeaders)

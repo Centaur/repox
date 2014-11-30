@@ -9,15 +9,30 @@ import scala.util.Random
 case class Queue(method: Symbol, uri: String)
 
 object RequestQueueMaster {
+  // send by ConfigPersister
+  case object ConfigLoaded
+  // send by QueueWorker
   case class Dead(queue: Queue)
 }
 
-class RequestQueueMaster extends Actor with ActorLogging {
+class RequestQueueMaster extends Actor with Stash with ActorLogging {
   import RequestQueueMaster._
 
   var children = Map.empty[Queue, ActorRef] // Quuee -> Get/HeadQueueWorker
 
-  override def receive = {
+  override def receive = waitingConfigRecover
+
+  def waitingConfigRecover: Receive = {
+    case ConfigLoaded =>
+      log.debug(s"Config loaded, data: \n ${Config.get}")
+      unstashAll()
+      context become started
+    case msg =>
+      log.debug("Config loading , stash all msgs...")
+      stash()
+  }
+
+  def started: Receive = {
     case Dead(queue) =>
       for(worker <- children.get(queue)) {
         log.debug(s"RequestQueueMaster stopping worker ${worker.path.name}")
@@ -63,7 +78,7 @@ class RequestQueueMaster extends Actor with ActorLogging {
     case req@Requests.Head(exchange) =>
       val uri = exchange.getRequestURI
       val queue = Queue('head, uri)
-      if (Repox.immediat404Rules.exists(_.matches(uri))) {
+      if (Config.immediate404Rules.exists(_.matches(uri))) {
         Repox.immediate404(exchange)
         for (worker <- children.get(queue)) {
           worker ! PoisonPill
