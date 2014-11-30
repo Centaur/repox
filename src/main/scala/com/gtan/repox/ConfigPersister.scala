@@ -123,10 +123,9 @@ class ConfigPersister extends PersistentActor with ActorLogging {
     case UseDefault =>
       persist(UseDefault) { _ =>
         config = Config.default
-        log.debug(s"UserDefault event saved. setting Config.instance.")
-        Config.set(config)
-        log.debug(s"Config.instance has been set.")
-        Repox.requestQueueMaster ! RequestQueueMaster.ConfigLoaded
+        Config.set(config).foreach { _ =>
+          Repox.requestQueueMaster ! RequestQueueMaster.ConfigLoaded
+        }
       }
   }
 
@@ -139,11 +138,9 @@ class ConfigPersister extends PersistentActor with ActorLogging {
 
     case RecoveryCompleted =>
       if (config == null) {
-        log.debug("ConfigPersister received RecoveryCompleted, UseDefault")
         // no config history, save default data as snapshot
         self ! UseDefault
       } else {
-        log.debug("ConfigPersister received RecoveryCompleted, Use recovered data.")
         Config.set(config).foreach { _ =>
           Repox.requestQueueMaster ! RequestQueueMaster.ConfigLoaded
         }
