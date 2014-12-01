@@ -8,15 +8,24 @@ val akkaVersion = "2.3.7"
 
 libraryDependencies ++= Seq(
   "io.undertow" % "undertow-core" % "1.1.0.Final" withSources(),
-  "com.ning" % "async-http-client" % "1.8.15",
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
-  "ch.qos.logback" % "logback-classic" % "1.1.2",
-  "com.typesafe.akka" %% "akka-actor" % akkaVersion,
-  "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-  "com.typesafe.akka" %% "akka-agent" % akkaVersion,
-  "com.typesafe.akka" %% "akka-persistence-experimental" % "2.3.7"
+  ("com.ning" % "async-http-client" % "1.8.15")
+    .exclude("org.slf4j", "slf4j-api"),
+  ("com.typesafe.scala-logging" %% "scala-logging" % "3.1.0")
+    .exclude("org.scala-lang", "scala-library"),
+  ("ch.qos.logback" % "logback-classic" % "1.1.2")
+    .exclude("org.slf4j", "slf4j-api"),
+  ("com.typesafe.akka" %% "akka-actor" % akkaVersion)
+    .exclude("org.slf4j", "slf4j-api"),
+  ("com.typesafe.akka" %% "akka-slf4j" % akkaVersion)
+    .exclude("org.slf4j", "slf4j-api"),
+  ("com.typesafe.akka" %% "akka-agent" % akkaVersion)
+    .exclude("org.scala-lang", "scala-library"),
+  ("com.typesafe.akka" %% "akka-persistence-experimental" % "2.3.7")
+    .exclude("org.scala-lang", "scala-library")
 )
 
 fork := true
 
 Revolver.settings
+
+net.virtualvoid.sbt.graph.Plugin.graphSettings
