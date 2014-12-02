@@ -3,7 +3,7 @@ package com.gtan.repox
 import java.io.{FileOutputStream, File, OutputStream}
 import java.util.concurrent.atomic.AtomicBoolean
 
-import akka.actor.{PoisonPill, ActorRef}
+import akka.actor.{ReceiveTimeout, PoisonPill, ActorRef}
 import com.gtan.repox.GetWorker._
 import com.gtan.repox.Head404Cache.NotFound
 import com.ning.http.client.AsyncHandler.STATE
@@ -16,6 +16,7 @@ class GetAsyncHandler(val uri: String, val repo: Repo, val worker: ActorRef, val
 
   var tempFileOs: OutputStream = null
   var tempFile: File = null
+  var contentType: String = null
 
   private val canceled = new AtomicBoolean(false)
 
@@ -51,7 +52,7 @@ class GetAsyncHandler(val uri: String, val repo: Repo, val worker: ActorRef, val
   }
 
   override def onStatusReceived(responseStatus: HttpResponseStatus): STATE = {
-    if(responseStatus.getStatusCode == StatusCodes.NOT_FOUND) {
+    if (responseStatus.getStatusCode == StatusCodes.NOT_FOUND) {
       Repox.head404Cache ! NotFound(uri, repo)
     }
     if (canceled.get()) {
@@ -71,18 +72,26 @@ class GetAsyncHandler(val uri: String, val repo: Repo, val worker: ActorRef, val
   override def onHeadersReceived(headers: HttpResponseHeaders): STATE = {
     logger.debug(s"$upstreamUrl 200 headers ================== \n ${headers.getHeaders}")
     if (!canceled.get()) {
-      if(tempFile != null){
-        logger.debug("Lantern interrupted. Resync data.")
-        tempFileOs.close()
-        tempFileOs = new FileOutputStream(tempFile)
-        worker ! HeadersGot(headers)
+      val newContentType = headers.getHeaders.getFirstValue("Content-type")
+      if (contentType == null || contentType == newContentType) {
+        if (contentType == null) contentType = newContentType
+        if (tempFile != null) {
+          logger.debug("Lantern interrupted. Resync data.")
+          tempFileOs.close()
+          tempFileOs = new FileOutputStream(tempFile)
+          worker ! HeadersGot(headers)
+        } else {
+          tempFile = File.createTempFile("repox", ".tmp")
+          tempFileOs = new FileOutputStream(tempFile)
+          worker ! HeadersGot(headers)
+          master.!(HeadersGot(headers))(worker)
+        }
+        STATE.CONTINUE
       } else {
-        tempFile = File.createTempFile("repox", ".tmp")
-        tempFileOs = new FileOutputStream(tempFile)
-        worker ! HeadersGot(headers)
-        master.!(HeadersGot(headers))(worker)
+        worker ! LanternGiveup
+        cleanup()
+        STATE.ABORT
       }
-      STATE.CONTINUE
     } else {
       cleanup()
       STATE.ABORT

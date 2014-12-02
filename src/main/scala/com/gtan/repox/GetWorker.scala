@@ -35,6 +35,8 @@ object GetWorker {
 
   case object Cleanup
 
+  case object LanternGiveup // same effect as ReceiveTimeout
+
   case class HeartBeat(length: Int)
 
   case object WorkerDead
@@ -72,8 +74,8 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
     case PeerChosen(who) =>
       handler.cancel()
 
-    case ReceiveTimeout =>
-      context.parent ! Failed(new RuntimeException("Chosen worker timeout"))
+    case ReceiveTimeout | LanternGiveup =>
+      context.parent ! Failed(new RuntimeException("Chosen worker timeout or lantern giveup"))
       handler.cancel()
       self ! PoisonPill
 
