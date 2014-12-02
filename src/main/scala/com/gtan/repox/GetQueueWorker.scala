@@ -3,6 +3,7 @@ package com.gtan.repox
 import java.nio.file.Path
 
 import akka.actor._
+import com.gtan.repox.SHA1Checker.Check
 import io.undertow.server.HttpServerExchange
 
 import scala.concurrent.duration._
@@ -24,7 +25,7 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
       assert(u == uri)
       if(!Repox.downloaded(uri)){
         log.info(s"$uri not downloaded. Downloading.")
-        context.actorOf(Props(classOf[GetMaster], uri, Vector(from)), s"DownloadMaster_${Random.nextInt()}")
+        context.actorOf(Props(classOf[GetMaster], uri, from), s"DownloadMaster_${Random.nextInt()}")
       }
       context become working
     case msg@Requests.Get(exchange) =>
@@ -50,7 +51,9 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
       found = true
       if(!uri.endsWith(".sha1")) {
         log.debug(s"Prefetch $uri.sha1")
-        context.parent ! Requests.Download(uri + ".sha1", repo)
+        context.parent ! Requests.Download(uri + ".sha1", Seq(repo))
+      } else {
+        Repox.sha1Checker ! Check(uri.dropRight(5))
       }
       unstashAll()
       context.setReceiveTimeout(1 second)

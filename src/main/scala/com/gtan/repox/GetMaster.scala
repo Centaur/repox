@@ -27,7 +27,7 @@ object GetMaster extends LazyLogging {
   implicit val timeout = new akka.util.Timeout(1 seconds)
 }
 
-class GetMaster(val uri: String, val from: Vector[Repo]) extends Actor with ActorLogging {
+class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLogging {
 
   import scala.concurrent.duration._
 

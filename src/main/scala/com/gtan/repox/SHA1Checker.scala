@@ -3,7 +3,7 @@ package com.gtan.repox
 import java.io.File
 import java.nio.file.Path
 
-import akka.actor.{ActorLogging, Actor}
+import akka.actor.{Props, ActorLogging, Actor}
 import com.google.common.hash.Hashing
 import com.google.common.io.Files
 import com.gtan.repox.Requests.Download
@@ -28,9 +28,10 @@ class SHA1Checker extends Actor with ActorLogging{
       val computed = Files.hash(path.toFile, Hashing.sha1()).toString
       val downloaded = scala.io.Source.fromFile(sha1Path.toFile).mkString
       if(computed != downloaded) {
-        path.toFile.delete()
-        sha1Path.toFile.delete()
-        Repox.requestQueueMaster ! Download(uri, Config.repos)
+        log.debug(s"$uri sha1 inconsistence detected, delete both files and redownload.")
+        context.actorOf(Props(classOf[FileDeleter], uri))
+      } else {
+        log.debug(s"$uri sha1 check success.")
       }
   }
 }

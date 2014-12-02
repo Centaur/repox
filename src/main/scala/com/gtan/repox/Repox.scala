@@ -21,6 +21,7 @@ object Repox extends LazyLogging {
   val configView = Repox.system.actorOf(Props[ConfigView], name = "ConfigView")
   val head404Cache = system.actorOf(Props[Head404Cache], "HeaderCache")
   val requestQueueMaster = system.actorOf(Props[RequestQueueMaster], "RequestQueueMaster")
+  val sha1Checker = system.actorOf(Props[SHA1Checker], "SHA1Checker")
 
   def loadConfig(): Unit = {
     system.actorOf(Props[ConfigPersister], "ConfigPersister")
@@ -66,7 +67,7 @@ object Repox extends LazyLogging {
 
   def resolveToPath(uri: String) = Config.storage.resolve(uri.tail)
 
-  def orderByPriority(candidates: Vector[Repo]): Seq[Seq[Repo]] =
+  def orderByPriority(candidates: Seq[Repo]): Seq[Seq[Repo]] =
     candidates.groupBy(_.priority).toSeq.sortBy(_._1).map(_._2)
 
   def respond404(exchange: HttpServerExchange): Unit = {
