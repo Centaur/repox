@@ -24,6 +24,8 @@ libraryDependencies ++= Seq(
     .exclude("org.scala-lang", "scala-library")
 )
 
+updateOptions := updateOptions.value.withCachedResolution(true)
+
 fork := true
 
 Revolver.settings

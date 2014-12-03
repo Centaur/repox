@@ -1,0 +1,9 @@
+#page-header {
+    margin-top: 0.5em ;
+    margin-left: 0.5em ;
+}
+
+.ui.table thead th, .ui.table td {
+    text-align: center;
+}
+
