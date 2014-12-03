@@ -1,6 +1,7 @@
 package com.gtan.repox
 
 import akka.actor._
+import com.gtan.repox.config.Config
 import io.undertow.server.HttpServerExchange
 import io.undertow.util.StatusCodes
 

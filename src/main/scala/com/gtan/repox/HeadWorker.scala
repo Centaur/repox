@@ -4,6 +4,7 @@ import java.net.URL
 
 import akka.actor._
 import com.gtan.repox.HeadMaster.{HeadTimeout, NotFound, FoundIn}
+import com.gtan.repox.config.Config
 import com.ning.http.client.FluentCaseInsensitiveStringsMap
 import io.undertow.server.HttpServerExchange
 import io.undertow.util.{Headers, StatusCodes}

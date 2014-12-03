@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.GZIPOutputStream
 
 import akka.actor._
+import com.gtan.repox.config.Config
 import com.ning.http.client.AsyncHandler.STATE
 import com.ning.http.client._
 import com.typesafe.scalalogging.LazyLogging

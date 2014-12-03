@@ -8,7 +8,7 @@
 </head>
 <body>
 <h1 class="ui header" id="page-header">
-    <i class="settings icon"></i>
+    <i class="rocket icon"></i>
 
     <div class="content">
         Repox
@@ -18,19 +18,19 @@
 <div id="app">
     <nav class="ui pointing menu" id="mainMenu">
         <a class="{{channel == 'upstream' ? 'active' : ''}} teal item" v-on="click: channel = 'upstream'">
-            <i class="mail icon"></i> Upstream Repositories
+            <i class="vertically flipped sitemap icon"></i> Upstream Repositories
         </a>
         <a class="{{channel == 'proxy' ? 'active' : ''}} orange item" v-on="click: channel = 'proxy'">
-            <i class="home icon"></i> Proxies
+            <i class="external link icon"></i> Proxies
         </a>
         <a class="{{channel == 'immediate404' ? 'active' : ''}} purple item" v-on="click: channel = 'immediate404'">
-            <i class="mail icon"></i> Immediate 404 Rules
+            <i class="hide icon"></i> Immediate 404 Rules
         </a>
         <a class="{{channel == 'expire' ? 'active' : ''}} red item" v-on="click: channel = 'expire'">
-            <i class="mail icon"></i> Expire Rules
+            <i class="refresh icon"></i> Expire Rules
         </a>
         <a class="{{channel == 'parameters' ? 'active' : ''}} blue item" v-on="click: channel = 'parameters'">
-            <i class="mail icon"></i> Parameters
+            <i class="tasks icon"></i> Parameters
         </a>
     </nav>
     <section id="channel-content">
@@ -92,12 +92,6 @@
             </table>
         </div>
     </section>
-</div>
-
-<div id="upstream2">
-<a class="ui right floated labeled icon teal button" v-on="click: abc">
-    <i class="plus icon"></i> Add Repo
-</a>
 </div>
 
 <div class="ui modal" id="addRepoDialog">

@@ -1,11 +1,12 @@
-package com.gtan.repox
+package com.gtan.repox.config
 
 import akka.actor.ActorLogging
 import akka.persistence.{PersistentActor, RecoveryCompleted}
+import com.gtan.repox.{Immediate404Rule, Repo, Repox, RequestQueueMaster}
 import com.ning.http.client.ProxyServer
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
-import concurrent.ExecutionContext.Implicits.global
 
 object ConfigPersister {
 
@@ -105,8 +106,7 @@ object ConfigPersister {
 
 class ConfigPersister extends PersistentActor with ActorLogging {
 
-  import com.gtan.repox.ConfigPersister._
-
+  import ConfigPersister._
   override def persistenceId = "Config"
 
   var config: Config = _

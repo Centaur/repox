@@ -3,6 +3,7 @@ package com.gtan.repox
 import java.nio.file.Paths
 
 import akka.actor.{ActorSystem, Props}
+import com.gtan.repox.config.{ConfigView, ConfigPersister, Config}
 import com.ning.http.client._
 import com.ning.http.client.resumable.ResumableIOExceptionFilter
 import com.typesafe.scalalogging.LazyLogging

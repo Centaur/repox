@@ -4,6 +4,7 @@ import akka.actor.Actor.Receive
 import akka.actor._
 import com.gtan.repox.Head404Cache.Query
 import com.gtan.repox.Repox.ResponseHeaders
+import com.gtan.repox.config.Config
 import com.ning.http.client.FluentCaseInsensitiveStringsMap
 import io.undertow.server.HttpServerExchange
 import io.undertow.util.{Headers, StatusCodes}

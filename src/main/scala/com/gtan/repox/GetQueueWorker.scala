@@ -4,6 +4,7 @@ import java.nio.file.Path
 
 import akka.actor._
 import com.gtan.repox.SHA1Checker.Check
+import com.gtan.repox.config.Config
 import io.undertow.server.HttpServerExchange
 
 import scala.concurrent.duration._

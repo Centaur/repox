@@ -1,7 +1,7 @@
-package com.gtan.repox
+package com.gtan.repox.config
 
 import akka.actor.ActorLogging
-import akka.persistence.{SnapshotOffer, PersistentView}
+import akka.persistence.PersistentView
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,7 +14,6 @@ object ConfigView {
   case object Get
 }
 class ConfigView extends PersistentView with ActorLogging{
-  import ConfigView._
 
   override val viewId = "ConfigViewer"
   override val persistenceId = "Config"

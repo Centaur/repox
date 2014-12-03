@@ -1,9 +1,11 @@
-package com.gtan.repox
+package com.gtan.repox.config
 
-import java.nio.file.{Paths, Path}
+import java.nio.file.{Path, Paths}
 
 import akka.agent.Agent
+import com.gtan.repox.{Immediate404Rule, Repo, Repox}
 import com.ning.http.client.{AsyncHttpClient, ProxyServer}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
