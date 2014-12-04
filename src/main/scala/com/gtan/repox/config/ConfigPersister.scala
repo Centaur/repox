@@ -3,7 +3,7 @@ package com.gtan.repox.config
 import akka.actor.ActorLogging
 import akka.persistence.{PersistentActor, RecoveryCompleted}
 import com.gtan.repox.{Immediate404Rule, Repo, Repox, RequestQueueMaster}
-import com.ning.http.client.ProxyServer
+import com.ning.http.client.{ProxyServer => JProxyServer}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
@@ -28,7 +28,7 @@ object ConfigPersister {
     }
   }
 
-  case class NewOrUpdateProxy(name: String, proxy: ProxyServer) extends Cmd {
+  case class NewOrUpdateProxy(name: String, proxy: JProxyServer) extends Cmd {
     override def transform(old: Config) = {
       val oldProxies = old.proxies
       old.copy(proxies = oldProxies.updated(name, proxy))
@@ -46,7 +46,7 @@ object ConfigPersister {
     }
   }
 
-  case class RepoUseProxy(repo: Repo, proxy: Option[ProxyServer]) extends Cmd {
+  case class RepoUseProxy(repo: Repo, proxy: Option[JProxyServer]) extends Cmd {
     override def transform(old: Config) = {
       val oldProxyUsage = old.proxyUsage
       old.copy(proxyUsage = proxy match {

@@ -1,26 +1,18 @@
 $('.ui.checkbox').checkbox();
 $('select.dropdown').dropdown();
 
+var Vue = require('vue');
+
 var app = new Vue({
     el: '#app',
     data: {
         channel: 'upstream'
-    }
-});
-
-var upstream = new Vue({
-    el: '#upstream2',
-    data: {
-        upstreams: []
     },
-    methods: {
-        showAddRepoDialog: function (e) {
-            console.log('show dialog');
-            $('#addRepoDialog').modal('show')
-        }
+    components: {
+        upstream: require('./upstream')
     }
-
 });
+
 
 //$.get('/config/upstreams', function (config) {
 //    upstream.data.upstreams = config;

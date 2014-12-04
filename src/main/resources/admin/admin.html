@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <link rel="stylesheet" href="bower_components/semantic-ui/dist/semantic.min.css"/>
+    <link rel="stylesheet" href="admin.css"/>
+</head>
+<body>
+<h1 class="ui header" id="page-header">
+    <i class="rocket icon"></i>
+
+    <div class="content">
+        Repox
+        <div class="sub header">Make your sbt more responsive.</div>
+    </div>
+</h1>
+<div id="app">
+    <nav class="ui pointing menu" id="mainMenu">
+        <a class="{{channel == 'upstream' ? 'active' : ''}} teal item" v-on="click: channel = 'upstream'">
+            <i class="vertically flipped sitemap icon"></i> Upstream Repositories
+        </a>
+        <a class="{{channel == 'proxy' ? 'active' : ''}} orange item" v-on="click: channel = 'proxy'">
+            <i class="external link icon"></i> Proxies
+        </a>
+        <a class="{{channel == 'immediate404' ? 'active' : ''}} purple item" v-on="click: channel = 'immediate404'">
+            <i class="hide icon"></i> Immediate 404 Rules
+        </a>
+        <a class="{{channel == 'expire' ? 'active' : ''}} red item" v-on="click: channel = 'expire'">
+            <i class="refresh icon"></i> Expire Rules
+        </a>
+        <a class="{{channel == 'parameters' ? 'active' : ''}} blue item" v-on="click: channel = 'parameters'">
+            <i class="tasks icon"></i> Parameters
+        </a>
+    </nav>
+    <section id="channel-content" v-component="{{channel}}" >
+    </section>
+</div>
+
+<script src="bower_components/jquery/dist/jquery.min.js"></script>
+<script src="bower_components/semantic-ui/dist/semantic.min.js"></script>
+<script src="bundle.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "repox",
+  "version": "1.0.0",
+  "description": "Make your sbt more responsive",
+  "main": "./admin.js",
+  "author": "Centaur",
+  "license": "MIT",
+  "scripts": {
+    "dev": "watchify -e ./admin.js -t partialify -o ./bundle.js"
+  },
+  "devDependencies": {
+    "insert-css": "^0.2.0",
+    "partialify": "^3.1.1",
+    "watchify": "^1.0.6"
+  },
+  "dependencies": {
+    "vue": "git://github.com/yyx990803/vue#next"
+  }
+}

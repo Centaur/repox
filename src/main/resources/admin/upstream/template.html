@@ -1,0 +1,61 @@
+<div class="ui form" id="upstream">
+    <table class="ui celled definition table">
+        <thead>
+        <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Base Url</th>
+            <th>Pure Maven</th>
+            <th>Get Only</th>
+            <th>Use Proxy</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-repeat="upstreams">
+            <td class="collapsing">
+                        <span class="ui basic icon button">
+                            <i class="remove teal icon"></i>
+                        </span>
+                        <span class="ui basic icon button">
+                            <i class="edit teal icon"></i>
+                        </span>
+            </td>
+            <td>{{name}}</td>
+            <td>{{base}}</td>
+            <td>
+                <div class="inline field">
+                    <div class="ui toggle checkbox">
+                        <input type="checkbox">
+                        <label>{{isPureMaven}}</label>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div class="inline field">
+                    <div class="ui toggle checkbox">
+                        <input type="checkbox">
+                        <label>{{isGetOnly}}</label>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <select class="ui dropdown">
+                    <option value="NoProxy" selected>No Proxy</option>
+                    <option value="localhost:8787">localhost:8787</option>
+                </select>
+            </td>
+        </tr>
+        </tbody>
+        <tfoot class="full-width">
+        <th colspan="6">
+            <a class="ui right floated labeled icon teal button" v-on="click: showAddRepoDialog">
+                <i class="plus icon"></i> Add Repo
+            </a>
+        </th>
+        </tfoot>
+    </table>
+</div>
+
+<div class="ui modal" id="addRepoDialog">
+    some fake content
+</div>
