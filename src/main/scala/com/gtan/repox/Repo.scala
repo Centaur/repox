@@ -8,7 +8,12 @@ import com.gtan.repox.config.Config
  * Date: 14/11/23
  * Time: 下午3:55
  */
-case class Repo(id: Long, name: String, base: String, priority: Int, getOnly: Boolean = false, maven: Boolean = false)
+case class Repo(id: Long, name: String, base: String, priority: Int, getOnly: Boolean = false, maven: Boolean = false) {
+  def toMap: Map[String, Any] = {
+    val withoutId = Map("name" -> name, "base" -> base, "priority" -> priority, "getOnly" -> getOnly, "maven" -> maven)
+    if(id == -1) withoutId else withoutId.updated("id", id)
+  }
+}
 
 object Repo {
   def nextId: Long = Config.repos.map(_.id).max + 1

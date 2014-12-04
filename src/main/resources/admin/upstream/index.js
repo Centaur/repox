@@ -5,8 +5,9 @@ module.exports = {
             upstreams: []
         };
     },
-    ready: function () {
+    created: function () {
         $.get('/admin/upstreams', function (resp) {
+            console.log(resp);
             this.upstreams = resp
         })
     },

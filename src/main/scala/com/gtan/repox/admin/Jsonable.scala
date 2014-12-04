@@ -12,6 +12,7 @@ import scala.language.postfixOps
  */
 trait Jsonable[T] {
   def toJson(v: T): String
+
   def fromJson(json: String): T
 }
 
@@ -22,9 +23,9 @@ object Jsonable {
   val gson = new Gson
 
   implicit object repoIsJsonable extends Jsonable[Repo] {
-    override def toJson(repo: Repo): String = gson.toJson(
-      Map("name" -> repo.name, "base" -> repo.base, "priority" -> repo.priority, "getOnly" -> repo.getOnly, "maven" -> repo.maven).asJava
-    )
+    override def toJson(repo: Repo): String = {
+      gson.toJson(repo.toMap.asJava)
+    }
 
     override def fromJson(json: String): Repo = {
       val map = gson.fromJson(json, classOf[java.util.Map[String, String]])
@@ -59,18 +60,17 @@ object Jsonable {
 
     override def fromJson(json: String): java.util.Map[String, T] = {
       val map = gson.fromJson(json, classOf[java.util.Map[String, String]]).asScala
-      (for((k, v) <- map) yield k -> implicitly[Jsonable[T]].fromJson(v)).asJava
+      (for ((k, v) <- map) yield k -> implicitly[Jsonable[T]].fromJson(v)).asJava
     }
   }
 
   implicit object repoVOIsJsonable extends Jsonable[RepoVO] {
     override def toJson(vo: RepoVO): String = {
-      val map = Map("name" -> vo.repo.name, "base" -> vo.repo.base, "priority" -> vo.repo.priority, "getOnly" -> vo.repo.getOnly,
-        "maven" -> vo.repo.maven)
+      val map = vo.repo.toMap
       gson.toJson(
         (vo.proxy match {
           case None => map
-          case Some(p) => map.updated("admin/proxy", implicitly[Jsonable[JProxyServer]].toJson(p))
+          case Some(p) => map.updated("proxy", implicitly[Jsonable[JProxyServer]].toJson(p))
         }).asJava
       )
     }
@@ -95,7 +95,7 @@ object Jsonable {
     override def fromJson(json: String): Immediate404Rule = {
       val map = gson.fromJson(json, classOf[java.util.Map[String, String]])
       Immediate404Rule(
-        id = if(map.containsKey("id")) map.get("id").toLong else -1,
+        id = if (map.containsKey("id")) map.get("id").toLong else -1,
         include = map.get("include"),
         exclude = map.asScala.get("exclude")
       )
