@@ -1,10 +1,9 @@
-package com.gtan.repox.config
+package com.gtan.repox.admin
 
-import com.google.gson
 import com.google.gson.Gson
 import com.gtan.repox._
-import com.ning.http.client.{ProxyServer => JProxyServer}
 import com.ning.http.client.ProxyServer.Protocol
+import com.ning.http.client.{ProxyServer => JProxyServer}
 
 import scala.language.postfixOps
 
@@ -18,7 +17,7 @@ trait Jsonable[T] {
 
 object Jsonable {
 
-  import collection.JavaConverters._
+  import scala.collection.JavaConverters._
 
   val gson = new Gson
 
@@ -44,23 +43,23 @@ object Jsonable {
     }
   }
 
-  implicit def seqIsJsonable[T: Jsonable]: Jsonable[Seq[T]] = new Jsonable[Seq[T]] {
-    override def toJson(xs: Seq[T]): String = gson.toJson(xs.map(implicitly[Jsonable[T]].toJson))
+  implicit def jListIsJsonable[T: Jsonable]: Jsonable[java.util.List[T]] = new Jsonable[java.util.List[T]] {
+    override def toJson(xs: java.util.List[T]): String = gson.toJson(xs.asScala.map(implicitly[Jsonable[T]].toJson).asJava)
 
-    override def fromJson(json: String): Seq[T] = {
-      val v = gson.fromJson(json, classOf[java.util.Vector[String]]).asScala
-      v.map(implicitly[Jsonable[T]].fromJson).toVector
+    override def fromJson(json: String): java.util.List[T] = {
+      val v = gson.fromJson(json, classOf[java.util.List[String]]).asScala
+      v.map(implicitly[Jsonable[T]].fromJson).asJava
     }
   }
 
-  implicit def mapIsJsonable[T: Jsonable]: Jsonable[Map[String, T]] = new Jsonable[Map[String, T]] {
-    override def toJson(m: Map[String, T]): String = gson.toJson(m.map {
+  implicit def mapIsJsonable[T: Jsonable]: Jsonable[java.util.Map[String, T]] = new Jsonable[java.util.Map[String, T]] {
+    override def toJson(m: java.util.Map[String, T]): String = gson.toJson(m.asScala.map {
       case (k, v) => k -> implicitly[Jsonable[T]].toJson(v)
     } asJava)
 
-    override def fromJson(json: String): Map[String, T] = {
-      val map = gson.fromJson(json, classOf[java.util.Map[String, String]]).asScala.toMap
-      for((k, v) <- map) yield k -> implicitly[Jsonable[T]].fromJson(v)
+    override def fromJson(json: String): java.util.Map[String, T] = {
+      val map = gson.fromJson(json, classOf[java.util.Map[String, String]]).asScala
+      (for((k, v) <- map) yield k -> implicitly[Jsonable[T]].fromJson(v)).asJava
     }
   }
 

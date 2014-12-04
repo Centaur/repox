@@ -1,6 +1,6 @@
 package com.gtan.repox
 
-import com.gtan.repox.config.WebConfigHandler
+import com.gtan.repox.admin.WebConfigHandler
 import io.undertow.Undertow
 import io.undertow.predicate.{Predicates, Predicate}
 import io.undertow.server.handlers.{PredicateContextHandler, PredicateHandler}

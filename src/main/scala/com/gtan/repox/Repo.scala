@@ -1,6 +1,6 @@
 package com.gtan.repox
 
-import com.gtan.repox.config.{Config, Jsonable}
+import com.gtan.repox.config.Config
 
 /**
  * Created by IntelliJ IDEA.

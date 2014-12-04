@@ -1,6 +1,7 @@
-package com.gtan.repox.config
+package com.gtan.repox.admin
 
 import com.gtan.repox.Repo
+import com.gtan.repox.config.Config
 import com.ning.http.client.{ProxyServer => JProxyServer}
 
 /**
