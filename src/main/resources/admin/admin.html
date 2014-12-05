@@ -12,33 +12,37 @@
 
     <span class="content">
         Repox
+        <br/>
         <span class="sub header">Make your sbt more responsive.</span>
     </span>
 </h1>
-<div id="app">
-    <nav class="ui pointing menu" id="mainMenu">
-        <a class="{{channel == 'upstream' ? 'active' : ''}} teal item" v-on="click: channel = 'upstream'">
+<div id="app" ng-app="repoxApp">
+    <nav class="ui pointing menu" id="mainMenu" ng-controller="MenuCtrl">
+        <a class="{{activeOn('/upstreams')}} teal item" href="#/upstreams">
             <i class="vertically flipped sitemap icon"></i> Upstream Repositories
         </a>
-        <a class="{{channel == 'proxy' ? 'active' : ''}} orange item" v-on="click: channel = 'proxy'">
+        <a class="{{activeOn('/proxies')}} orange item" href="#/proxies">
             <i class="external link icon"></i> Proxies
         </a>
-        <a class="{{channel == 'immediate404' ? 'active' : ''}} purple item" v-on="click: channel = 'immediate404'">
+        <a class="{{activeOn('/immediate404')}} purple item" href="#/immediate404">
             <i class="hide icon"></i> Immediate 404 Rules
         </a>
-        <a class="{{channel == 'expire' ? 'active' : ''}} red item" v-on="click: channel = 'expire'">
+        <a class="{{activeOn('/expire')}} red item" href="#/expire">
             <i class="refresh icon"></i> Expire Rules
         </a>
-        <a class="{{channel == 'parameters' ? 'active' : ''}} blue item" v-on="click: channel = 'parameters'">
+        <a class="{{activeOn('/parameters')}} blue item" href="#/parameters">
             <i class="tasks icon"></i> Parameters
         </a>
     </nav>
-    <section id="channel-content" v-component="{{channel}}" >
+    <section id="channel-content" ng-view>
     </section>
 </div>
 
 <script src="/admin/bower_components/jquery/dist/jquery.min.js"></script>
 <script src="/admin/bower_components/semantic-ui/dist/semantic.min.js"></script>
-<script src="bundle.js"></script>
+<script src="/admin/bower_components/underscore/underscore-min.js"></script>
+<script src="/admin/bower_components/angular/angular.js"></script>
+<script src="/admin/bower_components/angular-route/angular-route.js"></script>
+<script src="admin.js"></script>
 </body>
 </html>

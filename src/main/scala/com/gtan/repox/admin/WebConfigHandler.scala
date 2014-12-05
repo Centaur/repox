@@ -55,11 +55,11 @@ object WebConfigHandler {
 
   def isStaticRequest(target: String) = Set(".html", ".css", ".js", ".ico", ".ttf", ".map", "woff").exists(target.endsWith)
 
-  def respondJson[T: Jsonable](exchange: HttpServerExchange, data: T): Unit = {
+  def respondJson(exchange: HttpServerExchange, data: java.util.Map[String, _ <: Any]): Unit = {
     exchange.setResponseCode(StatusCodes.OK)
     val respondHeaders = exchange.getResponseHeaders
     respondHeaders.put(Headers.CONTENT_TYPE, "application/json")
-    val json = implicitly[Jsonable[T]].toJson(data)
+    val json = Jsonable.gson.toJson(data)
     exchange.getResponseChannel.writeFinal(ByteBuffer.wrap(json.getBytes(Charsets.UTF_8)))
     exchange.endExchange()
   }

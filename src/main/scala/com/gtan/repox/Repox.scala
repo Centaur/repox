@@ -40,7 +40,7 @@ object Repox extends LazyLogging {
     .setFollowRedirects(true)
     .build()
   )
-  lazy val proxyClients = for ((name, proxy) <- Config.proxies) yield {
+  lazy val proxyClients = (for (proxy <- Config.proxies) yield {
     proxy -> new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
       .setRequestTimeoutInMs(Int.MaxValue)
       .setConnectionTimeoutInMs(Config.connectionTimeout.toMillis.toInt)
@@ -48,13 +48,13 @@ object Repox extends LazyLogging {
       .setAllowSslConnectionPool(true)
       .setMaximumConnectionsPerHost(Config.proxyClientMaxConnectionsPerHost)
       .setMaximumConnectionsTotal(Config.proxyClientMaxConnections)
-      .setProxyServer(proxy)
+      .setProxyServer(proxy.toJava)
       .setIdleConnectionInPoolTimeoutInMs(Config.connectionIdleTimeout.toMillis.toInt)
       .setIdleConnectionTimeoutInMs(Config.connectionIdleTimeout.toMillis.toInt)
       .setFollowRedirects(true)
       .build()
     )
-  }
+  }) toMap
 
   def resourceManager = new FileResourceManager(Config.storage.toFile, 100 * 1024)
 

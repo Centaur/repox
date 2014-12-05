@@ -2,6 +2,7 @@ package com.gtan.repox.config
 
 import akka.actor.ActorLogging
 import akka.persistence.{PersistentActor, RecoveryCompleted}
+import com.gtan.repox.admin.ProxyServer
 import com.gtan.repox.{Immediate404Rule, Repo, Repox, RequestQueueMaster}
 import com.ning.http.client.{ProxyServer => JProxyServer}
 
@@ -28,25 +29,28 @@ object ConfigPersister {
     }
   }
 
-  case class NewOrUpdateProxy(name: String, proxy: JProxyServer) extends Cmd {
+  case class NewOrUpdateProxy(id: Long, proxy: ProxyServer) extends Cmd {
     override def transform(old: Config) = {
       val oldProxies = old.proxies
-      old.copy(proxies = oldProxies.updated(name, proxy))
+      old.copy(proxies = oldProxies.map {
+        case ProxyServer(proxy.id, _, _, _, _) => proxy
+        case p => p
+      })
     }
   }
 
-  case class DeleteProxy(name: String) extends Cmd {
+  case class DeleteProxy(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldProxies = old.proxies
       val oldProxyUsage = old.proxyUsage
       old.copy(
-        proxies = oldProxies - name,
-        proxyUsage = oldProxyUsage.filterNot { case (repo, proxy) => repo.name == name}
+        proxies = oldProxies.filterNot(_.id == id),
+        proxyUsage = oldProxyUsage.filterNot { case (repo, proxy) => proxy.id == id}
       )
     }
   }
 
-  case class RepoUseProxy(repo: Repo, proxy: Option[JProxyServer]) extends Cmd {
+  case class RepoUseProxy(repo: Repo, proxy: Option[ProxyServer]) extends Cmd {
     override def transform(old: Config) = {
       val oldProxyUsage = old.proxyUsage
       old.copy(proxyUsage = proxy match {

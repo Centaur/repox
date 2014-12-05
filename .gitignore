@@ -2,6 +2,7 @@ build/
 .gradle/
 .idea/
 *.iml
+*.log
 
 target/
 bower_components/

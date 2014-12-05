@@ -1,7 +1,7 @@
 package com.gtan.repox
 
 import com.gtan.repox.config.Config
-
+import collection.JavaConverters._
 /**
  * Created by IntelliJ IDEA.
  * User: xf
@@ -17,6 +17,17 @@ case class Immediate404Rule(id: Long, include: String, exclude: Option[String] =
         val excluded = uri.matches(regex)
         included && !excluded
     }
+  }
+
+  def toMap: java.util.Map[String, Any] = {
+    val withoutId = Map(
+      "include" -> include
+    )
+    val withId = if(id == -1) {
+      withoutId.updated("id", id)
+    } else withoutId
+    val withExclude = exclude.fold(withId)(ex => withId.updated("exclude", ex))
+    withExclude.asJava
   }
 }
 

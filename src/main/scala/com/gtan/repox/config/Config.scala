@@ -3,6 +3,7 @@ package com.gtan.repox.config
 import java.nio.file.{Path, Paths}
 
 import akka.agent.Agent
+import com.gtan.repox.admin.ProxyServer
 import com.gtan.repox.{Immediate404Rule, Repo, Repox}
 import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
 
@@ -19,9 +20,9 @@ import scala.language.postfixOps
  */
 
 
-case class Config(proxies: Map[String, JProxyServer],
+case class Config(proxies: Seq[ProxyServer],
                   repos: Seq[Repo],
-                  proxyUsage: Map[Repo, JProxyServer],
+                  proxyUsage: Map[Repo, ProxyServer],
                   immediate404Rules: Seq[Immediate404Rule],
                   storage: Path,
                   connectionTimeout: Duration,
@@ -32,8 +33,8 @@ case class Config(proxies: Map[String, JProxyServer],
                   proxyClientMaxConnections: Int)
 
 object Config {
-  val defaultProxies = Map(
-    "lantern" -> new JProxyServer("localhost", 8787)
+  val defaultProxies = List(
+    ProxyServer(id = 1, name = "Lantern", protocol = JProxyServer.Protocol.HTTP, host = "localhost", port = 8787)
   )
   val defaultRepos: Seq[Repo] = Seq(
     Repo(1, "koala", "http://nexus.openkoala.org/nexus/content/groups/Koala-release",
@@ -75,7 +76,7 @@ object Config {
   val default = Config(
     proxies = defaultProxies,
     repos = defaultRepos,
-    proxyUsage = Map(),
+    proxyUsage = Map(defaultRepos.find(_.name == "typesafe").get -> defaultProxies.head),
     immediate404Rules = defaultImmediate404Rules,
     storage = Paths.get(System.getProperty("user.home"), ".repox", "storage"),
     connectionTimeout = 6 seconds,
@@ -96,9 +97,9 @@ object Config {
 
   def repos: Seq[Repo] = instance.get().repos
 
-  def proxies: Map[String, JProxyServer] = instance.get().proxies
+  def proxies: Seq[ProxyServer] = instance.get().proxies
 
-  def proxyUsage: Map[Repo, JProxyServer] = instance.get().proxyUsage
+  def proxyUsage: Map[Repo, ProxyServer] = instance.get().proxyUsage
 
   def immediate404Rules: Seq[Immediate404Rule] = instance.get().immediate404Rules
 

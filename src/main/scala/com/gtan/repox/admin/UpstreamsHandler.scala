@@ -6,13 +6,16 @@ import io.undertow.server.HttpServerExchange
 import io.undertow.util.{Methods, HttpString}
 import collection.JavaConverters._
 
-object UpstreamsHandler extends RestHandler{
+object UpstreamsHandler extends RestHandler {
 
   import WebConfigHandler._
 
   override def route(implicit exchange: HttpServerExchange): PartialFunction[(HttpString, String), Unit] = {
     case (Methods.GET, "upstreams") =>
-      respondJson(exchange, Config.repos.sortBy(_.id).map(RepoVO.apply).asJava)
+      respondJson(exchange, Map(
+        "upstreams" -> Config.repos.sortBy(_.id).map(RepoVO.apply(_).toMap).asJava,
+        "proxies" -> Config.proxies.map { proxy => proxy.toMap}.asJava
+      ).asJava)
     case (Methods.POST, "upstream") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
       val oldRepos = Config.get.repos
@@ -38,14 +41,10 @@ object UpstreamsHandler extends RestHandler{
           case (None, None) => repoUpdated
           case (None, Some(p)) => repoUpdated.copy(proxyUsage = oldProxyUsage.updated(vo.repo, p))
           case (Some(p), None) => repoUpdated.copy(proxyUsage = oldProxyUsage - vo.repo)
-          case (Some(o), Some(n)) => if (o.getHost.equals(n.getHost) && o.getProtocol.equals(n.getProtocol) && o.getPort == n.getPort) {
-            repoUpdated
-          } else {
-            repoUpdated.copy(proxyUsage = oldProxyUsage.updated(vo.repo, n))
-          }
+          case (Some(o), Some(n)) if o == n => repoUpdated
+          case (Some(o), Some(n)) => repoUpdated.copy(proxyUsage = oldProxyUsage.updated(vo.repo, n))
         }
         setConfigAndRespond(exchange, newConfig)
       }
-
   }
 }

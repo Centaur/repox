@@ -1,9 +1,10 @@
-<div class="ui form" id="upstream">
-    <table class="ui celled definition table">
+<div class="ui form" id="upstream" ng-controller="UpstreamsCtrl">
+    <table class="ui compact celled definition table">
         <thead>
         <tr>
             <th></th>
             <th>Name</th>
+            <th>Priority</th>
             <th>Base Url</th>
             <th>Pure Maven</th>
             <th>Get Only</th>
@@ -11,44 +12,44 @@
         </tr>
         </thead>
         <tbody>
-        <tr v-repeat="upstreams">
+        <tr ng-repeat="upstream in upstreams">
             <td class="collapsing">
-                        <span class="ui basic icon button">
+                        <span class="ui tiny basic icon button">
                             <i class="remove teal icon"></i>
                         </span>
-                        <span class="ui basic icon button">
+                        <span class="ui tiny basic icon button">
                             <i class="edit teal icon"></i>
                         </span>
             </td>
-            <td>{{name}}</td>
-            <td>{{base}}</td>
+            <td>{{upstream.name}}</td>
+            <td>{{upstream.priority}}</td>
+            <td>{{upstream.base}}</td>
             <td>
                 <div class="inline field">
                     <div class="ui toggle checkbox">
-                        <input type="checkbox">
-                        <label>{{maven ? 'Yes' : 'No'}}</label>
+                        <input type="checkbox" ng-model="upstream.maven">
+                        <label>{{upstream.maven ? 'Yes' : 'No'}}</label>
                     </div>
                 </div>
             </td>
             <td>
                 <div class="inline field">
                     <div class="ui toggle checkbox">
-                        <input type="checkbox">
-                        <label>{{getOnly ? 'Yes' : 'No'}}</label>
+                        <input type="checkbox" ng-model="upstream.getOnly">
+                        <label>{{upstream.getOnly ? 'Yes' : 'No'}}</label>
                     </div>
                 </div>
             </td>
             <td>
-                <select class="ui dropdown">
-                    <option value="NoProxy" selected>No Proxy</option>
-                    <option value="localhost:8787">localhost:8787</option>
+                <select  ng-options="proxy.name for proxy in proxies" ng-model="upstream.proxy">
+                    <option value="">No Proxy</option>
                 </select>
             </td>
         </tr>
         </tbody>
         <tfoot class="full-width">
-        <th colspan="6">
-            <a class="ui right floated labeled icon teal button" v-on="click: showAddRepoDialog">
+        <th colspan="7">
+            <a class="ui right floated labeled icon teal button">
                 <i class="plus icon"></i> Add Repo
             </a>
         </th>
