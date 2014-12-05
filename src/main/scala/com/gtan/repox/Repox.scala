@@ -19,14 +19,12 @@ object Repox extends LazyLogging {
 
   val system = ActorSystem("repox")
 
-  val configView = Repox.system.actorOf(Props[ConfigView], name = "ConfigView")
+  val configView = system.actorOf(Props[ConfigView], name = "ConfigView")
+  val configPersister = system.actorOf(Props[ConfigPersister], "ConfigPersister")
   val head404Cache = system.actorOf(Props[Head404Cache], "HeaderCache")
   val requestQueueMaster = system.actorOf(Props[RequestQueueMaster], "RequestQueueMaster")
   val sha1Checker = system.actorOf(Props[SHA1Checker], "SHA1Checker")
 
-  def loadConfig(): Unit = {
-    system.actorOf(Props[ConfigPersister], "ConfigPersister")
-  }
 
   lazy val mainClient = new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
     .setRequestTimeoutInMs(Int.MaxValue)
@@ -128,4 +126,7 @@ object Repox extends LazyLogging {
     }
   }
 
+  def init(): Unit = {
+    configPersister ! 'LoadConfig // this does nothing but eagerly init Repox
+  }
 }

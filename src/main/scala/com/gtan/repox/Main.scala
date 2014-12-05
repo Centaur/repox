@@ -11,7 +11,7 @@ import io.undertow.server.{HttpServerExchange, HttpHandler}
  */
 object Main {
   def main(args: Array[String]) {
-    Repox.loadConfig()
+    Repox.init()
     val server: Undertow = Undertow.builder
       .addHttpListener(8078, "0.0.0.0")
       .setHandler(

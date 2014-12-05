@@ -76,7 +76,7 @@ object Jsonable {
       val map = gson.fromJson(json, classOf[java.util.Map[String, String]])
       RepoVO(
         repo = Repo(map),
-        proxy = map.asScala.get("admin/proxy").map(ProxyServer.apply)
+        proxy = map.asScala.get("proxy").map(ProxyServer.apply)
       )
     }
   }

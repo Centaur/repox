@@ -1,39 +1,43 @@
 package com.gtan.repox.admin
 
+import com.gtan.repox.Repox
 import com.gtan.repox.config.Config
+import com.gtan.repox.config.ConfigPersister._
 import io.undertow.server.HttpServerExchange
 import io.undertow.util.Methods
 
 import scala.concurrent.duration._
+import akka.pattern.ask
 
 object ParametersHandler extends RestHandler {
 
   import WebConfigHandler._
+  implicit val timeout = akka.util.Timeout(1 second)
 
   override def route(implicit exchange: HttpServerExchange) = {
     case (Methods.PUT, "connectionTimeout") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
       setConfigAndRespond(exchange,
-        Config.get.copy(connectionTimeout = Duration.apply(newV.toLong, MILLISECONDS)))
+        Repox.configPersister ? SetConnectionTimeout(Duration.apply(newV.toLong, MILLISECONDS)))
     case (Methods.PUT, "connectionIdleTimeout") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
       setConfigAndRespond(exchange,
-        Config.get.copy(connectionIdleTimeout = Duration.apply(newV.toLong, MILLISECONDS)))
+        Repox.configPersister ? SetConnectionIdleTimeout(Duration.apply(newV.toLong, MILLISECONDS)))
     case (Methods.PUT, "mainClientMaxConnections") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
       setConfigAndRespond(exchange,
-        Config.get.copy(mainClientMaxConnections = newV.toInt))
+        Repox.configPersister ? SetMainClientMaxConnections(newV.toInt))
     case (Methods.PUT, "mainClientMaxConnectionsPerHost") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
       setConfigAndRespond(exchange,
-        Config.get.copy(mainClientMaxConnectionsPerHost = newV.toInt))
+        Repox.configPersister ? SetMainClientMaxConnectionsPerHost(newV.toInt))
     case (Methods.PUT, "proxyClientMaxConnections") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
       setConfigAndRespond(exchange,
-        Config.get.copy(proxyClientMaxConnections = newV.toInt))
+        Repox.configPersister ? SetProxyClientMaxConnections(newV.toInt))
     case (Methods.PUT, "proxyClientMaxConnectionsPerHost") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
       setConfigAndRespond(exchange,
-        Config.get.copy(proxyClientMaxConnectionsPerHost = newV.toInt))
+        Repox.configPersister ? SetProxyClientMaxConnectionsPerHost(newV.toInt))
   }
 }

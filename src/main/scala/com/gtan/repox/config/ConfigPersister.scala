@@ -1,33 +1,22 @@
 package com.gtan.repox.config
 
-import akka.actor.ActorLogging
+import akka.actor.{ActorRef, ActorLogging}
 import akka.persistence.{PersistentActor, RecoveryCompleted}
-import com.gtan.repox.admin.ProxyServer
+import com.gtan.repox.admin.{RepoVO, ProxyServer}
 import com.gtan.repox.{Immediate404Rule, Repo, Repox, RequestQueueMaster}
 import com.ning.http.client.{ProxyServer => JProxyServer}
+import io.undertow.util.StatusCodes
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
-object ConfigPersister {
+trait Cmd {
+  def transform(old: Config): Config
+}
 
-  trait Cmd {
-    def transform(old: Config): Config
-  }
+object ConfigPersister extends RepoPersister {
 
-  case class NewRepo(repo: Repo) extends Cmd {
-    override def transform(old: Config) = {
-      val oldRepos = old.repos
-      old.copy(repos = oldRepos :+ repo)
-    }
-  }
 
-  case class DeleteRepo(repo: Repo) extends Cmd {
-    override def transform(old: Config) = {
-      val oldRepos = old.repos
-      old.copy(repos = oldRepos.filterNot(_ == repo))
-    }
-  }
 
   case class NewOrUpdateProxy(id: Long, proxy: ProxyServer) extends Cmd {
     override def transform(old: Config) = {
@@ -115,15 +104,16 @@ class ConfigPersister extends PersistentActor with ActorLogging {
 
   var config: Config = _
 
-  def onConfigSaved(c: ConfigChanged) = {
+  def onConfigSaved(sender: ActorRef, c: ConfigChanged) = {
     log.debug(s"event: $c")
     config = c.config
     Config.set(config)
+    sender ! StatusCodes.OK
   }
 
   val receiveCommand: Receive = {
     case cmd: Cmd =>
-      persist(ConfigChanged(cmd.transform(config), cmd))(onConfigSaved)
+      persist(ConfigChanged(cmd.transform(config), cmd))(onConfigSaved(sender(), _))
     case UseDefault =>
       persist(UseDefault) { _ =>
         config = Config.default

@@ -12,6 +12,7 @@ import io.undertow.util.{Headers, Methods, StatusCodes}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
@@ -44,8 +45,8 @@ object WebConfigHandler {
     ParametersHandler
   )
 
-  def setConfigAndRespond(exchange: HttpServerExchange, newConfig: Config): Unit = {
-    Config.set(newConfig).onComplete {
+  def setConfigAndRespond(exchange: HttpServerExchange, result: Future[Any]): Unit = {
+    result.onComplete {
       case Success(_) =>
         respondEmptyOK(exchange)
       case Failure(t) =>
