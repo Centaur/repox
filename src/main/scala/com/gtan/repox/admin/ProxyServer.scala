@@ -1,5 +1,6 @@
 package com.gtan.repox.admin
 
+import com.gtan.repox.Repox
 import com.ning.http.client.{ProxyServer => JProxyServer}
 import collection.JavaConverters._
 
@@ -24,8 +25,8 @@ case class ProxyServer(id: Long, name: String, protocol: JProxyServer.Protocol, 
 }
 
 object ProxyServer {
-  def apply(json: String): ProxyServer = {
-    val map = Jsonable.gson.fromJson(json, classOf[java.util.Map[String, String]])
+  def fromJson(json: String): ProxyServer = {
+    val map = Repox.gson.fromJson(json, classOf[java.util.Map[String, String]])
     val withoutId = ProxyServer(
       id = -1,
       name = map.get("name"),

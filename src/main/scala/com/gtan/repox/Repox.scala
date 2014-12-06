@@ -3,6 +3,7 @@ package com.gtan.repox
 import java.nio.file.Paths
 
 import akka.actor.{ActorSystem, Props}
+import com.google.gson.Gson
 import com.gtan.repox.config.{ConfigView, ConfigPersister, Config}
 import com.ning.http.client._
 import com.ning.http.client.resumable.ResumableIOExceptionFilter
@@ -61,6 +62,7 @@ object Repox extends LazyLogging {
   type HeaderResponse = (Repo, StatusCode, ResponseHeaders)
 
   implicit val timeout = akka.util.Timeout(1 second)
+  lazy val gson = new Gson
 
   def isIvyUri(uri: String) = uri.matches( """/[^/]+?\.[^/]+?/.+""")
 

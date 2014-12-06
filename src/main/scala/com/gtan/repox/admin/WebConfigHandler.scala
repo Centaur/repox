@@ -3,7 +3,7 @@ package com.gtan.repox.admin
 import java.nio.ByteBuffer
 
 import com.google.common.base.Charsets
-import com.gtan.repox.{Immediate404Rule, Repo}
+import com.gtan.repox.{Repox, Immediate404Rule, Repo}
 import com.gtan.repox.config.Config
 import io.undertow.Handlers
 import io.undertow.server.handlers.resource.ClassPathResourceManager
@@ -60,7 +60,7 @@ object WebConfigHandler {
     exchange.setResponseCode(StatusCodes.OK)
     val respondHeaders = exchange.getResponseHeaders
     respondHeaders.put(Headers.CONTENT_TYPE, "application/json")
-    val json = Jsonable.gson.toJson(data)
+    val json = Repox.gson.toJson(data)
     exchange.getResponseChannel.writeFinal(ByteBuffer.wrap(json.getBytes(Charsets.UTF_8)))
     exchange.endExchange()
   }

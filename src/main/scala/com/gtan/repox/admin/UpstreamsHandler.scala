@@ -25,17 +25,17 @@ object UpstreamsHandler extends RestHandler {
 
     case (Methods.POST, "upstream") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
-      val vo = Jsonable.repoVOIsJsonable.fromJson(newV)
+      val vo = RepoVO.fromJson(newV)
       setConfigAndRespond(exchange, Repox.configPersister ? NewRepo(vo))
 
     case (Methods.PUT, "upstream") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
-      val vo = Jsonable.repoVOIsJsonable.fromJson(newV)
+      val vo = RepoVO.fromJson(newV)
       setConfigAndRespond(exchange, Repox.configPersister ? UpdateRepo(vo))
 
     case (Methods.DELETE, "upstream") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
-      val vo = Jsonable.repoVOIsJsonable.fromJson(newV)
+      val vo = RepoVO.fromJson(newV)
       setConfigAndRespond(exchange, Repox.configPersister ? DeleteRepo(vo))
   }
 }
