@@ -28,10 +28,12 @@ object UpstreamsHandler extends RestHandler {
       val vo = RepoVO.fromJson(newV)
       setConfigAndRespond(exchange, Repox.configPersister ? NewRepo(vo))
 
-    case (Methods.PUT, "upstream") =>
-      val newV = exchange.getQueryParameters.get("v").getFirst
-      val vo = RepoVO.fromJson(newV)
-      setConfigAndRespond(exchange, Repox.configPersister ? UpdateRepo(vo))
+    case (Methods.PUT, "upstream/disable") =>
+      val id = exchange.getQueryParameters.get("v").getFirst.toLong
+      setConfigAndRespond(exchange, Repox.configPersister ? DisableRepo(id))
+    case (Methods.PUT, "upstream/enable") =>
+      val id = exchange.getQueryParameters.get("v").getFirst.toLong
+      setConfigAndRespond(exchange, Repox.configPersister ? EnableRepo(id))
 
     case (Methods.DELETE, "upstream") =>
       val newV = exchange.getQueryParameters.get("v").getFirst

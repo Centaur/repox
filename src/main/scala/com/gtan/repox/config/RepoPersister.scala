@@ -19,6 +19,25 @@ trait RepoPersister {
     }
   }
 
+  case class DisableRepo(id: Long) extends Cmd {
+    override def transform(old: Config) = {
+      val oldRepos = old.repos
+      old.copy(repos = oldRepos.map {
+        case o@Repo(Some(`id`), _, _, _, _, _, _) => o.copy(disabled = true)
+        case o => o
+      })
+    }
+  }
+  case class EnableRepo(id: Long) extends Cmd {
+    override def transform(old: Config) = {
+      val oldRepos = old.repos
+      old.copy(repos = oldRepos.map {
+        case o@Repo(Some(`id`), _, _, _, _, _, _) => o.copy(disabled = false)
+        case o => o
+      })
+    }
+  }
+
   case class DeleteRepo(vo: RepoVO) extends Cmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos

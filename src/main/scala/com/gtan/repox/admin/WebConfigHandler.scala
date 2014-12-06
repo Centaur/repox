@@ -17,25 +17,16 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
-class WebConfigHandler extends HttpHandler {
 
-  import com.gtan.repox.admin.WebConfigHandler._
-
-  /**
-   * intentional avoid reading request body, all data enclosed in querystring
-   * @param httpServerExchange core data/state carrier
-   */
-  override def handleRequest(httpServerExchange: HttpServerExchange) = {
+object WebConfigHandler {
+  def handle(httpServerExchange: HttpServerExchange) = {
     implicit val exchange = httpServerExchange
     val (method, uriUnprefixed) = (
       httpServerExchange.getRequestMethod,
       httpServerExchange.getRequestURI.drop("/admin/".length))
     restHandlers.map(_.route).reduce(_ orElse _).apply(method -> uriUnprefixed)
   }
-}
 
-
-object WebConfigHandler {
   val restHandlers: Seq[RestHandler] = List(
     StaticAssetHandler,
     UpstreamsHandler,

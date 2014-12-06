@@ -10,7 +10,9 @@ import collection.JavaConverters._
 case class RepoVO(repo: Repo, proxy: Option[ProxyServer]) {
   def toMap: java.util.Map[String, Any] = {
     val withoutProxy = repo.toMap
-    val withProxy = proxy.fold(withoutProxy)(p => withoutProxy.updated("proxy", p))
+    val withProxy = proxy.fold(withoutProxy) { p =>
+      withoutProxy.updated("proxy", p.toMap)
+    }
     withProxy.asJava
   }
 }

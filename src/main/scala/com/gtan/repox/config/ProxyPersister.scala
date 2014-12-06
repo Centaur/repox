@@ -3,12 +3,14 @@ package com.gtan.repox.config
 import com.gtan.repox.data.{ProxyServer, Repo}
 
 trait ProxyPersister {
-  case class NewOrUpdateProxy(id: Long, proxy: ProxyServer) extends Cmd {
+
+  case class NewOrUpdateProxy(proxy: ProxyServer) extends Cmd {
     override def transform(old: Config) = {
       val oldProxies = old.proxies
-      old.copy(proxies = oldProxies.map {
-        case ProxyServer(proxy.id, _, _, _, _) => proxy
+      old.copy(proxies = proxy.id.fold(oldProxies :+ proxy.copy(id = Some(ProxyServer.nextId))) { _id => oldProxies.map {
+        case ProxyServer(Some(`_id`), _, _, _, _, _) => proxy
         case p => p
+      }
       })
     }
   }

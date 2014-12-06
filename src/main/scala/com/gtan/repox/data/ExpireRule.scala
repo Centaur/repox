@@ -6,11 +6,12 @@ import scala.concurrent.duration.Duration
 
 import collection.JavaConverters._
 
-case class ExpireRule(id: Option[Long], pattern: String, duration: Duration) {
+case class ExpireRule(id: Option[Long], pattern: String, duration: Duration, disabled: Boolean = false) {
   def toMap: java.util.Map[String, Any] = {
     val withoutId: Map[String, Any] = Map(
       "pattern" -> pattern,
-      "duration" -> duration.toString
+      "duration" -> duration.toString,
+      "disabled" -> disabled
     )
     id.fold(withoutId) { _id =>
       withoutId.updated("id", _id)
@@ -24,7 +25,8 @@ object ExpireRule {
     ExpireRule(
       id = map.get("id").map(_.toLong),
       pattern = map("pattern"),
-      duration = Duration.apply(map("duration"))
+      duration = Duration.apply(map("duration")),
+      disabled = map("disabled").toBoolean
     )
   }
 }

@@ -12,13 +12,19 @@
         </tr>
         </thead>
         <tbody>
-        <tr ng-repeat="upstream in upstreams">
+        <tr ng-repeat="upstream in upstreams" ng-class="{disabled: upstream.disabled}">
             <td class="collapsing">
-                        <span class="ui tiny basic icon button">
-                            <i class="remove teal icon"></i>
+                        <span class="ui tiny basic icon button" ng-click="toggleDisable(upstream)">
+                            <i class="teal icon" ng-class="{remove: !upstream.disabled, checkmark: upstream.disabled}"></i>
                         </span>
                         <span class="ui tiny basic icon button">
                             <i class="edit teal icon"></i>
+                        </span>
+                        <span class="ui tiny basic icon button">
+                            <i class="angle up teal icon"></i>
+                        </span>
+                        <span class="ui tiny basic icon button">
+                            <i class="angle down teal icon"></i>
                         </span>
             </td>
             <td>{{upstream.name}}</td>

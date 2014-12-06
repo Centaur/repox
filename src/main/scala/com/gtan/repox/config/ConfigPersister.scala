@@ -14,19 +14,16 @@ trait Cmd {
   def transform(old: Config): Config
 }
 
-object ConfigPersister extends RepoPersister
+trait Evt
+
+case class ConfigChanged(config: Config, cmd: Cmd) extends Evt
+
+case object UseDefault extends Evt
+
+case object ConfigPersister extends RepoPersister
                                with ParameterPersister
                                with ProxyPersister
-                               with Immediate404RulePersister {
-
-
-  trait Evt
-
-  case class ConfigChanged(config: Config, cmd: Cmd) extends Evt
-
-  case object UseDefault extends Evt
-
-}
+                               with Immediate404RulePersister
 
 class ConfigPersister extends PersistentActor with ActorLogging {
 

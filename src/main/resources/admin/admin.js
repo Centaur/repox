@@ -53,7 +53,7 @@ repoxControllers.controller('MenuCtrl', ['$scope', '$location', function ($scope
     }
 }]);
 
-repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', function ($scope, $http) {
+repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', function ($scope, $http, $route) {
     $scope.upstreams = [];
     $scope.proxies = [];
     $scope.selectedProxy = {};
@@ -69,6 +69,13 @@ repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', function ($scop
             return upstream;
         });
     });
+
+    $scope.toggleDisable = function (repo) {
+        var method = repo.disabled ? "enable" : "disable";
+        $http.put('upstream/'+method+'?v=' + repo.id, {}).success(function () {
+            $route.reload();
+        })
+    };
 }]);
 
 

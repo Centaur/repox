@@ -28,7 +28,8 @@ object Repo {
     base = map.get("base"),
     priority = map.get("priority").toInt,
     getOnly = map.get("getOnly").toBoolean,
-    maven = map.get("maven").toBoolean
+    maven = map.get("maven").toBoolean,
+    disabled = map.get("disabled").toBoolean
   )
 
   def fromJson(json: String): Repo = {

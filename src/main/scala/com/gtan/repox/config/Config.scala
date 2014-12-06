@@ -25,7 +25,7 @@ case class Config(proxies: Seq[ProxyServer],
                   proxyUsage: Map[Repo, ProxyServer],
                   immediate404Rules: Seq[Immediate404Rule],
                   expireRules: Seq[ExpireRule],
-                  storage: Path,
+                  storage: String,
                   connectionTimeout: Duration,
                   connectionIdleTimeout: Duration,
                   mainClientMaxConnectionsPerHost: Int,
@@ -84,7 +84,7 @@ object Config {
     proxyUsage = Map(defaultRepos.find(_.name == "typesafe").get -> defaultProxies.head),
     immediate404Rules = defaultImmediate404Rules,
     expireRules = defaultExpireRules,
-    storage = Paths.get(System.getProperty("user.home"), ".repox", "storage"),
+    storage = Paths.get(System.getProperty("user.home"), ".repox", "storage").toString,
     connectionTimeout = 6 seconds,
     connectionIdleTimeout = 10 seconds,
     mainClientMaxConnections = 200,
@@ -99,7 +99,7 @@ object Config {
 
   def get = instance.get()
 
-  def storage: Path = instance.get().storage
+  def storage: String = instance.get().storage
 
   def repos: Seq[Repo] = instance.get().repos
 

@@ -56,7 +56,7 @@ object Repox extends LazyLogging {
     )
   }) toMap
 
-  def resourceManager = new FileResourceManager(Config.storage.toFile, 100 * 1024)
+  def resourceManager = new FileResourceManager(Paths.get(Config.storage).toFile, 100 * 1024)
 
   type StatusCode = Int
   type ResponseHeaders = Map[String, java.util.List[String]]
@@ -67,7 +67,7 @@ object Repox extends LazyLogging {
 
   def isIvyUri(uri: String) = uri.matches( """/[^/]+?\.[^/]+?/.+""")
 
-  def resolveToPath(uri: String) = Config.storage.resolve(uri.tail)
+  def resolveToPath(uri: String) = Paths.get(Config.storage).resolve(uri.tail)
 
   def orderByPriority(candidates: Seq[Repo]): Seq[Seq[Repo]] =
     candidates.groupBy(_.priority).toSeq.sortBy(_._1).map(_._2)
@@ -88,7 +88,7 @@ object Repox extends LazyLogging {
    * @return
    */
   def downloaded(uri: String): Boolean = {
-    Config.storage.resolve(uri.tail).toFile.exists
+    Paths.get(Config.storage).resolve(uri.tail).toFile.exists
   }
 
   def immediateFile(exchange: HttpServerExchange): Unit = {

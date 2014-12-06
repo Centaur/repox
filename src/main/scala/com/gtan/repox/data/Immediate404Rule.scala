@@ -11,7 +11,7 @@ import scala.collection.JavaConverters._
  * Date: 14/11/23
  * Time: 下午12:15
  */
-case class Immediate404Rule(id: Option[Long], include: String, exclude: Option[String] = None) {
+case class Immediate404Rule(id: Option[Long], include: String, exclude: Option[String] = None, disabled: Boolean = false) {
   def matches(uri: String): Boolean = {
     val included = uri.matches(include)
     exclude match {
@@ -24,7 +24,8 @@ case class Immediate404Rule(id: Option[Long], include: String, exclude: Option[S
 
   def toMap: java.util.Map[String, Any] = {
     val withoutId:Map[String, Any] = Map(
-      "include" -> include
+      "include" -> include,
+      "disable" -> disabled
     )
     val withId = id.fold(withoutId){ _id =>
       withoutId.updated("id", _id)
@@ -42,7 +43,8 @@ object Immediate404Rule {
     Immediate404Rule(
       id = map.get("id").map(_.toLong),
       include = map("include"),
-      exclude = map.get("exclude")
+      exclude = map.get("exclude"),
+      disabled = map("disabled").toBoolean
     )
   }
 }
