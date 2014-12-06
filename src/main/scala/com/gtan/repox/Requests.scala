@@ -1,4 +1,6 @@
 package com.gtan.repox
+
+import com.gtan.repox.data.Repo
 import io.undertow.server.HttpServerExchange
 
 object Requests {

@@ -1,0 +1,36 @@
+<div class="ui form" id="expireRules" ng-controller="ExpireRulesCtrl">
+    <table class="ui very compact celled definition table">
+        <thead>
+        <tr>
+            <th></th>
+            <th>pattern</th>
+            <th>duration</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr ng-repeat="rule in rules">
+            <td class="collapsing">
+                        <span class="ui tiny basic icon button">
+                            <i class="remove red icon"></i>
+                        </span>
+                        <span class="ui tiny basic icon button">
+                            <i class="edit red icon"></i>
+                        </span>
+            </td>
+            <td>{{rule.pattern}}</td>
+            <td>{{rule.duration}}</td>
+        </tr>
+        </tbody>
+        <tfoot class="full-width">
+        <th colspan="7">
+            <a class="ui right floated labeled icon red button">
+                <i class="plus icon"></i> Add Expire Rule
+            </a>
+        </th>
+        </tfoot>
+    </table>
+</div>
+
+<div class="ui modal" id="addImmediate404RuleDialog">
+    some fake content
+</div>

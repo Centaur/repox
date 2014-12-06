@@ -11,13 +11,13 @@ repoxApp.config(['$routeProvider', function ($routeProvider) {
             templateUrl: 'partials/proxies.html',
             controller: 'ProxiesCtrl'
         }).
-        when('/immediate404', {
-            templateUrl: 'partials/immediate404.html',
-            controller: 'Immedaite404Ctrl'
+        when('/immediate404Rules', {
+            templateUrl: 'partials/immediate404Rules.html',
+            controller: 'Immediate404RulesCtrl'
         }).
-        when('/expire', {
-            templateUrl: 'partials/expire.html',
-            controller: 'ExpireCtrl'
+        when('/expireRules', {
+            templateUrl: 'partials/expireRules.html',
+            controller: 'ExpireRulesCtrl'
         }).
         when('/parameters', {
             templateUrl: 'partials/parameters.html',
@@ -28,13 +28,15 @@ repoxApp.config(['$routeProvider', function ($routeProvider) {
         })
 }]);
 
-repoxApp.filter('displayProxy', function (proxy) {
-    var result = proxy.protocol + "://" + proxy.host;
-    if (proxy.port && proxy.port != 80)
-        result = result + ":" + proxy.port;
-    if (proxy.name)
-        result = result + "(" + proxy.name + ")";
-    return result;
+repoxApp.filter('displayProxy', function() {
+    return function (proxy) {
+        var result = proxy.protocol + "://" + proxy.host;
+        if (proxy.port && proxy.port != 80)
+            result = result + ":" + proxy.port;
+        if (proxy.name)
+            result = result + "(" + proxy.name + ")";
+        return result;
+    }
 });
 
 var repoxControllers = angular.module('repoxControllers', []);
@@ -71,10 +73,26 @@ repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', function ($scop
 
 
 repoxControllers.controller('ProxiesCtrl', ['$scope', '$http', function ($scope, $http) {
+    $scope.proxies = [];
+    $http.get('proxies').success(function (data) {
+        $scope.proxies = data.proxies;
+    })
 }]);
-repoxControllers.controller('Immediate404Ctrl', ['$scope', '$http', function ($scope, $http) {
+repoxControllers.controller('Immediate404RulesCtrl', ['$scope', '$http', function ($scope, $http) {
+    $scope.rules = [];
+    $http.get('immediate404Rules').success(function(data){
+        $scope.rules = data.rules;
+    })
 }]);
-repoxControllers.controller('ExpireCtrl', ['$scope', '$http', function ($scope, $http) {
+repoxControllers.controller('ExpireRulesCtrl', ['$scope', '$http', function ($scope, $http) {
+    $scope.rules = [];
+    $http.get('expireRules').success(function(data){
+        $scope.rules = data.rules;
+    })
 }]);
 repoxControllers.controller('ParametersCtrl', ['$scope', '$http', function ($scope, $http) {
+    $scope.parameters = [];
+    $http.get('parameters').success(function (data) {
+        $scope.parameters = data.parameters;
+    })
 }]);

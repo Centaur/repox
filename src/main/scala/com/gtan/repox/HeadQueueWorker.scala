@@ -1,6 +1,7 @@
 package com.gtan.repox
 
 import akka.actor._
+import com.gtan.repox.data.Repo
 import io.undertow.server.HttpServerExchange
 import org.w3c.dom.html.HTMLScriptElement
 

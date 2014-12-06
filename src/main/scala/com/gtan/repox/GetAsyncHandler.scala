@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import akka.actor.{ReceiveTimeout, PoisonPill, ActorRef}
 import com.gtan.repox.GetWorker._
 import com.gtan.repox.Head404Cache.NotFound
+import com.gtan.repox.data.Repo
 import com.ning.http.client.AsyncHandler.STATE
 import com.ning.http.client.{HttpResponseHeaders, HttpResponseStatus, HttpResponseBodyPart, AsyncHandler}
 import com.typesafe.scalalogging.LazyLogging

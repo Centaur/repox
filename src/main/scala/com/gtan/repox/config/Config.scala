@@ -3,8 +3,8 @@ package com.gtan.repox.config
 import java.nio.file.{Path, Paths}
 
 import akka.agent.Agent
-import com.gtan.repox.admin.ProxyServer
-import com.gtan.repox.{Immediate404Rule, Repo, Repox}
+import com.gtan.repox.data.{ExpireRule, ProxyServer, Repo, Immediate404Rule}
+import com.gtan.repox.Repox
 import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -24,6 +24,7 @@ case class Config(proxies: Seq[ProxyServer],
                   repos: Seq[Repo],
                   proxyUsage: Map[Repo, ProxyServer],
                   immediate404Rules: Seq[Immediate404Rule],
+                  expireRules: Seq[ExpireRule],
                   storage: Path,
                   connectionTimeout: Duration,
                   connectionIdleTimeout: Duration,
@@ -71,13 +72,18 @@ object Config {
     Immediate404Rule(18, """.*/jsr305.*\-sources\.jar""")
   )
 
-//  def seq2map[T](s: Seq[T]): Map[Long, T] = s.groupBy(_.id).map({ case (k, v) => k -> v.head})
+  def defaultExpireRules = Seq(
+    ExpireRule(Some(1), ".+/maven-metadata.xml", 1 day)
+  )
+
+  //  def seq2map[T](s: Seq[T]): Map[Long, T] = s.groupBy(_.id).map({ case (k, v) => k -> v.head})
 
   val default = Config(
     proxies = defaultProxies,
     repos = defaultRepos,
     proxyUsage = Map(defaultRepos.find(_.name == "typesafe").get -> defaultProxies.head),
     immediate404Rules = defaultImmediate404Rules,
+    expireRules = defaultExpireRules,
     storage = Paths.get(System.getProperty("user.home"), ".repox", "storage"),
     connectionTimeout = 6 seconds,
     connectionIdleTimeout = 10 seconds,
@@ -102,6 +108,8 @@ object Config {
   def proxyUsage: Map[Repo, ProxyServer] = instance.get().proxyUsage
 
   def immediate404Rules: Seq[Immediate404Rule] = instance.get().immediate404Rules
+
+  def expireRules: Seq[ExpireRule] = instance.get().expireRules
 
   def clientOf(repo: Repo): AsyncHttpClient = instance.get().proxyUsage.get(repo) match {
     case None => Repox.mainClient

@@ -2,8 +2,8 @@ package com.gtan.repox.config
 
 import akka.actor.{ActorRef, ActorLogging}
 import akka.persistence.{PersistentActor, RecoveryCompleted}
-import com.gtan.repox.admin.{RepoVO, ProxyServer}
-import com.gtan.repox.{Immediate404Rule, Repo, Repox, RequestQueueMaster}
+import com.gtan.repox.admin.RepoVO
+import com.gtan.repox.{Repox, RequestQueueMaster}
 import com.ning.http.client.{ProxyServer => JProxyServer}
 import io.undertow.util.StatusCodes
 

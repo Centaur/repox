@@ -1,7 +1,6 @@
 package com.gtan.repox.config
 
-import com.gtan.repox.Repo
-import com.gtan.repox.admin.ProxyServer
+import com.gtan.repox.data.{ProxyServer, Repo}
 
 trait ProxyPersister {
   case class NewOrUpdateProxy(id: Long, proxy: ProxyServer) extends Cmd {

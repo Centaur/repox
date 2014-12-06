@@ -1,6 +1,6 @@
 package com.gtan.repox.config
 
-import com.gtan.repox.Immediate404Rule
+import com.gtan.repox.data.Immediate404Rule
 
 trait Immediate404RulePersister {
   case class NewImmediate404Rule(rule: Immediate404Rule) extends Cmd {

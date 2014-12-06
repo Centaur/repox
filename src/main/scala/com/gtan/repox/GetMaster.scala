@@ -6,6 +6,7 @@ import java.nio.file.{Files, StandardCopyOption}
 import akka.actor._
 import com.gtan.repox.GetWorker.{Cleanup, PeerChosen, WorkerDead}
 import com.gtan.repox.Head404Cache.Query
+import com.gtan.repox.data.Repo
 import com.ning.http.client.FluentCaseInsensitiveStringsMap
 import com.typesafe.scalalogging.LazyLogging
 import collection.JavaConverters._

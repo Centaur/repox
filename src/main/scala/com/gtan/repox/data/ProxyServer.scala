@@ -1,8 +1,9 @@
-package com.gtan.repox.admin
+package com.gtan.repox.data
 
 import com.gtan.repox.Repox
 import com.ning.http.client.{ProxyServer => JProxyServer}
-import collection.JavaConverters._
+
+import scala.collection.JavaConverters._
 
 /**
  * Created by xf on 14/12/4.
@@ -12,7 +13,7 @@ case class ProxyServer(id: Long, name: String, protocol: JProxyServer.Protocol, 
 
   def toMap: java.util.Map[String, Any] = {
     val withoutId = Map(
-      "type" -> protocol,
+      "protocol" -> protocol,
       "name" -> name,
       "host" -> host,
       "port" -> port

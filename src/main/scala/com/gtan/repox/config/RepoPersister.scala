@@ -1,7 +1,7 @@
 package com.gtan.repox.config
 
-import com.gtan.repox.Repo
-import com.gtan.repox.admin.{Jsonable, RepoVO}
+import com.gtan.repox.admin.RepoVO
+import com.gtan.repox.data.Repo
 
 trait RepoPersister {
 

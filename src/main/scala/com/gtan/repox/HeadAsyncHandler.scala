@@ -3,6 +3,7 @@ package com.gtan.repox
 import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.ActorRef
+import com.gtan.repox.data.Repo
 import com.ning.http.client.AsyncHandler.STATE
 import com.ning.http.client.{AsyncHandler, HttpResponseBodyPart, HttpResponseHeaders, HttpResponseStatus}
 import com.typesafe.scalalogging.LazyLogging

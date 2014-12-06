@@ -2,6 +2,7 @@ package com.gtan.repox
 
 import akka.actor.{Actor, ActorLogging}
 import com.gtan.repox.Head404Cache.{NotFound, Query}
+import com.gtan.repox.data.Repo
 
 import scala.language.postfixOps
 

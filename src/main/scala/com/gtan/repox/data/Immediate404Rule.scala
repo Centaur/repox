@@ -1,7 +1,9 @@
-package com.gtan.repox
+package com.gtan.repox.data
 
+import com.gtan.repox.Repox
 import com.gtan.repox.config.Config
-import collection.JavaConverters._
+
+import scala.collection.JavaConverters._
 
 /**
  * Created by IntelliJ IDEA.

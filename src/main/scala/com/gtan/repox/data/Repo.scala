@@ -1,5 +1,6 @@
-package com.gtan.repox
+package com.gtan.repox.data
 
+import com.gtan.repox.Repox
 import com.gtan.repox.config.Config
 
 /**

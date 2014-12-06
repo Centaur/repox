@@ -1,6 +1,6 @@
 package com.gtan.repox.admin
 
-import com.gtan.repox.{Repox, Repo}
+import com.gtan.repox.Repox
 import com.gtan.repox.config.{ConfigPersister, Config}
 import io.undertow.server.HttpServerExchange
 import io.undertow.util.{Methods, HttpString}

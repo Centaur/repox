@@ -1,0 +1,40 @@
+<div class="ui form" id="proxies" ng-controller="ProxiesCtrl">
+    <table class="ui very compact celled definition table">
+        <thead>
+        <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Protocol</th>
+            <th>Host</th>
+            <th>Port</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr ng-repeat="proxy in proxies">
+            <td class="collapsing">
+                        <span class="ui tiny basic icon button">
+                            <i class="remove orange icon"></i>
+                        </span>
+                        <span class="ui tiny basic icon button">
+                            <i class="edit orange icon"></i>
+                        </span>
+            </td>
+            <td>{{proxy.name}}</td>
+            <td>{{proxy.protocol}}</td>
+            <td>{{proxy.host}}</td>
+            <td>{{proxy.port}}</td>
+        </tr>
+        </tbody>
+        <tfoot class="full-width">
+        <th colspan="7">
+            <a class="ui right floated labeled icon orange button">
+                <i class="plus icon"></i> Add Proxy
+            </a>
+        </th>
+        </tfoot>
+    </table>
+</div>
+
+<div class="ui modal" id="addProxyDialog">
+    some fake content
+</div>

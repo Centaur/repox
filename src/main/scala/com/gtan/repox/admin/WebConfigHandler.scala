@@ -3,7 +3,7 @@ package com.gtan.repox.admin
 import java.nio.ByteBuffer
 
 import com.google.common.base.Charsets
-import com.gtan.repox.{Repox, Immediate404Rule, Repo}
+import com.gtan.repox.Repox
 import com.gtan.repox.config.Config
 import io.undertow.Handlers
 import io.undertow.server.handlers.resource.ClassPathResourceManager
