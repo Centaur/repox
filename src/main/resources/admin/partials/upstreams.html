@@ -12,7 +12,7 @@
         </tr>
         </thead>
         <tbody>
-        <tr ng-repeat="upstream in upstreams" ng-class="{disabled: upstream.disabled}">
+        <tr ng-repeat="upstream in upstreams" >
             <td class="collapsing">
                         <span class="ui tiny basic icon button" ng-click="toggleDisable(upstream)">
                             <i class="teal icon" ng-class="{remove: !upstream.disabled, checkmark: upstream.disabled}"></i>
@@ -27,9 +27,9 @@
                             <i class="angle down teal icon"></i>
                         </span>
             </td>
-            <td>{{upstream.name}}</td>
-            <td>{{upstream.priority}}</td>
-            <td>{{upstream.base}}</td>
+            <td ng-class="{disabled: upstream.disabled}">{{upstream.name}}</td>
+            <td ng-class="{disabled: upstream.disabled}">{{upstream.priority}}</td>
+            <td ng-class="{disabled: upstream.disabled}">{{upstream.base}}</td>
             <td>
                 <div class="inline field">
                     <div class="ui toggle checkbox">
@@ -47,7 +47,8 @@
                 </div>
             </td>
             <td>
-                <select  ng-options="proxy.name for proxy in proxies" ng-model="upstream.proxy">
+                <select  ng-options="proxy.name for proxy in proxies" ng-model="upstream.proxy"
+                        ng-disabled="upstream.disable">
                     <option value="">No Proxy</option>
                 </select>
             </td>

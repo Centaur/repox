@@ -53,7 +53,7 @@ repoxControllers.controller('MenuCtrl', ['$scope', '$location', function ($scope
     }
 }]);
 
-repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', function ($scope, $http, $route) {
+repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', '$route', function ($scope, $http, $route) {
     $scope.upstreams = [];
     $scope.proxies = [];
     $scope.selectedProxy = {};
