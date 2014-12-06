@@ -10,7 +10,7 @@ trait RepoPersister {
       val oldRepos = old.repos
       val oldProxyUsage = old.proxyUsage
       // ToDo: validation
-      val voWithId = vo.copy(repo = vo.repo.copy(id = Repo.nextId))
+      val voWithId = vo.copy(repo = vo.repo.copy(id = Some(Repo.nextId)))
       val newRepos = old.copy(repos = oldRepos :+ voWithId.repo)
       vo.proxy match {
         case None => newRepos

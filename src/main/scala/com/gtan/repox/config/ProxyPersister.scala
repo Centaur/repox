@@ -18,8 +18,8 @@ trait ProxyPersister {
       val oldProxies = old.proxies
       val oldProxyUsage = old.proxyUsage
       old.copy(
-        proxies = oldProxies.filterNot(_.id == id),
-        proxyUsage = oldProxyUsage.filterNot { case (repo, proxy) => proxy.id == id}
+        proxies = oldProxies.filterNot(_.id == Some(id)),
+        proxyUsage = oldProxyUsage.filterNot { case (repo, proxy) => proxy.id == Some(id)}
       )
     }
   }

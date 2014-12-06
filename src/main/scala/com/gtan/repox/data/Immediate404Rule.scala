@@ -11,7 +11,7 @@ import scala.collection.JavaConverters._
  * Date: 14/11/23
  * Time: 下午12:15
  */
-case class Immediate404Rule(id: Long, include: String, exclude: Option[String] = None) {
+case class Immediate404Rule(id: Option[Long], include: String, exclude: Option[String] = None) {
   def matches(uri: String): Boolean = {
     val included = uri.matches(include)
     exclude match {
@@ -23,30 +23,27 @@ case class Immediate404Rule(id: Long, include: String, exclude: Option[String] =
   }
 
   def toMap: java.util.Map[String, Any] = {
-    val withoutId = Map(
+    val withoutId:Map[String, Any] = Map(
       "include" -> include
     )
-    val withId = if (id == -1) {
-      withoutId.updated("id", id)
-    } else withoutId
+    val withId = id.fold(withoutId){ _id =>
+      withoutId.updated("id", _id)
+    }
     val withExclude = exclude.fold(withId)(ex => withId.updated("exclude", ex))
     withExclude.asJava
   }
 }
 
 object Immediate404Rule {
-  def nextId: Long = Config.repos.map(_.id).max + 1
+  def nextId: Long = Config.repos.flatMap(_.id).max + 1
 
   def fromJson(json: String): Immediate404Rule = {
     val map = Repox.gson.fromJson(json, classOf[java.util.Map[String, String]]).asScala
-    val withoutId = Immediate404Rule(
-      id = -1,
+    Immediate404Rule(
+      id = map.get("id").map(_.toLong),
       include = map("include"),
       exclude = map.get("exclude")
     )
-    map.get("id").fold(withoutId) { idStr =>
-      withoutId.copy(id = idStr.toLong)
-    }
   }
 }
 

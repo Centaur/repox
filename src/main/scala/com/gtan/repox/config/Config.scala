@@ -35,41 +35,41 @@ case class Config(proxies: Seq[ProxyServer],
 
 object Config {
   val defaultProxies = List(
-    ProxyServer(id = 1, name = "Lantern", protocol = JProxyServer.Protocol.HTTP, host = "localhost", port = 8787)
+    ProxyServer(id = Some(1), name = "Lantern", protocol = JProxyServer.Protocol.HTTP, host = "localhost", port = 8787)
   )
   val defaultRepos: Seq[Repo] = Seq(
-    Repo(1, "koala", "http://nexus.openkoala.org/nexus/content/groups/Koala-release",
+    Repo(Some(1), "koala", "http://nexus.openkoala.org/nexus/content/groups/Koala-release",
       priority = 1, getOnly = true, maven = true),
-    Repo(2, "sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 2),
-    Repo(3, "typesafe", "http://repo.typesafe.com/typesafe/releases", priority = 2),
-    Repo(4, "oschina", "http://maven.oschina.net/content/groups/public",
+    Repo(Some(2), "sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 2),
+    Repo(Some(3), "typesafe", "http://repo.typesafe.com/typesafe/releases", priority = 2),
+    Repo(Some(4), "oschina", "http://maven.oschina.net/content/groups/public",
       priority = 2, getOnly = true, maven = true),
-    Repo(5, "sbt-plugin", "http://dl.bintray.com/sbt/sbt-plugin-releases", priority = 4),
-    Repo(6, "scalaz", "http://dl.bintray.com/scalaz/releases", priority = 4),
-    Repo(7, "central", "http://repo1.maven.org/maven2", priority = 4, maven = true),
-    Repo(8, "ibiblio", "http://mirrors.ibiblio.org/maven2", priority = 5, maven = true)
+    Repo(Some(5), "sbt-plugin", "http://dl.bintray.com/sbt/sbt-plugin-releases", priority = 4),
+    Repo(Some(6), "scalaz", "http://dl.bintray.com/scalaz/releases", priority = 4),
+    Repo(Some(7), "central", "http://repo1.maven.org/maven2", priority = 4, maven = true),
+    Repo(Some(8), "ibiblio", "http://mirrors.ibiblio.org/maven2", priority = 5, maven = true)
   )
 
   val defaultImmediate404Rules: Seq[Immediate404Rule] = Vector(
-    Immediate404Rule(1, """.+-javadoc\.jar"""), // we don't want javadoc
-    Immediate404Rule(2, """.+-parent.*\.jar"""), // parent have no jar
-    Immediate404Rule(3, """/org/scala-sbt/.*""", exclude = Some( """/org/scala-sbt/test-interface/.*""")), // ivy only artifact have no maven uri
+    Immediate404Rule(Some(1), """.+-javadoc\.jar"""), // we don't want javadoc
+    Immediate404Rule(Some(2), """.+-parent.*\.jar"""), // parent have no jar
+    Immediate404Rule(Some(3), """/org/scala-sbt/.*""", exclude = Some( """/org/scala-sbt/test-interface/.*""")), // ivy only artifact have no maven uri
     //    Immediat404Rule( """/org/scala-tools/.*"""), // ivy only artifact have no maven uri
-    Immediate404Rule(4, """/com/eed3si9n/.*"""), // ivy only artifact have no maven uri
-    Immediate404Rule(5, """/io\.spray/.*""", exclude = Some( """/io\.spray/sbt-revolver.*""")), // maven only artifact have no ivy uri
-    Immediate404Rule(6, """/org/jboss/xnio/xnio-all/.+\.jar"""),
-    Immediate404Rule(7, """/org\.jboss\.xnio/xnio-all/.+\.jar"""),
-    Immediate404Rule(8, """/org/apache/apache/(\d+)/.+\.jar"""),
-    Immediate404Rule(9, """/org\.apache/apache/(\d+)/.+\.jar"""),
-    Immediate404Rule(10, """/com/google/google/(\d+)/.+\.jar"""),
-    Immediate404Rule(11, """/com\.google/google/(\d+)/.+\.jar"""),
-    Immediate404Rule(12, """/org/ow2/ow2/.+\.jar"""),
-    Immediate404Rule(13, """/org\.ow2/ow2/.+\.jar"""),
-    Immediate404Rule(14, """/com/github/mpeltonen/sbt-idea/.*\.jar"""),
-    Immediate404Rule(15, """/com\.github\.mpeltonen/sbt-idea/.*\.jar"""),
-    Immediate404Rule(16, """/org/fusesource/leveldbjni/.+-sources\.jar"""),
-    Immediate404Rule(17, """/org\.fusesource\.leveldbjni/.+-sources\.jar"""),
-    Immediate404Rule(18, """.*/jsr305.*\-sources\.jar""")
+    Immediate404Rule(Some(4), """/com/eed3si9n/.*"""), // ivy only artifact have no maven uri
+    Immediate404Rule(Some(5), """/io\.spray/.*""", exclude = Some( """/io\.spray/sbt-revolver.*""")), // maven only artifact have no ivy uri
+    Immediate404Rule(Some(6), """/org/jboss/xnio/xnio-all/.+\.jar"""),
+    Immediate404Rule(Some(7), """/org\.jboss\.xnio/xnio-all/.+\.jar"""),
+    Immediate404Rule(Some(8), """/org/apache/apache/(\d+)/.+\.jar"""),
+    Immediate404Rule(Some(9), """/org\.apache/apache/(\d+)/.+\.jar"""),
+    Immediate404Rule(Some(10), """/com/google/google/(\d+)/.+\.jar"""),
+    Immediate404Rule(Some(11), """/com\.google/google/(\d+)/.+\.jar"""),
+    Immediate404Rule(Some(12), """/org/ow2/ow2/.+\.jar"""),
+    Immediate404Rule(Some(13), """/org\.ow2/ow2/.+\.jar"""),
+    Immediate404Rule(Some(14), """/com/github/mpeltonen/sbt-idea/.*\.jar"""),
+    Immediate404Rule(Some(15), """/com\.github\.mpeltonen/sbt-idea/.*\.jar"""),
+    Immediate404Rule(Some(16), """/org/fusesource/leveldbjni/.+-sources\.jar"""),
+    Immediate404Rule(Some(17), """/org\.fusesource\.leveldbjni/.+-sources\.jar"""),
+    Immediate404Rule(Some(18), """.*/jsr305.*\-sources\.jar""")
   )
 
   def defaultExpireRules = Seq(

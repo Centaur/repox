@@ -9,19 +9,21 @@ import com.gtan.repox.config.Config
  * Date: 14/11/23
  * Time: 下午3:55
  */
-case class Repo(id: Long, name: String, base: String, priority: Int, getOnly: Boolean = false, maven: Boolean = false) {
+case class Repo(id: Option[Long], name: String, base: String, priority: Int, getOnly: Boolean = false, maven: Boolean = false, disabled: Boolean = false) {
   def toMap: Map[String, Any] = {
-    val withoutId = Map("name" -> name, "base" -> base, "priority" -> priority, "getOnly" -> getOnly, "maven" -> maven)
-    if (id == -1) withoutId else withoutId.updated("id", id)
+    val withoutId = Map("name" -> name, "base" -> base, "priority" -> priority, "getOnly" -> getOnly, "maven" -> maven, "disabled" -> disabled)
+    id.fold(withoutId) { _id =>
+      withoutId.updated("id", _id)
+    }
   }
 
 }
 
 object Repo {
-  def nextId: Long = Config.repos.map(_.id).max + 1
+  def nextId: Long = Config.repos.flatMap(_.id).max + 1
 
   def apply(map: java.util.Map[String, String]): Repo = this.apply(
-    id = if (map.containsKey("id")) map.get("id").toLong else -1,
+    id = if (map.containsKey("id")) Some(map.get("id").toLong) else None,
     name = map.get("name"),
     base = map.get("base"),
     priority = map.get("priority").toInt,
