@@ -28,7 +28,7 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
   import com.gtan.repox.HeadMaster._
 
   val uri = exchange.getRequestURI
-  val upstreams = if(Repox.isIvyUri(uri)) Config.repos.filterNot(_.maven) else Config.repos
+  val upstreams = if(Repox.isIvyUri(uri)) Config.enabledRepos.filterNot(_.maven) else Config.enabledRepos
 
   val requestHeaders = new FluentCaseInsensitiveStringsMap()
   for (name <- exchange.getRequestHeaders.getHeaderNames.asScala) {

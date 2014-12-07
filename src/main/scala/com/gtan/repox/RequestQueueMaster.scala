@@ -15,6 +15,9 @@ object RequestQueueMaster {
   // send by ConfigPersister
   case object ConfigLoaded
 
+  // send when mainClient and proxyClients are all initialized
+  case object ClientsInitialized
+
   // send by QueueWorker
   case class Dead(queue: Queue)
 
@@ -28,16 +31,21 @@ object RequestQueueMaster {
 class RequestQueueMaster extends Actor with Stash with ActorLogging {
 
   import RequestQueueMaster._
+  import concurrent.ExecutionContext.Implicits.global
 
-  var children = Map.empty[Queue, ActorRef]
-  // Quuee -> Get/HeadQueueWorker
+  var children = Map.empty[Queue, ActorRef] // Quuee -> Get/HeadQueueWorker
   var quarantined = Map.empty[String, ActorRef] // Uri -> FileDeleter
 
   override def receive = waitingConfigRecover
 
   def waitingConfigRecover: Receive = {
     case ConfigLoaded =>
-      log.debug(s"Config loaded, data: \n ${Config.get}")
+      log.debug(s"Config loaded.")
+      val fut1 = Repox.mainClient.alter(Repox.createMainClient)
+      val fut2 = Repox.proxyClients.alter(Repox.createProxyClients)
+      fut1.zip(fut2).onSuccess { case _ => self ! ClientsInitialized}
+    case ClientsInitialized =>
+      log.debug(s"AHC clients initialized.")
       unstashAll()
       context become started
     case msg =>
@@ -56,8 +64,8 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
       }
     case FileDeleted(uri) =>
       quarantined = quarantined - uri - (uri + ".sha1")
-      log.debug(s"Redownloading $uri(and ${uri+".sha1"})")
-      self ! Requests.Download(uri, Config.repos)
+      log.debug(s"Redownloading $uri(and ${uri + ".sha1"})")
+      self ! Requests.Download(uri, Config.enabledRepos)
     case Dead(queue) =>
       for (worker <- children.get(queue)) {
         log.debug(s"RequestQueueMaster stopping worker ${worker.path.name}")
@@ -109,7 +117,7 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
     case req@Requests.Head(exchange) =>
       val uri = exchange.getRequestURI
       val queue = Queue('head, uri)
-      if (Config.immediate404Rules.exists(_.matches(uri))) {
+      if (Config.immediate404Rules.filterNot(_.disabled).exists(_.matches(uri))) {
         Repox.immediate404(exchange)
         for (worker <- children.get(queue)) {
           worker ! PoisonPill

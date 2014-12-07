@@ -32,3 +32,18 @@ fork := true
 Revolver.settings
 
 net.virtualvoid.sbt.graph.Plugin.graphSettings
+
+assemblyMergeStrategy in assembly := {
+  case str@PathList("admin", "bower_components", remains@_*) => remains match {
+    case Seq("angular", "angular.js") => MergeStrategy.deduplicate
+    case Seq("angular-route", "angular-route.js") => MergeStrategy.deduplicate
+    case Seq("underscore", "underscore-min.js") => MergeStrategy.deduplicate
+    case Seq("jquery", "dist", "jquery.min.js") => MergeStrategy.deduplicate
+    case Seq("semantic-ui", "dist", "semantic.min.css") => MergeStrategy.deduplicate
+    case Seq("semantic-ui", "dist", "semantic.min.js") => MergeStrategy.deduplicate
+    case Seq("semantic-ui", "dist", "themes", "default", "assets", all@_*) => MergeStrategy.deduplicate
+    case _ => MergeStrategy.discard
+  }
+  case x =>
+    (assemblyMergeStrategy in assembly).value.apply(x)
+}

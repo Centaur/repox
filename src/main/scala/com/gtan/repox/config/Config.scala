@@ -6,6 +6,7 @@ import akka.agent.Agent
 import com.gtan.repox.data.{ExpireRule, ProxyServer, Repo, Immediate404Rule}
 import com.gtan.repox.Repox
 import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -33,7 +34,7 @@ case class Config(proxies: Seq[ProxyServer],
                   proxyClientMaxConnectionsPerHost: Int,
                   proxyClientMaxConnections: Int)
 
-object Config {
+object Config extends LazyLogging{
   val defaultProxies = List(
     ProxyServer(id = Some(1), name = "Lantern", protocol = JProxyServer.Protocol.HTTP, host = "localhost", port = 8787)
   )
@@ -103,17 +104,26 @@ object Config {
 
   def repos: Seq[Repo] = instance.get().repos
 
+  def enabledRepos: Seq[Repo] = repos.filterNot(_.disabled)
+
   def proxies: Seq[ProxyServer] = instance.get().proxies
+
+  def enabledProxies: Seq[ProxyServer] = proxies.filterNot(_.disabled)
 
   def proxyUsage: Map[Repo, ProxyServer] = instance.get().proxyUsage
 
   def immediate404Rules: Seq[Immediate404Rule] = instance.get().immediate404Rules
 
+  def enabledImmediate404Rules: Seq[Immediate404Rule] = immediate404Rules.filterNot(_.disabled)
+
   def expireRules: Seq[ExpireRule] = instance.get().expireRules
 
+  def enabledExpireRules: Seq[ExpireRule] = expireRules.filterNot(_.disabled)
+
   def clientOf(repo: Repo): AsyncHttpClient = instance.get().proxyUsage.get(repo) match {
-    case None => Repox.mainClient
-    case Some(proxy) => Repox.proxyClients(proxy)
+    case None => Repox.mainClient.get()
+    case Some(proxy) =>
+      Repox.proxyClients.get().getOrElse(proxy, Repox.mainClient.get())
   }
 
   def connectionTimeout: Duration = instance.get().connectionTimeout

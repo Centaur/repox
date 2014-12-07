@@ -41,7 +41,7 @@ repoxApp.filter('displayProxy', function () {
 
 var repoxControllers = angular.module('repoxControllers', []);
 
-repoxControllers.controller('MenuCtrl', ['$scope', '$location', function ($scope, $location) {
+repoxControllers.controller('MenuCtrl', ['$scope', '$location', '$http', function ($scope, $location, $http) {
     function endsWith(str, suffix) {
         return str.indexOf(suffix, str.length - suffix.length) !== -1;
     }
@@ -50,6 +50,17 @@ repoxControllers.controller('MenuCtrl', ['$scope', '$location', function ($scope
         if (endsWith($location.path(), uri))
             return 'active';
         else return '';
+    }
+
+    $scope.resetMainClient = function () {
+        $http.post('resetMainClient', {}).success(function () {
+            alert('Main client reset.')
+        })
+    }
+    $scope.resetProxyClients = function () {
+        $http.post('resetProxyClients', {}).success(function () {
+            alert('Proxy clients reset.')
+        })
     }
 }]);
 

@@ -38,7 +38,7 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
         suicide()
       } else {
         log.info(s"$uri not downloaded. Downloading.")
-        context.actorOf(Props(classOf[GetMaster], uri, Config.repos), s"GetMaster_${Random.nextInt()}")
+        context.actorOf(Props(classOf[GetMaster], uri, Config.enabledRepos), s"GetMaster_${Random.nextInt()}")
         self ! msg
         context become working
       }

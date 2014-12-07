@@ -3,9 +3,10 @@ package com.gtan.repox
 import java.nio.file.Paths
 
 import akka.actor.{ActorSystem, Props}
+import akka.agent.Agent
 import com.gtan.repox.config.{ConfigView, ConfigPersister, Config}
-import com.gtan.repox.data.Repo
-import com.ning.http.client._
+import com.gtan.repox.data.{ProxyServer, Repo}
+import com.ning.http.client.{ProxyServer => JProxyServer, AsyncHttpClientConfig, AsyncHttpClient}
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.Handlers
 import io.undertow.server.HttpServerExchange
@@ -17,6 +18,8 @@ import scala.concurrent.duration._
 
 object Repox extends LazyLogging {
 
+  import concurrent.ExecutionContext.Implicits.global
+
   val system = ActorSystem("repox")
 
   val configView = system.actorOf(Props[ConfigView], name = "ConfigView")
@@ -26,7 +29,7 @@ object Repox extends LazyLogging {
   val sha1Checker = system.actorOf(Props[SHA1Checker], "SHA1Checker")
 
 
-  lazy val mainClient = new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
+  def createMainClient = new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
     .setRequestTimeoutInMs(Int.MaxValue)
     .setConnectionTimeoutInMs(Config.connectionTimeout.toMillis.toInt)
     .setAllowPoolingConnection(true)
@@ -38,7 +41,10 @@ object Repox extends LazyLogging {
     .setFollowRedirects(true)
     .build()
   )
-  lazy val proxyClients = (for (proxy <- Config.proxies) yield {
+
+  val mainClient:Agent[AsyncHttpClient] = Agent(null)
+
+  def createProxyClients = (for (proxy:ProxyServer <- Config.proxyUsage.values.filterNot(_.disabled).toSet) yield {
     proxy -> new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
       .setRequestTimeoutInMs(Int.MaxValue)
       .setConnectionTimeoutInMs(Config.connectionTimeout.toMillis.toInt)
@@ -53,6 +59,8 @@ object Repox extends LazyLogging {
       .build()
     )
   }) toMap
+
+  val proxyClients:Agent[Map[ProxyServer, AsyncHttpClient]] = Agent(null)
 
   def resourceManager = new FileResourceManager(Paths.get(Config.storage).toFile, 100 * 1024)
 

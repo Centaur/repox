@@ -34,7 +34,8 @@ object WebConfigHandler {
     ProxiesHandler,
     Immediate404RulesHandler,
     ExpireRulesHandler,
-    ParametersHandler
+    ParametersHandler,
+    ResetHandler
   )
 
   def setConfigAndRespond(exchange: HttpServerExchange, result: Future[Any]): Unit = {
