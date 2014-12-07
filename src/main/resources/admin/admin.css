@@ -11,3 +11,12 @@
     padding: .39em;
 }
 
+.ui.modal > .header {
+    padding: 0.6rem 2rem;
+}
+
+.ui.form select {
+    height: 2.5em;
+    line-height: 2.5em;
+}
+

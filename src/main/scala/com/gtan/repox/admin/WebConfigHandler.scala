@@ -9,6 +9,7 @@ import io.undertow.Handlers
 import io.undertow.server.handlers.resource.ClassPathResourceManager
 import io.undertow.server.{HttpHandler, HttpServerExchange}
 import io.undertow.util.{Headers, Methods, StatusCodes}
+import play.api.libs.json.Format
 
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -47,12 +48,12 @@ object WebConfigHandler {
 
   def isStaticRequest(target: String) = Set(".html", ".css", ".js", ".ico", ".ttf", ".map", "woff").exists(target.endsWith)
 
-  def respondJson(exchange: HttpServerExchange, data: java.util.Map[String, _ <: Any]): Unit = {
+  def respondJson[T: Format](exchange: HttpServerExchange, data: T): Unit = {
     exchange.setResponseCode(StatusCodes.OK)
     val respondHeaders = exchange.getResponseHeaders
     respondHeaders.put(Headers.CONTENT_TYPE, "application/json")
-    val json = Repox.gson.toJson(data)
-    exchange.getResponseChannel.writeFinal(ByteBuffer.wrap(json.getBytes(Charsets.UTF_8)))
+    val json = implicitly[Format[T]].writes(data)
+    exchange.getResponseChannel.writeFinal(ByteBuffer.wrap(json.toString().getBytes(Charsets.UTF_8)))
     exchange.endExchange()
   }
 

@@ -28,6 +28,7 @@ trait RepoPersister {
       })
     }
   }
+
   case class EnableRepo(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
@@ -38,13 +39,13 @@ trait RepoPersister {
     }
   }
 
-  case class DeleteRepo(vo: RepoVO) extends Cmd {
+  case class DeleteRepo(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
       val oldProxyUsage = old.proxyUsage
       old.copy(
-        repos = oldRepos.filterNot(_ == vo.repo),
-        proxyUsage = oldProxyUsage - vo.repo
+        repos = oldRepos.filterNot(_.id == Some(id)),
+        proxyUsage = oldProxyUsage.filterNot { case (repo, proxy) => repo.id == Some(id)}
       )
     }
   }

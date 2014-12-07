@@ -89,8 +89,8 @@ object Config {
     connectionIdleTimeout = 10 seconds,
     mainClientMaxConnections = 200,
     mainClientMaxConnectionsPerHost = 10,
-    proxyClientMaxConnections = 10,
-    proxyClientMaxConnectionsPerHost = 20
+    proxyClientMaxConnections = 20,
+    proxyClientMaxConnectionsPerHost = 10
   )
 
   val instance: Agent[Config] = Agent[Config](null)

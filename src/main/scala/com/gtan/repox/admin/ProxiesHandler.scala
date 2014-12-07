@@ -11,9 +11,7 @@ object ProxiesHandler extends RestHandler {
 
   override def route(implicit exchange: HttpServerExchange): PartialFunction[(HttpString, String), Unit] = {
     case (Methods.GET, "proxies") =>
-      respondJson(exchange, Map(
-        "proxies" -> Config.proxies.map(_.toMap).asJava
-      ).asJava)
+      respondJson(exchange, Config.proxies)
     case (Methods.POST, "proxy") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
     case (Methods.PUT, "proxy") =>

@@ -12,9 +12,7 @@ object ExpireRulesHandler extends RestHandler {
 
   override def route(implicit exchange: HttpServerExchange) = {
     case (Methods.GET, "expireRules") =>
-      respondJson(exchange, Map(
-        "rules" -> Config.expireRules.map(_.toMap).asJava
-      ).asJava)
+      respondJson(exchange, Config.expireRules)
     case (Methods.POST, "expireRule") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
     case (Methods.PUT, "expireRule") =>

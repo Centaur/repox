@@ -2,6 +2,7 @@ package com.gtan.repox.data
 
 import com.gtan.repox.Repox
 import com.gtan.repox.config.Config
+import play.api.libs.json.Json
 
 import scala.collection.JavaConverters._
 
@@ -22,31 +23,11 @@ case class Immediate404Rule(id: Option[Long], include: String, exclude: Option[S
     }
   }
 
-  def toMap: java.util.Map[String, Any] = {
-    val withoutId:Map[String, Any] = Map(
-      "include" -> include,
-      "disable" -> disabled
-    )
-    val withId = id.fold(withoutId){ _id =>
-      withoutId.updated("id", _id)
-    }
-    val withExclude = exclude.fold(withId)(ex => withId.updated("exclude", ex))
-    withExclude.asJava
-  }
 }
 
 object Immediate404Rule {
   def nextId: Long = Config.repos.flatMap(_.id).max + 1
-
-  def fromJson(json: String): Immediate404Rule = {
-    val map = Repox.gson.fromJson(json, classOf[java.util.Map[String, String]]).asScala
-    Immediate404Rule(
-      id = map.get("id").map(_.toLong),
-      include = map("include"),
-      exclude = map.get("exclude"),
-      disabled = map("disabled").toBoolean
-    )
-  }
+  implicit val format = Json.format[Immediate404Rule]
 }
 
 case class BlacklistRule(pattern: String, repoName: String)

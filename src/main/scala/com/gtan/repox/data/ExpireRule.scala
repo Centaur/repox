@@ -1,32 +1,24 @@
 package com.gtan.repox.data
 
 import com.gtan.repox.Repox
+import play.api.libs.json._
 
 import scala.concurrent.duration.Duration
 
 import collection.JavaConverters._
 
-case class ExpireRule(id: Option[Long], pattern: String, duration: Duration, disabled: Boolean = false) {
-  def toMap: java.util.Map[String, Any] = {
-    val withoutId: Map[String, Any] = Map(
-      "pattern" -> pattern,
-      "duration" -> duration.toString,
-      "disabled" -> disabled
-    )
-    id.fold(withoutId) { _id =>
-      withoutId.updated("id", _id)
-    } asJava
-  }
-}
+case class ExpireRule(id: Option[Long], pattern: String, duration: Duration, disabled: Boolean = false)
 
 object ExpireRule {
-  def fromJson(json: String): ExpireRule = {
-    val map = Repox.gson.fromJson(json, classOf[java.util.Map[String, String]]).asScala
-    ExpireRule(
-      id = map.get("id").map(_.toLong),
-      pattern = map("pattern"),
-      duration = Duration.apply(map("duration")),
-      disabled = map("disabled").toBoolean
-    )
+  implicit val durationFormat = new Format[Duration] {
+    override def reads(json: JsValue) = json match {
+      case JsString(str) =>
+        JsSuccess(Duration(str))
+      case _ =>
+        JsError("duration json format need string")
+    }
+
+    override def writes(o: Duration) = JsString(o.toString)
   }
+  implicit val format = Json.format[ExpireRule]
 }

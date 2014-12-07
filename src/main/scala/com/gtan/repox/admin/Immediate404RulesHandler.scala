@@ -12,9 +12,7 @@ object Immediate404RulesHandler extends RestHandler {
 
   override def route(implicit exchange: HttpServerExchange) = {
     case (Methods.GET, "immediate404Rules") =>
-      respondJson(exchange, Map(
-        "rules" -> Config.immediate404Rules.map(_.toMap).asJava
-      ).asJava)
+      respondJson(exchange, Config.immediate404Rules)
     case (Methods.POST, "immediate404Rule") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
     case (Methods.PUT, "immediate404Rule") =>

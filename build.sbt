@@ -22,7 +22,7 @@ libraryDependencies ++= Seq(
     .exclude("org.scala-lang", "scala-library"),
   ("com.typesafe.akka" %% "akka-persistence-experimental" % "2.3.7")
     .exclude("org.scala-lang", "scala-library"),
-  "com.google.code.gson" % "gson" % "2.3.1"
+  "com.typesafe.play" %% "play-json" % "2.4.0-M1"
 )
 
 updateOptions := updateOptions.value.withCachedResolution(true)

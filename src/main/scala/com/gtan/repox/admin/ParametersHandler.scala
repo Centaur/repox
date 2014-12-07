@@ -5,6 +5,7 @@ import com.gtan.repox.config.Config
 import com.gtan.repox.config.ConfigPersister._
 import io.undertow.server.HttpServerExchange
 import io.undertow.util.Methods
+import play.api.libs.json.{JsNumber, JsString, JsObject}
 import collection.JavaConverters._
 import scala.concurrent.duration._
 import akka.pattern.ask
@@ -18,16 +19,22 @@ object ParametersHandler extends RestHandler {
   override def route(implicit exchange: HttpServerExchange) = {
     case (Methods.GET, "parameters") =>
       val config = Config.get
-      respondJson(exchange, Map(
-        "parameters" -> Seq(
-          Map("name" -> "connectionTimeout", "value" -> config.connectionTimeout.toMillis, "unit" -> "ms").asJava,
-          Map("name" -> "connectionIdleTimeout", "value" -> config.connectionIdleTimeout.toMillis, "unit" -> "ms").asJava,
-          Map("name" -> "mainClientMaxConnections", "value" -> config.mainClientMaxConnections).asJava,
-          Map("name" -> "mainClientMaxConnectionsPerHost", "value" -> config.mainClientMaxConnectionsPerHost).asJava,
-          Map("name" -> "proxyClientMaxConnections", "value" -> config.proxyClientMaxConnections).asJava,
-          Map("name" -> "proxyClientMaxConnectionsPerHost", "value" -> config.proxyClientMaxConnectionsPerHost).asJava
-        ).asJava
-      ).asJava)
+      respondJson(exchange, Seq(
+        JsObject("name" -> JsString("connectionTimeout") ::
+          "value" -> JsNumber(config.connectionTimeout.toMillis) ::
+          "unit" -> JsString("ms") :: Nil),
+        JsObject("name" -> JsString("connectionIdleTimeout") ::
+          "value" -> JsNumber(config.connectionIdleTimeout.toMillis) ::
+          "unit" -> JsString("ms") :: Nil),
+        JsObject("name" -> JsString("mainClientMaxConnections") ::
+          "value" -> JsNumber(config.mainClientMaxConnections) :: Nil),
+        JsObject("name" -> JsString("mainClientMaxConnectionsPerHost") ::
+          "value" -> JsNumber(config.mainClientMaxConnectionsPerHost) :: Nil),
+        JsObject("name" -> JsString("proxyClientMaxConnections") ::
+          "value" -> JsNumber(config.proxyClientMaxConnections) :: Nil),
+        JsObject("name" -> JsString("proxyClientMaxConnectionsPerHost") ::
+          "value" -> JsNumber(config.proxyClientMaxConnectionsPerHost) :: Nil)
+      ))
     case (Methods.PUT, "connectionTimeout") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
       setConfigAndRespond(exchange,

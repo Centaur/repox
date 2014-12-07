@@ -13,19 +13,13 @@ import collection.JavaConverters._
 import scala.collection.Set
 import scala.util.Random
 
-/**
- * Created by xf on 14/11/26.
- */
-
 object HeadMaster {
 
-  trait HeadResult
+  case class FoundIn(repo: Repo, headers: ResponseHeaders)
 
-  case class FoundIn(repo: Repo, headers: ResponseHeaders) extends HeadResult
+  case class NotFound(repo: Repo)
 
-  case class NotFound(repo: Repo) extends HeadResult
-
-  case class HeadTimeout(repo: Repo) extends HeadResult
+  case class HeadTimeout(repo: Repo)
 
 }
 
