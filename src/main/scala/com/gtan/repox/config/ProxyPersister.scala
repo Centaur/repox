@@ -15,6 +15,26 @@ trait ProxyPersister {
     }
   }
 
+  case class EnableProxy(id: Long) extends Cmd {
+    override def transform(old: Config) = {
+      val oldProxies = old.proxies
+      old.copy(proxies = oldProxies.map {
+        case p@ProxyServer(Some(`id`), _, _, _, _, _) => p.copy(disabled = false)
+        case p => p
+      })
+    }
+  }
+
+  case class DisableProxy(id: Long) extends Cmd {
+    override def transform(old: Config) = {
+      val oldProxies = old.proxies
+      old.copy(proxies = oldProxies.map {
+        case p@ProxyServer(Some(`id`), _, _, _, _, _) => p.copy(disabled = true)
+        case p => p
+      })
+    }
+  }
+
   case class DeleteProxy(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldProxies = old.proxies
@@ -23,17 +43,6 @@ trait ProxyPersister {
         proxies = oldProxies.filterNot(_.id == Some(id)),
         proxyUsage = oldProxyUsage.filterNot { case (repo, proxy) => proxy.id == Some(id)}
       )
-    }
-  }
-
-  case class RepoUseProxy(repo: Repo, proxy: Option[ProxyServer]) extends Cmd {
-    override def transform(old: Config) = {
-      val oldProxyUsage = old.proxyUsage
-      old.copy(proxyUsage = proxy match {
-        case Some(p) => oldProxyUsage.updated(repo, p)
-        case None =>
-          oldProxyUsage - repo
-      })
     }
   }
 

@@ -26,7 +26,7 @@ case class Immediate404Rule(id: Option[Long], include: String, exclude: Option[S
 }
 
 object Immediate404Rule {
-  def nextId: Long = Config.repos.flatMap(_.id).max + 1
+  def nextId: Long = Config.immediate404Rules.flatMap(_.id).max + 1
   implicit val format = Json.format[Immediate404Rule]
 }
 

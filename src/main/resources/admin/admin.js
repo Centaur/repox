@@ -56,7 +56,6 @@ repoxControllers.controller('MenuCtrl', ['$scope', '$location', function ($scope
 repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', '$route', function ($scope, $http, $route) {
     $scope.upstreams = [];
     $scope.proxies = [];
-    $scope.newUpstream = {};
 
     $http.get('upstreams').success(function (data) {
         $scope.proxies = data.proxies;
@@ -74,7 +73,7 @@ repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', '$route', funct
         $http.delete('upstream?v=' + repo.id).success(function () {
             $route.reload();
         })
-    }
+    };
     $scope.toggleDisable = function (repo) {
         var method = repo.disabled ? "enable" : "disable";
         $http.put('upstream/' + method + '?v=' + repo.id, {}).success(function () {
@@ -112,27 +111,133 @@ repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', '$route', funct
 }]);
 
 
-repoxControllers.controller('ProxiesCtrl', ['$scope', '$http', function ($scope, $http) {
+repoxControllers.controller('ProxiesCtrl', ['$scope', '$http', '$route', function ($scope, $http, $route) {
     $scope.proxies = [];
     $http.get('proxies').success(function (data) {
         $scope.proxies = data;
     })
+    $scope.showNewProxyDialog = function () {
+        $scope.newProxy = {protocol: 'HTTP', disabled: false};
+        $('#newProxyDialog').modal('show');
+    };
+    $scope.submitNewProxy = function () {
+        $http.post('proxy?v=' + encodeURIComponent(JSON.stringify($scope.newProxy)), {}).success(function () {
+            $('#newProxyDialog').modal('hide');
+            $route.reload();
+        })
+    };
+    $scope.showEditProxyDialog = function (proxy) {
+        $scope.editProxy = proxy;
+        $('#editProxyDialog').modal('show');
+    };
+    $scope.submitEditProxy = function () {
+        $http.put('proxy?v=' + encodeURIComponent(JSON.stringify($scope.editProxy)), {}).success(function () {
+            $('#editProxyDialog').modal('hide');
+            $route.reload();
+        })
+    }
+    $scope.deleteProxy = function (proxy) {
+        $http.delete('proxy?v=' + proxy.id).success(function () {
+            $route.reload();
+        })
+    };
+    $scope.toggleDisable = function (proxy) {
+        var method = proxy.disabled ? "enable" : "disable";
+        $http.put('proxy/' + method + '?v=' + proxy.id, {}).success(function () {
+            $route.reload();
+        })
+    };
 }]);
-repoxControllers.controller('Immediate404RulesCtrl', ['$scope', '$http', function ($scope, $http) {
+repoxControllers.controller('Immediate404RulesCtrl', ['$scope', '$http', '$route', function ($scope, $http, $route) {
     $scope.rules = [];
     $http.get('immediate404Rules').success(function (data) {
         $scope.rules = data;
-    })
+    });
+    $scope.showNewRuleDialog = function () {
+        $scope.newRule = {disabled: false};
+        $('#new404RuleDialog').modal('show');
+    };
+    $scope.submitNewRule = function () {
+        $http.post('immediate404Rule?v=' + encodeURIComponent(JSON.stringify($scope.newRule)), {}).success(function () {
+            $('#new404RuleDialog').modal('hide');
+            $route.reload();
+        })
+    };
+    $scope.showEditRuleDialog = function (rule) {
+        $scope.editRule = rule;
+        $('#edit404RuleDialog').modal('show');
+    };
+    $scope.submitEditRule = function () {
+        $http.put('immediate404Rule?v=' + encodeURIComponent(JSON.stringify($scope.editRule)), {}).success(function () {
+            $('#edit404RuleDialog').modal('hide');
+            $route.reload();
+        })
+    };
+    $scope.deleteRule = function (rule) {
+        $http.delete('immediate404Rule?v=' + rule.id).success(function () {
+            $route.reload();
+        })
+    };
+    $scope.toggleDisable = function (rule) {
+        var method = rule.disabled ? "enable" : "disable";
+        $http.put('immediate404Rule/' + method + '?v=' + rule.id, {}).success(function () {
+            $route.reload();
+        })
+    };
 }]);
-repoxControllers.controller('ExpireRulesCtrl', ['$scope', '$http', function ($scope, $http) {
+repoxControllers.controller('ExpireRulesCtrl', ['$scope', '$http', '$route', function ($scope, $http, $route) {
     $scope.rules = [];
     $http.get('expireRules').success(function (data) {
         $scope.rules = data;
     })
+    $scope.showNewRuleDialog = function () {
+        $scope.newRule = {disabled: false};
+        $('#newExpireRuleDialog').modal('show');
+    };
+    $scope.submitNewRule = function () {
+        $http.post('expireRule?v=' + encodeURIComponent(JSON.stringify($scope.newRule)), {}).success(function () {
+            $('#newExpireRuleDialog').modal('hide');
+            $route.reload();
+        })
+    };
+    $scope.showEditRuleDialog = function (rule) {
+        $scope.editRule = rule;
+        $('#editExpireRuleDialog').modal('show');
+    };
+    $scope.submitEditRule = function () {
+        $http.put('expireRule?v=' + encodeURIComponent(JSON.stringify($scope.editRule)), {}).success(function () {
+            $('#editExpireRuleDialog').modal('hide');
+            $route.reload();
+        })
+    };
+    $scope.deleteRule = function (rule) {
+        $http.delete('expireRule?v=' + rule.id).success(function () {
+            $route.reload();
+        })
+    };
+    $scope.toggleDisable = function (rule) {
+        var method = rule.disabled ? "enable" : "disable";
+        $http.put('expireRule/' + method + '?v=' + rule.id, {}).success(function () {
+            $route.reload();
+        })
+    };
 }]);
-repoxControllers.controller('ParametersCtrl', ['$scope', '$http', function ($scope, $http) {
+
+repoxControllers.controller('ParametersCtrl', ['$scope', '$http', '$route', function ($scope, $http, $route) {
     $scope.parameters = [];
     $http.get('parameters').success(function (data) {
         $scope.parameters = data;
-    })
+    });
+
+    $scope.showEditParameterDialog = function (parameter) {
+        $scope.editParameter = parameter;
+        $('#editParameterDialog').modal('show');
+    };
+    $scope.submitParameter = function () {
+        $http.put($scope.editParameter.name+'?v=' + $scope.editParameter.value, {}).success(function () {
+            $('#editParameterDialog').modal('hide');
+            $route.reload();
+        })
+    };
+
 }]);

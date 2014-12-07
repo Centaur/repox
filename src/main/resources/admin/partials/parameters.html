@@ -1,23 +1,43 @@
-<div class="ui form" id="parameters" ng-controller="ParametersCtrl">
-    <table class="ui very compact celled definition table">
-        <thead>
-        <tr>
-            <th></th>
-            <th>Name</th>
-            <th>value</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr ng-repeat="parameter in parameters">
-            <td class="collapsing">
-                        <span class="ui tiny basic icon button">
+<div ng-controller="ParametersCtrl">
+    <div class="ui form" id="parameters">
+        <table class="ui very compact celled definition table">
+            <thead>
+            <tr>
+                <th></th>
+                <th>Name</th>
+                <th>value</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr ng-repeat="parameter in parameters">
+                <td class="collapsing">
+                        <span class="ui tiny basic icon button" ng-click="showEditParameterDialog(parameter)">
                             <i class="edit blue icon"></i>
                         </span>
-            </td>
-            <td>{{parameter.name}}</td>
-            <td>{{parameter.value}} {{parameter.unit}}</td>
-        </tr>
-        </tbody>
-    </table>
+                </td>
+                <td>{{parameter.name}}</td>
+                <td>{{parameter.value}} {{parameter.unit}}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="ui modal" id="editParameterDialog">
+        <i class="close icon"></i>
+
+        <div class="ui dividing center aligned header">
+            Edit Value of "{{editParameter.name}}" {{editParameter.unit ? '（'+editParameter.unit+'）' : ''}}
+        </div>
+        <div class="content">
+            <div class="ui form">
+                <div class="required field">
+                    <label for="edit-parameter">New Value</label>
+                    <input id="edit-parameter" type="text" ng-model="editParameter.value"/>
+                </div>
+                <div class="ui blue fluid large submit button"
+                     ng-click="submitParameter()">Submit
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 

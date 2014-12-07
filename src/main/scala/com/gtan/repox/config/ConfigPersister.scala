@@ -21,9 +21,10 @@ case class ConfigChanged(config: Config, cmd: Cmd) extends Evt
 case object UseDefault extends Evt
 
 case object ConfigPersister extends RepoPersister
-                               with ParameterPersister
-                               with ProxyPersister
-                               with Immediate404RulePersister
+                                    with ParameterPersister
+                                    with ProxyPersister
+                                    with Immediate404RulePersister
+                                    with ExpireRulePersister
 
 class ConfigPersister extends PersistentActor with ActorLogging {
 

@@ -1,36 +1,82 @@
-<div class="ui form" id="expireRules" ng-controller="ExpireRulesCtrl">
-    <table class="ui very compact celled definition table">
-        <thead>
-        <tr>
-            <th></th>
-            <th>pattern</th>
-            <th>duration</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr ng-repeat="rule in rules">
-            <td class="collapsing">
-                        <span class="ui tiny basic icon button">
+<div ng-controller="ExpireRulesCtrl">
+    <div class="ui form" id="expireRules">
+        <table class="ui very compact celled definition table">
+            <thead>
+            <tr>
+                <th></th>
+                <th>pattern</th>
+                <th>duration</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr ng-repeat="rule in rules">
+                <td class="collapsing">
+                        <span class="ui tiny basic icon button" ng-click="toggleDisable(rule)">
+                            <i class="red icon" ng-class="{checkmark: rule.disabled, ban:!rule.disabled}"></i>
+                        </span>
+                        <span class="ui tiny basic icon button" ng-click="deleteRule(rule)">
                             <i class="remove red icon"></i>
                         </span>
-                        <span class="ui tiny basic icon button">
+                        <span class="ui tiny basic icon button" ng-click="showEditRuleDialog(rule)">
                             <i class="edit red icon"></i>
                         </span>
-            </td>
-            <td>{{rule.pattern}}</td>
-            <td>{{rule.duration}}</td>
-        </tr>
-        </tbody>
-        <tfoot class="full-width">
-        <th colspan="7">
-            <a class="ui right floated labeled icon red button">
-                <i class="plus icon"></i> Add Expire Rule
-            </a>
-        </th>
-        </tfoot>
-    </table>
-</div>
+                </td>
+                <td ng-class="{disabled: rule.disabled}">{{rule.pattern}}</td>
+                <td ng-class="{disabled: rule.disabled}">{{rule.duration}}</td>
+            </tr>
+            </tbody>
+            <tfoot class="full-width">
+            <th colspan="7">
+                <a class="ui right floated labeled icon red button" ng-click="showNewRuleDialog()">
+                    <i class="plus icon"></i> Add Expire Rule
+                </a>
+            </th>
+            </tfoot>
+        </table>
+    </div>
 
-<div class="ui modal" id="addImmediate404RuleDialog">
-    some fake content
+    <div class="ui modal" id="newExpireRuleDialog">
+        <i class="close icon"></i>
+
+        <div class="ui dividing center aligned header">
+            Add New Expire Rule
+        </div>
+        <div class="content">
+            <div class="ui form">
+                <div class="required field">
+                    <label for="new-rule-pattern">Pattern</label>
+                    <input id="new-rule-pattern" type="text" ng-model="newRule.pattern"/>
+                </div>
+                <div class="required field">
+                    <label for="new-rule-duration">Duration</label>
+                    <input id="new-rule-duration" type="text" ng-model="newRule.duration"/>
+                </div>
+                <div class="ui red fluid large submit button"
+                     ng-click="submitNewRule()">Submit
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="ui modal" id="editExpireRuleDialog">
+        <i class="close icon"></i>
+
+        <div class="ui dividing center aligned header">
+            Edit Expire Rule
+        </div>
+        <div class="content">
+            <div class="ui form">
+                <div class="required field">
+                    <label for="edit-rule-pattern">Pattern</label>
+                    <input id="edit-rule-pattern" type="text" ng-model="editRule.pattern"/>
+                </div>
+                <div class="required field">
+                    <label for="edit-rule-duration">Duration</label>
+                    <input id="edit-rule-duration" type="text" ng-model="editRule.duration"/>
+                </div>
+                <div class="ui red fluid large submit button"
+                     ng-click="submitEditRule()">Submit
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

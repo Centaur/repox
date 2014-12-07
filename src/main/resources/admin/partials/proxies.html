@@ -1,40 +1,105 @@
-<div class="ui form" id="proxies" ng-controller="ProxiesCtrl">
-    <table class="ui very compact celled definition table">
-        <thead>
-        <tr>
-            <th></th>
-            <th>Name</th>
-            <th>Protocol</th>
-            <th>Host</th>
-            <th>Port</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr ng-repeat="proxy in proxies">
-            <td class="collapsing">
-                        <span class="ui tiny basic icon button">
+<div ng-controller="ProxiesCtrl">
+    <div class="ui form" id="proxies">
+        <table class="ui very compact celled definition table">
+            <thead>
+            <tr>
+                <th></th>
+                <th>Name</th>
+                <th>Protocol</th>
+                <th>Host</th>
+                <th>Port</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr ng-repeat="proxy in proxies">
+                <td class="collapsing">
+                        <span class="ui tiny basic icon button" ng-click="toggleDisable(proxy)">
+                            <i class="orange icon"
+                               ng-class="{ban: !proxy.disabled, checkmark: proxy.disabled}"></i>
+                        </span>
+                        <span class="ui tiny basic icon button" ng-click="deleteProxy(proxy)">
                             <i class="remove orange icon"></i>
                         </span>
-                        <span class="ui tiny basic icon button">
+                        <span class="ui tiny basic icon button" ng-click="showEditProxyDialog(proxy)">
                             <i class="edit orange icon"></i>
                         </span>
-            </td>
-            <td>{{proxy.name}}</td>
-            <td>{{proxy.protocol}}</td>
-            <td>{{proxy.host}}</td>
-            <td>{{proxy.port}}</td>
-        </tr>
-        </tbody>
-        <tfoot class="full-width">
-        <th colspan="7">
-            <a class="ui right floated labeled icon orange button">
-                <i class="plus icon"></i> Add Proxy
-            </a>
-        </th>
-        </tfoot>
-    </table>
-</div>
+                </td>
+                <td ng-class="{disabled: proxy.disabled}">{{proxy.name}}</td>
+                <td ng-class="{disabled: proxy.disabled}">{{proxy.protocol}}</td>
+                <td ng-class="{disabled: proxy.disabled}">{{proxy.host}}</td>
+                <td ng-class="{disabled: proxy.disabled}">{{proxy.port}}</td>
+            </tr>
+            </tbody>
+            <tfoot class="full-width">
+            <th colspan="7">
+                <a class="ui right floated labeled icon orange button" ng-click="showNewProxyDialog()">
+                    <i class="plus icon"></i> Add Proxy
+                </a>
+            </th>
+            </tfoot>
+        </table>
+    </div>
 
-<div class="ui modal" id="addProxyDialog">
-    some fake content
+    <div class="ui modal" id="newProxyDialog">
+        <i class="close icon"></i>
+
+        <div class="ui dividing center aligned header">
+            Add New Proxy
+        </div>
+        <div class="content">
+            <div class="ui form">
+                <div class="required field">
+                    <label for="new-proxy-name">Name</label>
+                    <input id="new-proxy-name" type="text" ng-model="newProxy.name"/>
+                </div>
+                <div class="field">
+                    <label for="new-proxy-protocol">Protocol</label>
+                    <select id="new-proxy-protocol" ng-model="newProxy.protocol" ng-options="p for p in ['HTTP', 'HTTPS']"></select>
+                </div>
+                <div class="required field">
+                    <label for="new-proxy-host">Host</label>
+                    <input id="new-proxy-host" type="text" ng-model="newProxy.host"/>
+                </div>
+                <div class="required field">
+                    <label for="new-proxy-port">Port</label>
+                    <input id="new-proxy-port" type="number" ng-model="newProxy.port"/>
+                </div>
+                <div class="ui orange fluid large submit button"
+                     ng-click="submitNewProxy()">Submit
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div class="ui modal" id="editProxyDialog">
+        <i class="close icon"></i>
+
+        <div class="ui dividing center aligned header">
+            Edit Proxy
+        </div>
+        <div class="content">
+            <div class="ui form">
+                <div class="required field">
+                    <label for="edit-proxy-name">Name</label>
+                    <input id="edit-proxy-name" type="text" ng-model="editProxy.name"/>
+                </div>
+                <div class="field">
+                    <label for="edit-proxy-protocol">Protocol</label>
+                    <select id="edit-proxy-protocol" ng-model="editProxy.protocol" ng-options="p for p in ['HTTP', 'HTTPS']"></select>
+                </div>
+                <div class="required field">
+                    <label for="edit-proxy-host">Host</label>
+                    <input id="edit-proxy-host" type="text" ng-model="editProxy.host"/>
+                </div>
+                <div class="required field">
+                    <label for="edit-proxy-port">Port</label>
+                    <input id="edit-proxy-port" type="number" ng-model="editProxy.port"/>
+                </div>
+                <div class="ui orange fluid large submit button"
+                     ng-click="submitEditProxy()">Submit
+                </div>
+            </div>
+        </div>
+
+    </div>
 </div>
