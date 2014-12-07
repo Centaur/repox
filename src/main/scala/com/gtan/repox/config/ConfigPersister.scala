@@ -43,7 +43,12 @@ class ConfigPersister extends PersistentActor with ActorLogging {
 
   val receiveCommand: Receive = {
     case cmd: Cmd =>
-      persist(ConfigChanged(cmd.transform(config), cmd))(onConfigSaved(sender(), _))
+      val newConfig = cmd.transform(config)
+      if (newConfig == config) { // no change
+        sender ! StatusCodes.OK
+      } else {
+        persist(ConfigChanged(newConfig, cmd))(onConfigSaved(sender(), _))
+      }
     case UseDefault =>
       persist(UseDefault) { _ =>
         config = Config.default

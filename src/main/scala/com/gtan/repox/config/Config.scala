@@ -21,7 +21,7 @@ import scala.language.postfixOps
 
 
 case class Config(proxies: Seq[ProxyServer],
-                  repos: Seq[Repo],
+                  repos: IndexedSeq[Repo],
                   proxyUsage: Map[Repo, ProxyServer],
                   immediate404Rules: Seq[Immediate404Rule],
                   expireRules: Seq[ExpireRule],
@@ -37,7 +37,7 @@ object Config {
   val defaultProxies = List(
     ProxyServer(id = Some(1), name = "Lantern", protocol = JProxyServer.Protocol.HTTP, host = "localhost", port = 8787)
   )
-  val defaultRepos: Seq[Repo] = Seq(
+  val defaultRepos: IndexedSeq[Repo] = IndexedSeq(
     Repo(Some(1), "koala", "http://nexus.openkoala.org/nexus/content/groups/Koala-release",
       priority = 1, getOnly = true, maven = true),
     Repo(Some(2), "sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 2),

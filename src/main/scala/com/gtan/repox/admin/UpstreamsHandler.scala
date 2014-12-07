@@ -22,7 +22,7 @@ object UpstreamsHandler extends RestHandler {
     case (Methods.GET, "upstreams") =>
       val config = Config.get
       respondJson(exchange, JsObject(
-        "upstreams" -> Json.toJson(config.repos.sortBy(_.id).map(RepoVO.wrap)) ::
+        "upstreams" -> Json.toJson(config.repos.map(RepoVO.wrap)) ::
         "proxies" -> Json.toJson(config.proxies) ::
         Nil
       ))
@@ -31,6 +31,12 @@ object UpstreamsHandler extends RestHandler {
       val newV = URLDecoder.decode(exchange.getQueryParameters.get("v").getFirst, "UTF-8")
       val vo = Json.parse(newV).as[RepoVO]
       setConfigAndRespond(exchange, Repox.configPersister ? NewRepo(vo))
+    case (Methods.POST, "upstream/up") =>
+      val id = exchange.getQueryParameters.get("v").getFirst.toLong
+      setConfigAndRespond(exchange, Repox.configPersister ? MoveUpRepo(id))
+    case (Methods.POST, "upstream/down") =>
+      val id = exchange.getQueryParameters.get("v").getFirst.toLong
+      setConfigAndRespond(exchange, Repox.configPersister ? MoveDownRepo(id))
     case (Methods.PUT, "upstream") =>
       val newV = URLDecoder.decode(exchange.getQueryParameters.get("v").getFirst, "UTF-8")
       val vo = Json.parse(newV).as[RepoVO]

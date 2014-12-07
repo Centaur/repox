@@ -68,6 +68,16 @@ repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', '$route', funct
             return upstream;
         });
     });
+    $scope.moveUp = function (repo) {
+        $http.post('upstream/up?v='+repo.id, {}).success(function () {
+            $route.reload();
+        })
+    };
+    $scope.moveDown = function (repo) {
+        $http.post('upstream/down?v='+repo.id, {}).success(function () {
+            $route.reload();
+        })
+    };
 
     $scope.deleteRepo = function (repo) {
         $http.delete('upstream?v=' + repo.id).success(function () {
@@ -88,7 +98,7 @@ repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', '$route', funct
     };
 
     $scope.showNewRepoDialog = function () {
-        $scope.newUpstream = {repo: {maven: false, getOnly: false, disabled: false}};
+        $scope.newUpstream = {repo: {maven: false, getOnly: false, disabled: false, priority: 10}};
         $('#newRepoDialog').modal('show');
     };
     $scope.submitNewRepo = function () {

@@ -3,7 +3,7 @@
         <table class="ui very compact celled table">
             <thead>
             <tr>
-                <th>&nbsp;</th>
+                <th></th>
                 <th>Name</th>
                 <th>Priority</th>
                 <th>Base Url</th>
@@ -27,10 +27,10 @@
                         <span class="ui tiny basic icon button" ng-click="deleteRepo(upstream.repo)">
                             <i class="remove up teal icon"></i>
                         </span>
-                        <span class="ui tiny basic icon button">
+                        <span class="ui tiny basic icon button" ng-click="moveUp(upstream.repo)">
                             <i class="angle up teal icon"></i>
                         </span>
-                        <span class="ui tiny basic icon button">
+                        <span class="ui tiny basic icon button" ng-click="moveDown(upstream.repo)">
                             <i class="angle down teal icon"></i>
                         </span>
                 </td>

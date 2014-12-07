@@ -11,7 +11,13 @@ trait RepoPersister {
       val oldProxyUsage = old.proxyUsage
       // ToDo: validation
       val voWithId = vo.copy(repo = vo.repo.copy(id = Some(Repo.nextId)))
-      val newRepos = old.copy(repos = oldRepos :+ voWithId.repo)
+      val insertPoint = oldRepos.indexWhere(_.priority > vo.repo.priority)
+      val newRepos = if(insertPoint == -1) { // put to the last
+        old.copy(repos = oldRepos :+ voWithId.repo)
+      }  else {
+        val (before, after) = oldRepos.splitAt(insertPoint)
+        old.copy(repos = (before :+ voWithId.repo) ++ after)
+      }
       vo.proxy match {
         case None => newRepos
         case Some(p) => newRepos.copy(proxyUsage = oldProxyUsage.updated(voWithId.repo, p))
@@ -67,6 +73,85 @@ trait RepoPersister {
         }
       }
       newConfig.getOrElse(old)
+    }
+  }
+
+  case class MoveUpRepo(id: Long) extends Cmd {
+    override def transform(old: Config) = {
+      val oldRepos = old.repos
+      val repo = oldRepos.find(_.id == Some(id))
+      repo.fold(old) { _repo =>
+        val index = oldRepos.indexOf(_repo)
+        if (index == 0) {
+          if (_repo.priority == 1) old // no higher level
+          else old.copy(
+            repos = oldRepos.map {
+              case `_repo` => _repo.copy(priority = _repo.priority - 1)
+              case r => r
+            })
+        } else {
+          val previous = oldRepos(index - 1)
+          if (previous.priority == _repo.priority) {
+            // swap this two
+            old.copy(
+              repos = oldRepos.map {
+                case `previous` => _repo
+                case `_repo` => previous
+                case r => r
+              }
+            )
+          } else {
+            // if(previous.priority == _repo.priority - 1)  uplevel as last
+            // if(previous.priority < _repo.priority - 1)  uplevel as the only one
+            old.copy(
+              repos = oldRepos.map {
+                case `_repo` => _repo.copy(priority = _repo.priority - 1)
+                case r => r
+              }
+            )
+          }
+        }
+      }
+    }
+  }
+
+  case class MoveDownRepo(id: Long) extends Cmd {
+    override def transform(old: Config) = {
+      val oldRepos = old.repos
+      val repo = oldRepos.find(_.id == Some(id))
+      repo.fold(old) { _repo =>
+        val index = oldRepos.indexOf(_repo)
+        if (index == oldRepos.length - 1) {
+          if (_repo.priority == 10) old // no lower priority
+          else old.copy(
+            repos = oldRepos.map {
+              case `_repo` => _repo.copy(priority = _repo.priority + 1)
+              case r => r
+            }
+          )
+        } else {
+          val next = oldRepos(index + 1)
+          if (next.priority == _repo.priority) {
+            // swap this two
+            old.copy(
+              repos = oldRepos.map {
+                case `next` => _repo
+                case `_repo` => next
+                case r => r
+              }
+            )
+          } else {
+            // if(next.priority == _repo.priority + 1)  downlevel as first
+            // if(next.priority > _repo.priority + 1)  downlevel as the only one
+            old.copy(
+              repos = oldRepos.map {
+                case `_repo` => _repo.copy(priority = _repo.priority + 1)
+                case r => r
+              }
+            )
+          }
+        }
+      }
     }
   }
 
