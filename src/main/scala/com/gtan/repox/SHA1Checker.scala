@@ -6,7 +6,11 @@ import java.nio.file.Path
 import akka.actor.{Props, ActorLogging, Actor}
 import com.google.common.hash.Hashing
 import com.google.common.io.Files
+import com.gtan.repox.ExpirationPersister.CreateExpiration
 import com.gtan.repox.Requests.Download
+import com.gtan.repox.data.ExpireRule
+
+import scala.concurrent.duration.Duration
 
 
 /**
@@ -32,6 +36,9 @@ class SHA1Checker extends Actor with ActorLogging{
         context.actorOf(Props(classOf[FileDeleter], uri))
       } else {
         log.debug(s"$uri sha1 check success.")
+        for(ExpireRule(_, pattern, duration, _) <- Repox.lookForExpireRule(uri)) {
+          Repox.expirationPersister ! CreateExpiration(uri, duration)
+        }
       }
   }
 }

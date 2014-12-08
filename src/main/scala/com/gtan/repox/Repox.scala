@@ -5,7 +5,7 @@ import java.nio.file.Paths
 import akka.actor.{ActorSystem, Props}
 import akka.agent.Agent
 import com.gtan.repox.config.{ConfigView, ConfigPersister, Config}
-import com.gtan.repox.data.{ProxyServer, Repo}
+import com.gtan.repox.data.{ExpireRule, ProxyServer, Repo}
 import com.ning.http.client.{ProxyServer => JProxyServer, AsyncHttpClientConfig, AsyncHttpClient}
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.Handlers
@@ -17,6 +17,8 @@ import scala.language.postfixOps
 import scala.concurrent.duration._
 
 object Repox extends LazyLogging {
+  def lookForExpireRule(uri: String):Option[ExpireRule] = Config.expireRules.find(rule => !rule.disabled && uri.matches(rule.pattern))
+
 
   import concurrent.ExecutionContext.Implicits.global
 
@@ -24,6 +26,7 @@ object Repox extends LazyLogging {
 
   val configView = system.actorOf(Props[ConfigView], name = "ConfigView")
   val configPersister = system.actorOf(Props[ConfigPersister], "ConfigPersister")
+  val expirationPersister = system.actorOf(Props[ExpirationPersister], "ExpirationPersister")
   val head404Cache = system.actorOf(Props[Head404Cache], "HeaderCache")
   val requestQueueMaster = system.actorOf(Props[RequestQueueMaster], "RequestQueueMaster")
   val sha1Checker = system.actorOf(Props[SHA1Checker], "SHA1Checker")
