@@ -14,7 +14,7 @@ libraryDependencies ++= Seq(
     .exclude("org.scala-lang", "scala-library"),
   ("ch.qos.logback" % "logback-classic" % "1.1.2")
     .exclude("org.slf4j", "slf4j-api"),
-  ("com.typesafe.akka" %% "akka-actor" % akkaVersion)
+  ("com.typesafe.akka" %% "akka-actor" % akkaVersion withSources())
     .exclude("org.slf4j", "slf4j-api"),
   ("com.typesafe.akka" %% "akka-slf4j" % akkaVersion)
     .exclude("org.slf4j", "slf4j-api"),

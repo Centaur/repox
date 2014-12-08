@@ -33,7 +33,7 @@ class SHA1Checker extends Actor with ActorLogging{
       val downloaded = scala.io.Source.fromFile(sha1Path.toFile).mkString
       if(computed != downloaded) {
         log.debug(s"$uri sha1 inconsistence detected, delete both files and redownload.")
-        context.actorOf(Props(classOf[FileDeleter], uri))
+        context.actorOf(Props(classOf[FileDeleter], uri, 'SHA1Checker))
       } else {
         log.debug(s"$uri sha1 check success.")
         for(ExpireRule(_, pattern, duration, _) <- Repox.lookForExpireRule(uri)) {

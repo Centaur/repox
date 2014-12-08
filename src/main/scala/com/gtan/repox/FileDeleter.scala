@@ -10,9 +10,10 @@ object FileDeleter {
  * delete file and sha1 file as a whole
  * @param uri
  */
-class FileDeleter(uri: String) extends Actor with ActorLogging {
+class FileDeleter(uri: String, initiator: Symbol) extends Actor with ActorLogging {
   import FileDeleter._
 
+  log.debug(s"$initiator initiated deletion of $uri")
   Repox.requestQueueMaster ! RequestQueueMaster.Quarantine(uri: String)
   override def receive = {
     case Quarantined =>

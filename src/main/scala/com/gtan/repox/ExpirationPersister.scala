@@ -1,11 +1,8 @@
 package com.gtan.repox
 
-import akka.actor.Actor.Receive
-import akka.actor.{Cancellable, Props, Actor, ActorLogging}
+import akka.actor.{ActorLogging, Cancellable, Props}
 import akka.persistence.PersistentActor
-import com.gtan.repox.ExpirationPersister.{CancelExpiration, CreateExpiration}
 import org.joda.time.DateTime
-
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -16,12 +13,17 @@ object ExpirationPersister {
 
   case class CancelExpiration(uri: String)
 
+  case class ExpirationPerformed(uri: String)
+
 }
 
 case class Expiration(uri: String, timestamp: DateTime)
 
 class ExpirationPersister extends PersistentActor with ActorLogging {
-  import concurrent.ExecutionContext.Implicits.global
+
+  import com.gtan.repox.ExpirationPersister._
+
+  import scala.concurrent.ExecutionContext.Implicits.global
 
   override def persistenceId: String = "Expiration"
 
@@ -30,20 +32,21 @@ class ExpirationPersister extends PersistentActor with ActorLogging {
   def scheduleFileDelete(expiration: Expiration): Unit = {
     if (expiration.timestamp.isAfterNow) {
       val cancellable = Repox.system.scheduler.scheduleOnce(expiration.timestamp.getMillis - DateTime.now().getMillis millis) {
-        context.actorOf(Props(classOf[FileDeleter], expiration.uri))
+        context.actorOf(Props(classOf[FileDeleter], expiration.uri, 'ExpirationPersister))
+        self ! ExpirationPerformed(expiration.uri)
       }
       scheduledExpirations = scheduledExpirations.updated(expiration.uri, cancellable)
     } else {
-      context.actorOf(Props(classOf[FileDeleter], expiration.uri))
+      context.actorOf(Props(classOf[FileDeleter], expiration.uri, 'ExpirationPersister))
     }
   }
 
-  def cancelExpirations(pattern: String): Unit ={
+  def cancelExpirations(pattern: String): Unit = {
     val canceled = scheduledExpirations.collect {
       case (uri, cancellable) if uri.matches(pattern) =>
         cancellable.cancel()
         uri
-      }.toSet
+    }.toSet
     scheduledExpirations = scheduledExpirations.filterKeys(canceled.contains)
   }
 
@@ -58,12 +61,14 @@ class ExpirationPersister extends PersistentActor with ActorLogging {
     case CreateExpiration(uri, duration) =>
       val timestamp = DateTime.now().plusMillis(duration.toMillis.toInt)
       val expiration = Expiration(uri, timestamp)
-      persist(expiration){_ =>
+      persist(expiration) { _ =>
       }
       scheduleFileDelete(expiration)
     case CancelExpiration(pattern) =>
-      persist(CancelExpiration(pattern)){_=>}
+      persist(CancelExpiration(pattern)) { _ =>}
       cancelExpirations(pattern)
+    case ExpirationPerformed(uri) =>
+      scheduledExpirations = scheduledExpirations - uri
   }
 
 }
