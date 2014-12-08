@@ -47,7 +47,7 @@ object WebConfigHandler {
     }
   }
 
-  def isStaticRequest(target: String) = Set(".html", ".css", ".js", ".ico", ".ttf", ".map", "woff").exists(target.endsWith)
+  def isStaticRequest(target: String) = Set(".html", ".css", ".js", ".ico", ".ttf", ".map", "woff", ".svg", "otf", "png", "jpg", "gif").exists(target.endsWith)
 
   def respondJson[T: Format](exchange: HttpServerExchange, data: T): Unit = {
     exchange.setResponseCode(StatusCodes.OK)
