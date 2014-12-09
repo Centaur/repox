@@ -82,9 +82,9 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
     if (finishedChildren == children.size) {
       // all returned
       retryTimes += 1
-      if (retryTimes == 3) {
+      if (retryTimes == Config.headRetryTimes) {
         context.parent ! HeadQueueWorker.NotFound(exchange)
-        log.debug(s"retried 3 times, give up.")
+        log.debug(s"retried ${Config.headRetryTimes} times, give up.")
         self ! PoisonPill
       } else {
         log.debug("All headworkers return 404. retry.")

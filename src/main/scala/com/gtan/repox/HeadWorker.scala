@@ -31,7 +31,7 @@ class HeadWorker(val repo: Repo,
   val upstreamUrl = repo.base + uri
   val handler = new HeadAsyncHandler(self, uri, repo)
 
-  context.setReceiveTimeout(3 seconds)
+  context.setReceiveTimeout(Config.headTimeout)
 
   val upstreamHost = new URL(upstreamUrl).getHost
   requestHeaders.put(Headers.HOST_STRING, List(upstreamHost).asJava)

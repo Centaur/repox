@@ -101,7 +101,7 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
       }
       downloaded = 0
       percentage = 0.0
-      context.setReceiveTimeout(9 seconds)
+      context.setReceiveTimeout(Config.getDataTimeout)
   }
 
 

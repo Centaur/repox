@@ -10,6 +10,8 @@ import collection.JavaConverters._
 import scala.concurrent.duration._
 import akka.pattern.ask
 
+import scala.language.postfixOps
+
 object ParametersHandler extends RestHandler {
 
   import WebConfigHandler._
@@ -33,7 +35,10 @@ object ParametersHandler extends RestHandler {
         JsObject("name" -> JsString("proxyClientMaxConnections") ::
           "value" -> JsNumber(config.proxyClientMaxConnections) :: Nil),
         JsObject("name" -> JsString("proxyClientMaxConnectionsPerHost") ::
-          "value" -> JsNumber(config.proxyClientMaxConnectionsPerHost) :: Nil)
+          "value" -> JsNumber(config.proxyClientMaxConnectionsPerHost) :: Nil),
+        JsObject("name" -> JsString("headRetryTimes") :: "value" -> JsNumber(config.headRetryTimes) :: Nil),
+        JsObject("name" -> JsString("headTimeout") :: "value" -> JsNumber(config.headTimeout.toSeconds) :: "unit" -> JsString("s") :: Nil),
+        JsObject("name" -> JsString("getDataTimeout") :: "value" -> JsNumber(config.getDataTimeout.toSeconds) :: "unit" -> JsString("s") :: Nil)
       ))
     case (Methods.PUT, "connectionTimeout") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
@@ -59,5 +64,17 @@ object ParametersHandler extends RestHandler {
       val newV = exchange.getQueryParameters.get("v").getFirst
       setConfigAndRespond(exchange,
         Repox.configPersister ? SetProxyClientMaxConnectionsPerHost(newV.toInt))
+    case (Methods.PUT, "headTimeout") =>
+      val newV = exchange.getQueryParameters.get("v").getFirst
+      setConfigAndRespond(exchange,
+        Repox.configPersister ? SetHeadTimeout(Duration.apply(newV.toInt, SECONDS)))
+    case (Methods.PUT, "getDataTimeout") =>
+      val newV = exchange.getQueryParameters.get("v").getFirst
+      setConfigAndRespond(exchange,
+        Repox.configPersister ? SetGetDataTimeout(Duration.apply(newV.toInt, SECONDS)))
+    case (Methods.PUT, "headRetryTimes") =>
+      val newV = exchange.getQueryParameters.get("v").getFirst
+      setConfigAndRespond(exchange,
+        Repox.configPersister ? SetHeadRetryTimes(newV.toInt))
   }
 }

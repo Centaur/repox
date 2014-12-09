@@ -1,6 +1,7 @@
 package com.gtan.repox
 
 import akka.actor._
+import com.gtan.repox.config.Config
 import com.gtan.repox.data.Repo
 import io.undertow.server.HttpServerExchange
 import org.w3c.dom.html.HTMLScriptElement
@@ -50,7 +51,7 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
     case result @ NotFound(exchange) =>
       found = false
       Repox.respond404(exchange)
-      log.info(s"Tried 3 times. Give up. Respond with 404. $uri")
+      log.info(s"Tried ${Config.headRetryTimes} times. Give up. Respond with 404. $uri")
       unstashAll()
       context.setReceiveTimeout(1 second)
       context become flushWaiting

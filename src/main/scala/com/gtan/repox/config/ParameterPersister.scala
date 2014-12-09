@@ -34,5 +34,20 @@ trait ParameterPersister {
       old.copy(proxyClientMaxConnectionsPerHost = m)
     }
   }
+  case class SetHeadTimeout(m: Duration) extends Cmd {
+    override def transform(old: Config) = {
+      old.copy(headTimeout = m)
+    }
+  }
+  case class SetGetDataTimeout(m: Duration) extends Cmd {
+    override def transform(old: Config) = {
+      old.copy(getDataTimeout = m)
+    }
+  }
+  case class SetHeadRetryTimes(m: Int) extends Cmd {
+    override def transform(old: Config) = {
+      old.copy(headRetryTimes = m)
+    }
+  }
 
 }

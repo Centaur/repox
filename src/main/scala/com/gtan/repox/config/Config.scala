@@ -32,9 +32,12 @@ case class Config(proxies: Seq[ProxyServer],
                   mainClientMaxConnectionsPerHost: Int,
                   mainClientMaxConnections: Int,
                   proxyClientMaxConnectionsPerHost: Int,
-                  proxyClientMaxConnections: Int)
+                  proxyClientMaxConnections: Int,
+                  getDataTimeout: Duration,
+                  headTimeout: Duration,
+                  headRetryTimes: Int)
 
-object Config extends LazyLogging{
+object Config extends LazyLogging {
   val defaultProxies = List(
     ProxyServer(id = Some(1), name = "Lantern", protocol = JProxyServer.Protocol.HTTP, host = "localhost", port = 8787)
   )
@@ -91,7 +94,10 @@ object Config extends LazyLogging{
     mainClientMaxConnections = 200,
     mainClientMaxConnectionsPerHost = 10,
     proxyClientMaxConnections = 20,
-    proxyClientMaxConnectionsPerHost = 10
+    proxyClientMaxConnectionsPerHost = 10,
+    getDataTimeout = 9 seconds,
+    headTimeout = 3 seconds,
+    headRetryTimes = 3
   )
 
   val instance: Agent[Config] = Agent[Config](null)
@@ -137,4 +143,11 @@ object Config extends LazyLogging{
   def proxyClientMaxConnections: Int = instance.get().proxyClientMaxConnections
 
   def proxyClientMaxConnectionsPerHost: Int = instance.get().proxyClientMaxConnectionsPerHost
+
+  def headRetryTimes: Int = instance.get().headRetryTimes
+
+  def headTimeout: Duration = instance.get().headTimeout
+
+  def getDataTimeout: Duration = instance.get().getDataTimeout
+
 }
