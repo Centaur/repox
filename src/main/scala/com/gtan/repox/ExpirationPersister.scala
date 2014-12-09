@@ -13,7 +13,7 @@ object ExpirationPersister {
 
   case class CancelExpiration(uri: String)
 
-  case class ExpirationPerformed(uri: String)
+  case class PerformExpiration(uri: String)
 
 }
 
@@ -31,10 +31,10 @@ class ExpirationPersister extends PersistentActor with ActorLogging {
 
   def scheduleFileDelete(expiration: Expiration): Unit = {
     if (expiration.timestamp.isAfterNow) {
-      val cancellable = Repox.system.scheduler.scheduleOnce(expiration.timestamp.getMillis - DateTime.now().getMillis millis) {
-        context.actorOf(Props(classOf[FileDeleter], expiration.uri, 'ExpirationPersister))
-        self ! ExpirationPerformed(expiration.uri)
-      }
+      val cancellable = Repox.system.scheduler.scheduleOnce(
+        expiration.timestamp.getMillis - DateTime.now().getMillis millis,
+        self,
+        PerformExpiration(expiration.uri))
       scheduledExpirations = scheduledExpirations.updated(expiration.uri, cancellable)
     } else {
       context.actorOf(Props(classOf[FileDeleter], expiration.uri, 'ExpirationPersister))
@@ -61,13 +61,13 @@ class ExpirationPersister extends PersistentActor with ActorLogging {
     case CreateExpiration(uri, duration) =>
       val timestamp = DateTime.now().plusMillis(duration.toMillis.toInt)
       val expiration = Expiration(uri, timestamp)
-      persist(expiration) { _ =>
-      }
+      persist(expiration) { _ =>}
       scheduleFileDelete(expiration)
     case CancelExpiration(pattern) =>
       persist(CancelExpiration(pattern)) { _ =>}
       cancelExpirations(pattern)
-    case ExpirationPerformed(uri) =>
+    case PerformExpiration(uri) =>
+      context.actorOf(Props(classOf[FileDeleter], uri, 'ExpirationPersister))
       scheduledExpirations = scheduledExpirations - uri
   }
 

@@ -82,7 +82,7 @@ object Config extends LazyLogging{
   val default = Config(
     proxies = defaultProxies,
     repos = defaultRepos,
-    proxyUsage = Map(defaultRepos.find(_.name == "typesafe").get -> defaultProxies.head),
+    proxyUsage = Map(),
     immediate404Rules = defaultImmediate404Rules,
     expireRules = defaultExpireRules,
     storage = Paths.get(System.getProperty("user.home"), ".repox", "storage").toString,
