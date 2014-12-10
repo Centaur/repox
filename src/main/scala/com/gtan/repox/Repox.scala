@@ -67,7 +67,7 @@ object Repox extends LazyLogging {
 
   val proxyClients: Agent[Map[ProxyServer, AsyncHttpClient]] = Agent(null)
 
-  def resourceManager = new FileResourceManager(Paths.get(Config.storage).toFile, 100 * 1024)
+  def resourceManager = new FileResourceManager(Paths.get(Config.storage).toFile, Long.MaxValue)
 
   type StatusCode = Int
   type ResponseHeaders = Map[String, java.util.List[String]]
@@ -105,27 +105,7 @@ object Repox extends LazyLogging {
   lazy val resourceHandler = Handlers.resource(resourceManager)
 
   def sendFile(exchange: HttpServerExchange): Unit = {
-    val resource = resourceManager.getResource(exchange.getRequestURI.tail)
-    exchange.setResponseCode(StatusCodes.OK)
-    val headers = exchange.getResponseHeaders
-    headers.put(Headers.CONTENT_LENGTH, resource.getContentLength)
-      .put(Headers.SERVER, "repox")
-      .put(Headers.CONNECTION, Headers.KEEP_ALIVE.toString)
-      .put(Headers.CONTENT_TYPE, resource.getContentType(MimeMappings.DEFAULT))
-      .put(Headers.LAST_MODIFIED, resource.getLastModifiedString)
-
-    resource.serve(
-      exchange.getResponseSender, exchange, new IoCallback {
-        override def onComplete(exchange: HttpServerExchange, sender: Sender): Unit = {
-          logger.debug(s"Successfully sent file ${exchange.getRequestURI}")
-          exchange.endExchange()
-        }
-
-        override def onException(exchange: HttpServerExchange, sender: Sender, exception: IOException): Unit = {
-          exception.printStackTrace()
-        }
-      }
-    )
+    resourceHandler.handleRequest(exchange)
   }
 
   def immediateFile(exchange: HttpServerExchange): Unit = {

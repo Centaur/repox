@@ -16,6 +16,7 @@ Repox的主要目标是改善sbt解决依赖的速度，但由于它的服务方
   4. download checksum : 如果HEAD返回200，则下载 sha1 文件并保证从原文件计算出的sha1与checksum文件的内容一致
 * 如果没有组织内私服，那么只在每个开发者的本地`~/.ivy2/cache`目录下有依赖缓存，无法在多个开发者之间共享。
 * 如果我们需要源码包（这对使用ide的开发者很正常），sbt连巨大的javadoc包也要一起下载。
+* 各种bug，例如 [这个](https://github.com/sbt/sbt/issues/413)
 
 ### 为什么nexus私服对sbt没什么帮助
 * sbt的resolve使用的是HEAD请求，即使是已经缓存过的文件，nexus对HEAD请求每次仍要再到上游仓库去重新逐个询问。
