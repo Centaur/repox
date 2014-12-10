@@ -102,7 +102,7 @@ object Repox extends LazyLogging {
     Paths.get(Config.storage).resolve(uri.tail).toFile.exists
   }
 
-  val resourceHandler = Handlers.resource(resourceManager)
+  lazy val resourceHandler = Handlers.resource(resourceManager)
 
   def sendFile(exchange: HttpServerExchange): Unit = {
     val resource = resourceManager.getResource(exchange.getRequestURI.tail)
