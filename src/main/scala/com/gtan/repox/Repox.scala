@@ -1,5 +1,6 @@
 package com.gtan.repox
 
+import java.io.IOException
 import java.nio.file.Paths
 
 import akka.actor.{ActorSystem, Props}
@@ -9,6 +10,7 @@ import com.gtan.repox.data.{ExpireRule, ProxyServer, Repo}
 import com.ning.http.client.{ProxyServer => JProxyServer, AsyncHttpClientConfig, AsyncHttpClient}
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.Handlers
+import io.undertow.io.{Sender, IoCallback}
 import io.undertow.server.HttpServerExchange
 import io.undertow.server.handlers.resource.FileResourceManager
 import io.undertow.util._
@@ -17,7 +19,7 @@ import scala.language.postfixOps
 import scala.concurrent.duration._
 
 object Repox extends LazyLogging {
-  def lookForExpireRule(uri: String):Option[ExpireRule] = Config.expireRules.find(rule => !rule.disabled && uri.matches(rule.pattern))
+  def lookForExpireRule(uri: String): Option[ExpireRule] = Config.expireRules.find(rule => !rule.disabled && uri.matches(rule.pattern))
 
 
   import concurrent.ExecutionContext.Implicits.global
@@ -45,9 +47,9 @@ object Repox extends LazyLogging {
     .build()
   )
 
-  val mainClient:Agent[AsyncHttpClient] = Agent(null)
+  val mainClient: Agent[AsyncHttpClient] = Agent(null)
 
-  def createProxyClients = (for (proxy:ProxyServer <- Config.proxyUsage.values.filterNot(_.disabled).toSet) yield {
+  def createProxyClients = (for (proxy: ProxyServer <- Config.proxyUsage.values.filterNot(_.disabled).toSet) yield {
     proxy -> new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
       .setRequestTimeoutInMs(Int.MaxValue)
       .setConnectionTimeoutInMs(Config.connectionTimeout.toMillis.toInt)
@@ -63,7 +65,7 @@ object Repox extends LazyLogging {
     )
   }) toMap
 
-  val proxyClients:Agent[Map[ProxyServer, AsyncHttpClient]] = Agent(null)
+  val proxyClients: Agent[Map[ProxyServer, AsyncHttpClient]] = Agent(null)
 
   def resourceManager = new FileResourceManager(Paths.get(Config.storage).toFile, 100 * 1024)
 
@@ -82,12 +84,13 @@ object Repox extends LazyLogging {
 
   def respond404(exchange: HttpServerExchange): Unit = {
     exchange.setResponseCode(StatusCodes.NOT_FOUND)
+    exchange.getResponseChannel // just to avoid mysterious setting Content-length to 0 in endExchange, ugly
     exchange.endExchange()
   }
 
   def immediate404(exchange: HttpServerExchange): Unit = {
-    respond404(exchange)
     logger.info(s"Immediate 404 ${exchange.getRequestURI}.")
+    respond404(exchange)
   }
 
   /**
@@ -99,9 +102,35 @@ object Repox extends LazyLogging {
     Paths.get(Config.storage).resolve(uri.tail).toFile.exists
   }
 
+  val resourceHandler = Handlers.resource(resourceManager)
+
+  def sendFile(exchange: HttpServerExchange): Unit = {
+    val resource = resourceManager.getResource(exchange.getRequestURI.tail)
+    exchange.setResponseCode(StatusCodes.OK)
+    val headers = exchange.getResponseHeaders
+    headers.put(Headers.CONTENT_LENGTH, resource.getContentLength)
+      .put(Headers.SERVER, "repox")
+      .put(Headers.CONNECTION, Headers.KEEP_ALIVE.toString)
+      .put(Headers.CONTENT_TYPE, resource.getContentType(MimeMappings.DEFAULT))
+      .put(Headers.LAST_MODIFIED, resource.getLastModifiedString)
+
+    resource.serve(
+      exchange.getResponseSender, exchange, new IoCallback {
+        override def onComplete(exchange: HttpServerExchange, sender: Sender): Unit = {
+          logger.debug(s"Successfully sent file ${exchange.getRequestURI}")
+          exchange.endExchange()
+        }
+
+        override def onException(exchange: HttpServerExchange, sender: Sender, exception: IOException): Unit = {
+          exception.printStackTrace()
+        }
+      }
+    )
+  }
+
   def immediateFile(exchange: HttpServerExchange): Unit = {
-    Handlers.resource(resourceManager).handleRequest(exchange)
-    logger.debug(s"Immediate file ${exchange.getRequestURI}.")
+    logger.debug(s"Immediate file ${exchange.getRequestURI}")
+    sendFile(exchange)
   }
 
   def respondHead(exchange: HttpServerExchange, headers: ResponseHeaders): Unit = {

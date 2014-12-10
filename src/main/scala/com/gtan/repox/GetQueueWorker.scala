@@ -14,10 +14,15 @@ import scala.util.Random
 import scala.util.Random
 
 object GetQueueWorker {
+
   case class Get404(uri: String)
+
   case class Completed(path: Path, repo: Repo)
+
 }
+
 class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging {
+
   import GetQueueWorker._
 
   override def receive = start
@@ -25,7 +30,7 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
   def start: Receive = {
     case Requests.Download(u, from) =>
       assert(u == uri)
-      if(!Repox.downloaded(uri)){
+      if (!Repox.downloaded(uri)) {
         log.info(s"$uri not downloaded. Downloading.")
         context.actorOf(Props(classOf[GetMaster], uri, from), s"DownloadMaster_${Random.nextInt()}")
       }
@@ -45,13 +50,14 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
   }
 
   var found = false
+
   def working: Receive = {
     case Requests.Get(_) =>
       stash()
-    case result @ Completed(path, repo) =>
+    case result@Completed(path, repo) =>
       log.debug(s"GetQueueWorker completed $uri")
       found = true
-      if(!uri.endsWith(".sha1")) {
+      if (!uri.endsWith(".sha1")) {
         log.debug(s"Prefetch $uri.sha1")
         context.parent ! Requests.Download(uri + ".sha1", Seq(repo))
       } else {
@@ -70,9 +76,9 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
 
   def flushWaiting: Receive = {
     case Requests.Get(exchange) =>
-      if(found) {
-        log.debug(s"flushWaiting $exchange 200")
-        Repox.immediateFile(exchange)
+      if (found) {
+        log.debug(s"flushWaiting $exchange 200. Sending file ${exchange.getRequestURI}")
+        Repox.sendFile(exchange)
       } else {
         log.debug(s"flushWaiting $exchange 404")
         Repox.respond404(exchange)
@@ -81,7 +87,7 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
       suicide()
   }
 
-  private def suicide(): Unit ={
+  private def suicide(): Unit = {
     context.parent ! RequestQueueMaster.Dead(Queue('get, uri))
     self ! PoisonPill
   }
