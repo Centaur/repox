@@ -41,11 +41,11 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
   def waitingConfigRecover: Receive = {
     case ConfigLoaded =>
       log.debug(s"Config loaded.")
-      val fut1 = Repox.mainClient.alter(Repox.createMainClient)
-      val fut2 = Repox.proxyClients.alter(Repox.createProxyClients)
-      fut1.zip(fut2).onSuccess { case _ => self ! ClientsInitialized}
+      Repox.clients.alter(Config.connectors.map(
+        connector => connector.name -> connector.createClient
+      ).toMap).onSuccess { case _ => self ! ClientsInitialized}
     case ClientsInitialized =>
-      log.debug(s"AHC clients initialized.")
+      log.debug(s"AHC clients (${Repox.clients.get().keys.mkString(",")}}) initialized.")
       unstashAll()
       context become started
     case msg =>

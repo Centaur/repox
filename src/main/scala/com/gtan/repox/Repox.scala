@@ -34,38 +34,7 @@ object Repox extends LazyLogging {
   val sha1Checker = system.actorOf(Props[SHA1Checker], "SHA1Checker")
 
 
-  def createMainClient = new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
-    .setRequestTimeoutInMs(Int.MaxValue)
-    .setConnectionTimeoutInMs(Config.connectionTimeout.toMillis.toInt)
-    .setAllowPoolingConnection(true)
-    .setAllowSslConnectionPool(true)
-    .setMaximumConnectionsPerHost(Config.mainClientMaxConnectionsPerHost)
-    .setMaximumConnectionsTotal(Config.mainClientMaxConnections)
-    .setIdleConnectionInPoolTimeoutInMs(Config.connectionIdleTimeout.toMillis.toInt)
-    .setIdleConnectionTimeoutInMs(Config.connectionIdleTimeout.toMillis.toInt)
-    .setFollowRedirects(true)
-    .build()
-  )
-
-  val mainClient: Agent[AsyncHttpClient] = Agent(null)
-
-  def createProxyClients = (for (proxy: ProxyServer <- Config.proxyUsage.values.filterNot(_.disabled).toSet) yield {
-    proxy -> new AsyncHttpClient(new AsyncHttpClientConfig.Builder()
-      .setRequestTimeoutInMs(Int.MaxValue)
-      .setConnectionTimeoutInMs(Config.connectionTimeout.toMillis.toInt)
-      .setAllowPoolingConnection(true)
-      .setAllowSslConnectionPool(true)
-      .setMaximumConnectionsPerHost(Config.proxyClientMaxConnectionsPerHost)
-      .setMaximumConnectionsTotal(Config.proxyClientMaxConnections)
-      .setProxyServer(proxy.toJava)
-      .setIdleConnectionInPoolTimeoutInMs(Config.connectionIdleTimeout.toMillis.toInt)
-      .setIdleConnectionTimeoutInMs(Config.connectionIdleTimeout.toMillis.toInt)
-      .setFollowRedirects(true)
-      .build()
-    )
-  }) toMap
-
-  val proxyClients: Agent[Map[ProxyServer, AsyncHttpClient]] = Agent(null)
+  val clients: Agent[Map[String, AsyncHttpClient]] = Agent(null)
 
   def resourceManager = new FileResourceManager(Paths.get(Config.storage).toFile, Long.MaxValue)
 

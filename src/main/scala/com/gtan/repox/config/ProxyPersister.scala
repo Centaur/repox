@@ -38,10 +38,10 @@ trait ProxyPersister {
   case class DeleteProxy(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldProxies = old.proxies
-      val oldProxyUsage = old.proxyUsage
+      val oldProxyUsage = old.connectorUsage
       old.copy(
         proxies = oldProxies.filterNot(_.id == Some(id)),
-        proxyUsage = oldProxyUsage.filterNot { case (repo, proxy) => proxy.id == Some(id)}
+        connectorUsage = oldProxyUsage.filterNot { case (repo, proxy) => proxy.id == Some(id)}
       )
     }
   }

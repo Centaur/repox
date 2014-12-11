@@ -9,8 +9,8 @@ object ResetHandler extends RestHandler{
 
   override def route(implicit exchange: HttpServerExchange) = {
     case (Methods.POST, "resetMainClient") =>
-      setConfigAndRespond(exchange, Repox.mainClient.alter(Repox.createMainClient))
+//      setConfigAndRespond(exchange, Repox.mainClient.alter(Repox.createMainClient))
     case (Methods.POST, "resetProxyClients") =>
-      setConfigAndRespond(exchange, Repox.proxyClients.alter(Repox.createProxyClients))
+//      setConfigAndRespond(exchange, Repox.proxyClients.alter(Repox.createProxyClients))
   }
 }

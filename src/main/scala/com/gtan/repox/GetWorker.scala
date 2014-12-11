@@ -58,7 +58,7 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
   var percentage = 0.0
   var contentLength = -1L
 
-  val client = Config.clientOf(upstream)
+  val (connector, client) = Config.clientOf(upstream)
 
   val future = client.prepareGet(upstreamUrl)
     .setHeaders(requestHeaders)
@@ -101,7 +101,7 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
       }
       downloaded = 0
       percentage = 0.0
-      context.setReceiveTimeout(Config.getDataTimeout)
+      context.setReceiveTimeout(connector.connectionIdleTimeout - 1.second)
   }
 
 

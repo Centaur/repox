@@ -3,7 +3,7 @@ package com.gtan.repox.config
 import java.nio.file.{Path, Paths}
 
 import akka.agent.Agent
-import com.gtan.repox.data.{ExpireRule, ProxyServer, Repo, Immediate404Rule}
+import com.gtan.repox.data._
 import com.gtan.repox.Repox
 import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
 import com.typesafe.scalalogging.LazyLogging
@@ -13,33 +13,41 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-/**
- * Created by IntelliJ IDEA.
- * User: xf
- * Date: 14/11/30
- * Time: 下午3:10
- */
-
-
 case class Config(proxies: Seq[ProxyServer],
                   repos: IndexedSeq[Repo],
-                  proxyUsage: Map[Repo, ProxyServer],
+                  connectorUsage: Map[Repo, Connector],
                   immediate404Rules: Seq[Immediate404Rule],
                   expireRules: Seq[ExpireRule],
                   storage: String,
-                  connectionTimeout: Duration,
-                  connectionIdleTimeout: Duration,
-                  mainClientMaxConnectionsPerHost: Int,
-                  mainClientMaxConnections: Int,
-                  proxyClientMaxConnectionsPerHost: Int,
-                  proxyClientMaxConnections: Int,
-                  getDataTimeout: Duration,
+                  connectors: Set[Connector],
                   headTimeout: Duration,
                   headRetryTimes: Int)
 
 object Config extends LazyLogging {
   val defaultProxies = List(
     ProxyServer(id = Some(1), name = "Lantern", protocol = JProxyServer.Protocol.HTTP, host = "localhost", port = 8787)
+  )
+  val defaultConnectors = Set(
+    Connector(id = Some(1),
+      name="default",
+      connectionTimeout = 5 seconds,
+      connectionIdleTimeout = 10 seconds,
+      maxConnections = 40,
+      maxConnectionsPerHost = 20),
+    Connector(id = Some(2),
+      name="fast-upstream",
+      connectionTimeout = 5 seconds,
+      connectionIdleTimeout = 5 seconds,
+      maxConnections = 40,
+      maxConnectionsPerHost = 20
+    ),
+    Connector(id = Some(3),
+      name="slow-upstream",
+      connectionTimeout = 5 seconds,
+      connectionIdleTimeout = 40 seconds,
+      maxConnections = 40,
+      maxConnectionsPerHost = 20
+    )
   )
   val defaultRepos: IndexedSeq[Repo] = IndexedSeq(
     Repo(Some(1), "koala", "http://nexus.openkoala.org/nexus/content/groups/Koala-release",
@@ -50,9 +58,11 @@ object Config extends LazyLogging {
       priority = 2, getOnly = true, maven = true),
     Repo(Some(5), "sbt-plugin", "http://dl.bintray.com/sbt/sbt-plugin-releases", priority = 4),
     Repo(Some(6), "scalaz", "http://dl.bintray.com/scalaz/releases", priority = 4),
+    Repo(Some(9), "scalajs", "http://dl.bintray.com/content/scala-js/scala-js-releases", priority = 4),
     Repo(Some(7), "central", "http://repo1.maven.org/maven2", priority = 4, maven = true),
     Repo(Some(8), "ibiblio", "http://mirrors.ibiblio.org/maven2", priority = 5, maven = true)
   )
+
 
   val defaultImmediate404Rules: Seq[Immediate404Rule] = Vector(
     Immediate404Rule(Some(1), """.+-javadoc\.jar"""), // we don't want javadoc
@@ -80,22 +90,23 @@ object Config extends LazyLogging {
     ExpireRule(Some(1), ".+/maven-metadata.xml", 1 day)
   )
 
-  //  def seq2map[T](s: Seq[T]): Map[Long, T] = s.groupBy(_.id).map({ case (k, v) => k -> v.head})
+  implicit class string2Repo(repoName: String) {
+    def use(connectorName:String) =
+      defaultRepos.find(_.name == repoName).get -> defaultConnectors.find(_.name == connectorName).get
+  }
 
   val default = Config(
     proxies = defaultProxies,
     repos = defaultRepos,
-    proxyUsage = Map(),
+    connectorUsage = Map(
+      "koala" use "fast-upstream",
+      "typesafe" use "slow-upstream",
+      "oschina" use "fast-upstream"
+    ),
     immediate404Rules = defaultImmediate404Rules,
     expireRules = defaultExpireRules,
     storage = Paths.get(System.getProperty("user.home"), ".repox", "storage").toString,
-    connectionTimeout = 6 seconds,
-    connectionIdleTimeout = 10 seconds,
-    mainClientMaxConnections = 200,
-    mainClientMaxConnectionsPerHost = 10,
-    proxyClientMaxConnections = 20,
-    proxyClientMaxConnectionsPerHost = 10,
-    getDataTimeout = 9 seconds,
+    connectors = defaultConnectors,
     headTimeout = 3 seconds,
     headRetryTimes = 3
   )
@@ -116,7 +127,7 @@ object Config extends LazyLogging {
 
   def enabledProxies: Seq[ProxyServer] = proxies.filterNot(_.disabled)
 
-  def proxyUsage: Map[Repo, ProxyServer] = instance.get().proxyUsage
+  def connectorUsage: Map[Repo, Connector] = instance.get().connectorUsage
 
   def immediate404Rules: Seq[Immediate404Rule] = instance.get().immediate404Rules
 
@@ -126,28 +137,17 @@ object Config extends LazyLogging {
 
   def enabledExpireRules: Seq[ExpireRule] = expireRules.filterNot(_.disabled)
 
-  def clientOf(repo: Repo): AsyncHttpClient = instance.get().proxyUsage.get(repo) match {
-    case None => Repox.mainClient.get()
-    case Some(proxy) =>
-      Repox.proxyClients.get().getOrElse(proxy, Repox.mainClient.get())
+  def clientOf(repo: Repo): (Connector, AsyncHttpClient) = instance.get().connectorUsage.get(repo) match {
+    case None =>
+      Config.connectors.find(_.name == "default").get -> Repox.clients.get().apply("default")
+    case Some(connector) =>
+      connector -> Repox.clients.get().apply(connector.name)
   }
 
-  def connectionTimeout: Duration = instance.get().connectionTimeout
-
-  def connectionIdleTimeout: Duration = instance.get().connectionIdleTimeout
-
-  def mainClientMaxConnections: Int = instance.get().mainClientMaxConnections
-
-  def mainClientMaxConnectionsPerHost: Int = instance.get().mainClientMaxConnectionsPerHost
-
-  def proxyClientMaxConnections: Int = instance.get().proxyClientMaxConnections
-
-  def proxyClientMaxConnectionsPerHost: Int = instance.get().proxyClientMaxConnectionsPerHost
 
   def headRetryTimes: Int = instance.get().headRetryTimes
 
   def headTimeout: Duration = instance.get().headTimeout
 
-  def getDataTimeout: Duration = instance.get().getDataTimeout
-
+  def connectors: Set[Connector] = instance.get().connectors
 }

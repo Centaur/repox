@@ -25,7 +25,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-json" % "2.4.0-M1"
 )
 
-updateOptions := updateOptions.value.withCachedResolution(true)
+// to use repox, this option must be false, or when retry updateClassifiers, it will not download srcs
+updateOptions := updateOptions.value.withCachedResolution(false)
 
 fork := true
 

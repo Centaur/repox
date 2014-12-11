@@ -8,7 +8,7 @@ trait RepoPersister {
   case class NewRepo(vo: RepoVO) extends Cmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
-      val oldProxyUsage = old.proxyUsage
+      val oldConnectorUsage = old.connectorUsage
       // ToDo: validation
       val voWithId = vo.copy(repo = vo.repo.copy(id = Some(Repo.nextId)))
       val insertPoint = oldRepos.indexWhere(_.priority > vo.repo.priority)
@@ -18,9 +18,9 @@ trait RepoPersister {
         val (before, after) = oldRepos.splitAt(insertPoint)
         old.copy(repos = (before :+ voWithId.repo) ++ after)
       }
-      vo.proxy match {
+      vo.connector match {
         case None => newRepos
-        case Some(p) => newRepos.copy(proxyUsage = oldProxyUsage.updated(voWithId.repo, p))
+        case Some(p) => newRepos.copy(connectorUsage = oldConnectorUsage.updated(voWithId.repo, p))
       }
     }
   }
@@ -48,10 +48,10 @@ trait RepoPersister {
   case class DeleteRepo(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
-      val oldProxyUsage = old.proxyUsage
+      val oldProxyUsage = old.connectorUsage
       old.copy(
         repos = oldRepos.filterNot(_.id == Some(id)),
-        proxyUsage = oldProxyUsage.filterNot { case (repo, proxy) => repo.id == Some(id)}
+        connectorUsage = oldProxyUsage.filterNot { case (repo, proxy) => repo.id == Some(id)}
       )
     }
   }
@@ -59,17 +59,17 @@ trait RepoPersister {
   case class UpdateRepo(vo: RepoVO) extends Cmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
-      val oldProxyUsage = old.proxyUsage
+      val oldConnectorUsage = old.connectorUsage
 
       val newConfig = for (found <- oldRepos.find(_.id == vo.repo.id)) yield {
         val indexOfTarget = oldRepos.indexOf(found)
         val repoUpdated: Config = old.copy(repos = oldRepos.updated(indexOfTarget, vo.repo))
-        (oldProxyUsage.get(vo.repo), vo.proxy) match {
+        (oldConnectorUsage.get(vo.repo), vo.connector) match {
           case (None, None) => repoUpdated
-          case (None, Some(p)) => repoUpdated.copy(proxyUsage = oldProxyUsage.updated(vo.repo, p))
-          case (Some(p), None) => repoUpdated.copy(proxyUsage = oldProxyUsage - vo.repo)
+          case (None, Some(p)) => repoUpdated.copy(connectorUsage = oldConnectorUsage.updated(vo.repo, p))
+          case (Some(p), None) => repoUpdated.copy(connectorUsage = oldConnectorUsage - vo.repo)
           case (Some(o), Some(n)) if o == n => repoUpdated
-          case (Some(o), Some(n)) => repoUpdated.copy(proxyUsage = oldProxyUsage.updated(vo.repo, n))
+          case (Some(o), Some(n)) => repoUpdated.copy(connectorUsage = oldConnectorUsage.updated(vo.repo, n))
         }
       }
       newConfig.getOrElse(old)

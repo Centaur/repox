@@ -12,17 +12,9 @@ case class ExpireRule(id: Option[Long], pattern: String, duration: Duration, dis
 
 object ExpireRule {
 
+  import DurationFormat._
+
   def nextId: Long = Config.expireRules.flatMap(_.id).max + 1
 
-  implicit val durationFormat = new Format[Duration] {
-    override def reads(json: JsValue) = json match {
-      case JsString(str) =>
-        JsSuccess(Duration(str))
-      case _ =>
-        JsError("duration json format need string")
-    }
-
-    override def writes(o: Duration) = JsString(o.toString)
-  }
   implicit val format = Json.format[ExpireRule]
 }

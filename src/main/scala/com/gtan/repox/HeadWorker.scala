@@ -36,7 +36,7 @@ class HeadWorker(val repo: Repo,
   val upstreamHost = new URL(upstreamUrl).getHost
   requestHeaders.put(Headers.HOST_STRING, List(upstreamHost).asJava)
 
-  val client = Config.clientOf(repo)
+  val (_, client) = Config.clientOf(repo)
 
   val requestMethod = if (repo.getOnly) client.prepareGet _ else client.prepareHead _
   requestMethod.apply(upstreamUrl)
