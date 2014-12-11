@@ -58,7 +58,7 @@ class GetWorker(upstream: Repo, uri: String, requestHeaders: FluentCaseInsensiti
   var percentage = 0.0
   var contentLength = -1L
 
-  val (connector, client) = Config.clientOf(upstream)
+  val (connector, client) = Repox.clientOf(upstream)
 
   val future = client.prepareGet(upstreamUrl)
     .setHeaders(requestHeaders)

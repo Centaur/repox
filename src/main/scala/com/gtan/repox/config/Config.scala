@@ -16,6 +16,7 @@ import scala.language.postfixOps
 case class Config(proxies: Seq[ProxyServer],
                   repos: IndexedSeq[Repo],
                   connectorUsage: Map[Repo, Connector],
+                  proxyUsage: Map[Connector, ProxyServer],
                   immediate404Rules: Seq[Immediate404Rule],
                   expireRules: Seq[ExpireRule],
                   storage: String,
@@ -103,6 +104,7 @@ object Config extends LazyLogging {
       "typesafe" use "slow-upstream",
       "oschina" use "fast-upstream"
     ),
+    proxyUsage = Map(),
     immediate404Rules = defaultImmediate404Rules,
     expireRules = defaultExpireRules,
     storage = Paths.get(System.getProperty("user.home"), ".repox", "storage").toString,
@@ -129,6 +131,8 @@ object Config extends LazyLogging {
 
   def connectorUsage: Map[Repo, Connector] = instance.get().connectorUsage
 
+  def proxyUsage: Map[Connector, ProxyServer] = instance.get().proxyUsage
+
   def immediate404Rules: Seq[Immediate404Rule] = instance.get().immediate404Rules
 
   def enabledImmediate404Rules: Seq[Immediate404Rule] = immediate404Rules.filterNot(_.disabled)
@@ -137,12 +141,6 @@ object Config extends LazyLogging {
 
   def enabledExpireRules: Seq[ExpireRule] = expireRules.filterNot(_.disabled)
 
-  def clientOf(repo: Repo): (Connector, AsyncHttpClient) = instance.get().connectorUsage.get(repo) match {
-    case None =>
-      Config.connectors.find(_.name == "default").get -> Repox.clients.get().apply("default")
-    case Some(connector) =>
-      connector -> Repox.clients.get().apply(connector.name)
-  }
 
 
   def headRetryTimes: Int = instance.get().headRetryTimes

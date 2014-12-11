@@ -20,11 +20,11 @@ case class ConfigChanged(config: Config, cmd: Cmd) extends Evt
 
 case object UseDefault extends Evt
 
-case object ConfigPersister extends RepoPersister
-                                    with ParameterPersister
-                                    with ProxyPersister
-                                    with Immediate404RulePersister
-                                    with ExpireRulePersister
+case object ConfigPersister extends RepoPersister with ParameterPersister
+with ConnectorPersister
+with ProxyPersister
+with Immediate404RulePersister
+with ExpireRulePersister
 
 class ConfigPersister extends PersistentActor with ActorLogging {
 
@@ -44,7 +44,8 @@ class ConfigPersister extends PersistentActor with ActorLogging {
   val receiveCommand: Receive = {
     case cmd: Cmd =>
       val newConfig = cmd.transform(config)
-      if (newConfig == config) { // no change
+      if (newConfig == config) {
+        // no change
         sender ! StatusCodes.OK
       } else {
         persist(ConfigChanged(newConfig, cmd))(onConfigSaved(sender(), _))

@@ -10,6 +10,7 @@ import play.api.libs.json.{JsObject, Format, Json}
 import collection.JavaConverters._
 import akka.pattern.ask
 import concurrent.duration._
+import scala.language.postfixOps
 
 object UpstreamsHandler extends RestHandler {
 
@@ -23,7 +24,7 @@ object UpstreamsHandler extends RestHandler {
       val config = Config.get
       respondJson(exchange, JsObject(
         "upstreams" -> Json.toJson(config.repos.map(RepoVO.wrap)) ::
-        "proxies" -> Json.toJson(config.proxies) ::
+        "connectors" -> Json.toJson(config.connectors.filterNot(_.name == "default")) ::
         Nil
       ))
 

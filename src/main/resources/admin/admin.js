@@ -6,6 +6,10 @@ repoxApp.config(['$routeProvider', function ($routeProvider) {
             templateUrl: 'partials/upstreams.html',
             controller: 'UpstreamsCtrl'
         }).
+        when('/connectors', {
+            templateUrl: 'partials/connectors.html',
+            controller: 'ConnectorsCtrl'
+        }).
         when('/proxies', {
             templateUrl: 'partials/proxies.html',
             controller: 'ProxiesCtrl'
@@ -66,14 +70,14 @@ repoxControllers.controller('MenuCtrl', ['$scope', '$location', '$http', functio
 
 repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', '$route', function ($scope, $http, $route) {
     $scope.upstreams = [];
-    $scope.proxies = [];
+    $scope.connectors = [];
 
     $http.get('upstreams').success(function (data) {
-        $scope.proxies = data.proxies;
+        $scope.connectors = data.connectors;
         $scope.upstreams = _.map(data.upstreams, function (upstream) {
-            if (upstream.proxy) {
-                upstream.proxy = _.find(data.proxies, function (el) {
-                    return upstream.proxy.id && el.id == upstream.proxy.id
+            if (upstream.connector) {
+                upstream.connector = _.find(data.connectors, function (el) {
+                    return upstream.connector.id && el.id == upstream.connector.id
                 })
             }
             return upstream;
@@ -128,6 +132,49 @@ repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', '$route', funct
             $route.reload();
         })
     }
+
+}]);
+repoxControllers.controller('ConnectorsCtrl', ['$scope', '$http', '$route', function ($scope, $http, $route) {
+    $scope.proxies = [];
+    $scope.connectors = [];
+
+    $http.get('connectors').success(function (data) {
+        $scope.proxies = data.proxies;
+        $scope.connectors = _.map(data.connectors, function (connector) {
+            if (connector.proxy) {
+                connector.proxy = _.find(data.proxies, function (el) {
+                    return connector.proxy.id && el.id == connector.proxy.id
+                })
+            }
+            return connector;
+        });
+    });
+    $scope.showNewConnectorDialog = function () {
+        $scope.newConnector = {connector:{connectionTimeout: "6 seconds", connectionIdleTimeout: "10 seconds", maxConnections: 30, maxConnectionsPerHost: 20}};
+        $('#newConnectorDialog').modal('show');
+    };
+    $scope.submitNewConnector = function () {
+        $http.post('connector?v=' + encodeURIComponent(JSON.stringify($scope.newConnector)), {}).success(function () {
+            $('#newConnectorDialog').modal('hide');
+            $route.reload();
+        })
+    };
+    $scope.showEditConnectorDialog = function (connector) {
+        $scope.editConnector = connector;
+        $('#editConnectorDialog').modal('show');
+    };
+    $scope.submitEditConnector = function () {
+        $http.put('connector?v=' + encodeURIComponent(JSON.stringify($scope.editConnector)), {}).success(function () {
+            $('#editConnectorDialog').modal('hide');
+            $route.reload();
+        })
+    };
+    $scope.deleteConnector = function (vo) {
+        $http.delete('connector?v=' + vo.connector.id).success(function () {
+            $route.reload();
+        })
+    };
+
 
 }]);
 

@@ -11,27 +11,28 @@ case class Connector(id: Option[Long],
                      connectionTimeout: Duration,
                      connectionIdleTimeout: Duration,
                      maxConnections: Int,
-                     maxConnectionsPerHost: Int,
-                     proxy: Option[ProxyServer] = None) {
-  val configBuilder = new AsyncHttpClientConfig.Builder()
-    .setRequestTimeoutInMs(Int.MaxValue)
-    .setConnectionTimeoutInMs(connectionTimeout.toMillis.toInt)
-    .setAllowPoolingConnection(true)
-    .setAllowSslConnectionPool(true)
-    .setMaximumConnectionsPerHost(maxConnections)
-    .setMaximumConnectionsTotal(maxConnectionsPerHost)
-    .setIdleConnectionInPoolTimeoutInMs(connectionIdleTimeout.toMillis.toInt)
-    .setIdleConnectionTimeoutInMs(connectionIdleTimeout.toMillis.toInt)
-    .setFollowRedirects(true)
+                     maxConnectionsPerHost: Int) {
 
-  proxy.fold(configBuilder) { p =>
-    configBuilder.setProxyServer(p.toJava)
+
+  def createClient = {
+    val configBuilder = new AsyncHttpClientConfig.Builder()
+      .setRequestTimeoutInMs(Int.MaxValue)
+      .setConnectionTimeoutInMs(connectionTimeout.toMillis.toInt)
+      .setAllowPoolingConnection(true)
+      .setAllowSslConnectionPool(true)
+      .setMaximumConnectionsPerHost(maxConnections)
+      .setMaximumConnectionsTotal(maxConnectionsPerHost)
+      .setIdleConnectionInPoolTimeoutInMs(connectionIdleTimeout.toMillis.toInt)
+      .setIdleConnectionTimeoutInMs(connectionIdleTimeout.toMillis.toInt)
+      .setFollowRedirects(true)
+    val builder = Config.proxyUsage.get(this).fold(configBuilder){x => configBuilder.setProxyServer(x.toJava)}
+    new AsyncHttpClient(builder.build())
   }
-
-  def createClient = new AsyncHttpClient(configBuilder.build())
 }
 
 object Connector {
+  def nextId:Long = Config.connectors.flatMap(_.id).max + 1
+
   import DurationFormat._
 
   implicit val format = Json.format[Connector]

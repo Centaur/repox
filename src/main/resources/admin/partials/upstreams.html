@@ -11,7 +11,7 @@
                     class="withPopup">Pure Maven
                 </th>
                 <th>Get Only</th>
-                <th>Use Proxy</th>
+                <th>Use Connector</th>
             </tr>
             </thead>
             <tbody>
@@ -56,7 +56,7 @@
                     </div>
                 </td>
                 <td>
-                    {{upstream.proxy | displayProxy}}
+                    {{upstream.connector ? upstream.connector.name : 'default'}}
                 </td>
             </tr>
             </tbody>
@@ -117,11 +117,11 @@
                     </div>
                 </div>
                 <div class="field">
-                    <label for="new-repo-proxy">Use Proxy</label>
-                    <select id="new-repo-proxy"
-                            ng-model="newUpstream.proxy"
-                            ng-options="proxy.name for proxy in proxies">
-                        <option value="">No Proxy</option>
+                    <label for="new-repo-connector">Use Connector</label>
+                    <select id="new-repo-connector"
+                            ng-model="newUpstream.connector"
+                            ng-options="connector.name for connector in connectors">
+                        <option value="">default</option>
                     </select>
                 </div>
                 <div class="ui teal fluid large submit button"
@@ -176,11 +176,11 @@
                     </div>
                 </div>
                 <div class="field">
-                    <label for="edit-repo-proxy">Use Proxy</label>
-                    <select id="edit-repo-proxy"
-                            ng-model="editUpstream.proxy"
-                            ng-options="proxy.name for proxy in proxies">
-                        <option value="">No Proxy</option>
+                    <label for="edit-repo-connector">Use Connector</label>
+                    <select id="edit-repo-connector"
+                            ng-model="editUpstream.connector"
+                            ng-options="connector.name for connector in connectors">
+                        <option value="">default</option>
                     </select>
                 </div>
                 <div class="ui teal fluid large submit button"

@@ -6,7 +6,7 @@ import java.nio.file.Paths
 import akka.actor.{ActorSystem, Props}
 import akka.agent.Agent
 import com.gtan.repox.config.{ConfigView, ConfigPersister, Config}
-import com.gtan.repox.data.{ExpireRule, ProxyServer, Repo}
+import com.gtan.repox.data.{Connector, ExpireRule, ProxyServer, Repo}
 import com.ning.http.client.{ProxyServer => JProxyServer, AsyncHttpClientConfig, AsyncHttpClient}
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.Handlers
@@ -35,6 +35,13 @@ object Repox extends LazyLogging {
 
 
   val clients: Agent[Map[String, AsyncHttpClient]] = Agent(null)
+
+  def clientOf(repo: Repo): (Connector, AsyncHttpClient) = Config.connectorUsage.get(repo) match {
+    case None =>
+      Config.connectors.find(_.name == "default").get -> clients.get().apply("default")
+    case Some(connector) =>
+      connector -> clients.get().apply(connector.name)
+  }
 
   def resourceManager = new FileResourceManager(Paths.get(Config.storage).toFile, Long.MaxValue)
 

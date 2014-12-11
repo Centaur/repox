@@ -31,6 +31,7 @@ object WebConfigHandler {
   val restHandlers: Seq[RestHandler] = List(
     StaticAssetHandler,
     UpstreamsHandler,
+    ConnectorsHandler,
     ProxiesHandler,
     Immediate404RulesHandler,
     ExpireRulesHandler,
