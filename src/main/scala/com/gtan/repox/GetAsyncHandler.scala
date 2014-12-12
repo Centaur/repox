@@ -4,6 +4,7 @@ import java.io.{FileOutputStream, File, OutputStream}
 import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.{ReceiveTimeout, PoisonPill, ActorRef}
+import com.gtan.repox.config.Config
 import com.gtan.repox.GetWorker._
 import com.gtan.repox.Head404Cache.NotFound
 import com.gtan.repox.data.Repo
@@ -82,7 +83,7 @@ class GetAsyncHandler(val uri: String, val repo: Repo, val worker: ActorRef, val
           tempFileOs = new FileOutputStream(tempFile)
           worker ! HeadersGot(headers)
         } else {
-          tempFile = File.createTempFile("repox", ".tmp")
+          val tempFile = newTempFile()
           tempFileOs = new FileOutputStream(tempFile)
           worker ! HeadersGot(headers)
           master.!(HeadersGot(headers))(worker)
@@ -107,6 +108,12 @@ class GetAsyncHandler(val uri: String, val repo: Repo, val worker: ActorRef, val
       tempFile.delete()
     }
     worker ! PoisonPill
+  }
+
+  private def newTempFile() = {
+    val parent = new File(Config.tempDirectory)
+    parent.mkdirs()
+    new File(parent, s"repox-${System.nanoTime}.tmp")
   }
 
 }
