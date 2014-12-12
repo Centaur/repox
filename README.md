@@ -1,5 +1,6 @@
 ### Repox是什么
 Repox的主要目标是改善sbt解决依赖的速度，但由于它的服务方式与url的格式无关，因此也支持ivy, gradle, maven, leiningen客户端，可以作为nexus/artifactory的替代品来搭建私服。
+如果对Repox的背景不感兴趣，希望快速脏手，可立即前往[入门指南](https://github.com/Centaur/repox/wiki/入门指南)
 
 ### 为什么需要Repox
 * 每次sbt项目的依赖发生变更，或是sbt版本升级时，sbt会先resolve很长时间，然后download很长时间，甚至有时显示downloading，但你发现事实上没有网络流量产生，sbt假死。
