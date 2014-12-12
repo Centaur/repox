@@ -37,23 +37,11 @@
                 <td ng-class="{disabled: upstream.repo.disabled}">{{upstream.repo.name}}</td>
                 <td ng-class="{disabled: upstream.repo.disabled}">{{upstream.repo.priority}}</td>
                 <td ng-class="{disabled: upstream.repo.disabled}">{{upstream.repo.base}}</td>
-                <td>
-                    <div class="inline field">
-                        <div class="ui toggle checkbox">
-                            <input type="checkbox"
-                                   ng-model="upstream.repo.maven">
-                            <label>{{upstream.repo.maven ? 'Yes' : 'No'}}</label>
-                        </div>
-                    </div>
+                <td ng-class="{positive: upstream.repo.maven}">
+                    {{upstream.repo.maven ? 'Yes' : 'No'}}
                 </td>
-                <td>
-                    <div class="inline field">
-                        <div class="ui toggle checkbox">
-                            <input type="checkbox"
-                                   ng-model="upstream.repo.getOnly">
-                            <label>{{upstream.repo.getOnly ? 'Yes' : 'No'}}</label>
-                        </div>
-                    </div>
+                <td ng-class="{positive: upstream.repo.getOnly}">
+                    {{upstream.repo.getOnly ? 'Yes' : 'No'}}
                 </td>
                 <td>
                     {{upstream.connector ? upstream.connector.name : 'default'}}
@@ -102,7 +90,8 @@
                             <input id="new-repo-maven"
                                    type="checkbox"
                                    ng-model="newUpstream.repo.maven">
-                            <label ng-click="toggleMaven(newUpstream.repo)">{{newUpstream.repo.maven ? 'Yes' : 'No'}}</label>
+                            <label ng-click="toggleMaven(newUpstream.repo)">{{newUpstream.repo.maven ? 'Yes' :
+                                'No'}}</label>
                         </div>
                     </div>
                     <div class="field">
@@ -112,7 +101,8 @@
                             <input id="new-repo-get-only"
                                    type="checkbox"
                                    ng-model="newUpstream.repo.getOnly">
-                            <label ng-click="toggleGetOnly(newUpstream.repo)">{{newUpstream.repo.getOnly ? 'Yes' : 'No'}}</label>
+                            <label ng-click="toggleGetOnly(newUpstream.repo)">{{newUpstream.repo.getOnly ? 'Yes' :
+                                'No'}}</label>
                         </div>
                     </div>
                 </div>
@@ -161,7 +151,8 @@
                             <input id="edit-repo-maven"
                                    type="checkbox"
                                    ng-model="editUpstream.repo.maven">
-                            <label ng-click="toggleMaven(editUpstream.repo)">{{editUpstream.repo.maven ? 'Yes' : 'No'}}</label>
+                            <label ng-click="toggleMaven(editUpstream.repo)">{{editUpstream.repo.maven ? 'Yes' :
+                                'No'}}</label>
                         </div>
                     </div>
                     <div class="field">
@@ -171,7 +162,8 @@
                             <input id="edit-repo-get-only"
                                    type="checkbox"
                                    ng-model="editUpstream.repo.getOnly">
-                            <label ng-click="toggleGetOnly(editUpstream.repo)">{{editUpstream.repo.getOnly ? 'Yes' : 'No'}}</label>
+                            <label ng-click="toggleGetOnly(editUpstream.repo)">{{editUpstream.repo.getOnly ? 'Yes' :
+                                'No'}}</label>
                         </div>
                     </div>
                 </div>

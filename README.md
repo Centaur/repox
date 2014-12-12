@@ -21,6 +21,7 @@ Repox的主要目标是改善sbt解决依赖的速度，但由于它的服务方
 * 各种bug，例如 [这个](https://github.com/sbt/sbt/issues/413)
 
 ### 为什么nexus私服对sbt没什么帮助
+* nexus是纯Maven仓库，不代理ivy格式的文件。
 * sbt的resolve使用的是HEAD请求，即使是已经缓存过的文件，nexus对HEAD请求每次仍要再到上游仓库去重新逐个询问。
 * nexus中的多个上游仓库的次序是设定的。对于尚未缓存的文件，在download环节nexus不会根据HEAD请求的结果剔除掉不包含此文件的仓库。
 * 根据我们的试用，nexus开源版本质量不高，在不佳的网络条件下，其应用内部状态很容易就僵死。
