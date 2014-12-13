@@ -21,7 +21,6 @@ case class Config(proxies: Seq[ProxyServer],
                   immediate404Rules: Seq[Immediate404Rule],
                   expireRules: Seq[ExpireRule],
                   storage: String,
-                  tempDirectory: String,
                   connectors: Set[Connector],
                   headTimeout: Duration,
                   headRetryTimes: Int)
@@ -110,7 +109,6 @@ object Config extends LazyLogging {
     immediate404Rules = defaultImmediate404Rules,
     expireRules = defaultExpireRules,
     storage = Paths.get(userHome, ".repox", "storage").toString,
-    tempDirectory = Paths.get(userHome, ".repox", "temp").toString,
     connectors = defaultConnectors,
     headTimeout = 3 seconds,
     headRetryTimes = 3
@@ -123,8 +121,6 @@ object Config extends LazyLogging {
   def get = instance.get()
 
   def storage: String = instance.get().storage
-
-  def tempDirectory: String = instance.get().tempDirectory
 
   def repos: Seq[Repo] = instance.get().repos
 
