@@ -84,7 +84,7 @@ class GetAsyncHandler(val uri: String, val repo: Repo, val worker: ActorRef, val
           tempFileOs = new FileOutputStream(tempFile)
           worker ! HeadersGot(headers)
         } else {
-          val tempFile = newTempFile()
+          tempFile = newTempFile()
           tempFileOs = new FileOutputStream(tempFile)
           worker ! HeadersGot(headers)
           master.!(HeadersGot(headers))(worker)
