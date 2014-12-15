@@ -1,16 +1,15 @@
-<div ng-controller="Immediate404RulesCtrl">
-    <div class="ui form" id="immediate404Rule">
-        <table class="ui very compact celled table">
-            <thead>
-            <tr>
-                <th></th>
-                <th>include</th>
-                <th>exclude</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr ng-repeat="rule in rules">
-                <td class="collapsing">
+<div class="ui form" id="immediate404Rule">
+    <table class="ui very compact celled table">
+        <thead>
+        <tr>
+            <th></th>
+            <th>include</th>
+            <th>exclude</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr ng-repeat="rule in rules">
+            <td class="collapsing">
                         <span class="ui tiny basic icon button" ng-click="toggleDisable(rule)">
                             <i class="purple icon"
                                ng-class="{checkmark: rule.disabled, ban: !rule.disabled}"></i>
@@ -21,65 +20,64 @@
                         <span class="ui tiny basic icon button" ng-click="showEditRuleDialog(rule)">
                             <i class="edit purple icon"></i>
                         </span>
-                </td>
-                <td ng-class="{disabled: rule.disabled}">{{rule.include}}</td>
-                <td ng-class="{disabled: rule.disabled}">{{rule.exclude}}</td>
-            </tr>
-            </tbody>
-            <tfoot class="full-width">
-            <th colspan="7">
-                <a class="ui right floated labeled icon purple button" ng-click="showNewRuleDialog()">
-                    <i class="plus icon"></i> Add Immediate 404 Rule
-                </a>
-            </th>
-            </tfoot>
-        </table>
+            </td>
+            <td ng-class="{disabled: rule.disabled}">{{rule.include}}</td>
+            <td ng-class="{disabled: rule.disabled}">{{rule.exclude}}</td>
+        </tr>
+        </tbody>
+        <tfoot class="full-width">
+        <th colspan="7">
+            <a class="ui right floated labeled icon purple button" ng-click="showNewRuleDialog()">
+                <i class="plus icon"></i> Add Immediate 404 Rule
+            </a>
+        </th>
+        </tfoot>
+    </table>
+</div>
+
+<div class="ui modal" id="new404RuleDialog">
+    <i class="close icon"></i>
+
+    <div class="ui dividing center aligned header">
+        Add New Immediate 404 Rule
     </div>
-
-    <div class="ui modal" id="new404RuleDialog">
-        <i class="close icon"></i>
-
-        <div class="ui dividing center aligned header">
-            Add New Immediate 404 Rule
-        </div>
-        <div class="content">
-            <div class="ui form">
-                <div class="required field">
-                    <label for="new-rule-include">Include</label>
-                    <input id="new-rule-include" type="text" ng-model="newRule.include"/>
-                </div>
-                <div class="field">
-                    <label for="new-rule-exclude">Exclude</label>
-                    <input id="new-rule-exclude" type="text" ng-model="newRule.exclude"/>
-                </div>
-                <div class="ui purple fluid large submit button"
-                     ng-click="submitNewRule()">Submit
-                </div>
+    <div class="content">
+        <div class="ui form">
+            <div class="required field">
+                <label for="new-rule-include">Include</label>
+                <input id="new-rule-include" type="text" ng-model="newRule.include"/>
+            </div>
+            <div class="field">
+                <label for="new-rule-exclude">Exclude</label>
+                <input id="new-rule-exclude" type="text" ng-model="newRule.exclude"/>
+            </div>
+            <div class="ui purple fluid large submit button"
+                 ng-click="submitNewRule()">Submit
             </div>
         </div>
-
     </div>
-    <div class="ui modal" id="edit404RuleDialog">
-        <i class="close icon"></i>
 
-        <div class="ui dividing center aligned header">
-            Edit Immediate 404 Rule
-        </div>
-        <div class="content">
-            <div class="ui form">
-                <div class="required field">
-                    <label for="edit-rule-include">Include</label>
-                    <input id="edit-rule-include" type="text" ng-model="editRule.include"/>
-                </div>
-                <div class="field">
-                    <label for="edit-rule-exclude">Exclude</label>
-                    <input id="edit-rule-exclude" type="text" ng-model="editRule.exclude"/>
-                </div>
-                <div class="ui purple fluid large submit button"
-                     ng-click="submitEditRule()">Submit
-                </div>
+</div>
+<div class="ui modal" id="edit404RuleDialog">
+    <i class="close icon"></i>
+
+    <div class="ui dividing center aligned header">
+        Edit Immediate 404 Rule
+    </div>
+    <div class="content">
+        <div class="ui form">
+            <div class="required field">
+                <label for="edit-rule-include">Include</label>
+                <input id="edit-rule-include" type="text" ng-model="editRule.include"/>
+            </div>
+            <div class="field">
+                <label for="edit-rule-exclude">Exclude</label>
+                <input id="edit-rule-exclude" type="text" ng-model="editRule.exclude"/>
+            </div>
+            <div class="ui purple fluid large submit button"
+                 ng-click="submitEditRule()">Submit
             </div>
         </div>
-
     </div>
+
 </div>

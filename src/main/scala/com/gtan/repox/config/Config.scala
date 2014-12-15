@@ -23,7 +23,8 @@ case class Config(proxies: Seq[ProxyServer],
                   storage: String,
                   connectors: Set[Connector],
                   headTimeout: Duration,
-                  headRetryTimes: Int)
+                  headRetryTimes: Int,
+                  password: String)
 
 object Config extends LazyLogging {
   val defaultProxies = List(
@@ -31,20 +32,20 @@ object Config extends LazyLogging {
   )
   val defaultConnectors = Set(
     Connector(id = Some(1),
-      name="default",
+      name = "default",
       connectionTimeout = 5 seconds,
       connectionIdleTimeout = 10 seconds,
       maxConnections = 40,
       maxConnectionsPerHost = 20),
     Connector(id = Some(2),
-      name="fast-upstream",
+      name = "fast-upstream",
       connectionTimeout = 5 seconds,
       connectionIdleTimeout = 5 seconds,
       maxConnections = 40,
       maxConnectionsPerHost = 20
     ),
     Connector(id = Some(3),
-      name="slow-upstream",
+      name = "slow-upstream",
       connectionTimeout = 5 seconds,
       connectionIdleTimeout = 40 seconds,
       maxConnections = 40,
@@ -93,7 +94,7 @@ object Config extends LazyLogging {
   )
 
   implicit class string2Repo(repoName: String) {
-    def use(connectorName:String) =
+    def use(connectorName: String) =
       defaultRepos.find(_.name == repoName).get -> defaultConnectors.find(_.name == connectorName).get
   }
 
@@ -111,7 +112,8 @@ object Config extends LazyLogging {
     storage = Paths.get(userHome, ".repox", "storage").toString,
     connectors = defaultConnectors,
     headTimeout = 3 seconds,
-    headRetryTimes = 3
+    headRetryTimes = 3,
+    password = "zhimakaimen"
   )
 
   val instance: Agent[Config] = Agent[Config](null)
@@ -142,7 +144,7 @@ object Config extends LazyLogging {
 
   def enabledExpireRules: Seq[ExpireRule] = expireRules.filterNot(_.disabled)
 
-
+  def password: String = instance.get().password
 
   def headRetryTimes: Int = instance.get().headRetryTimes
 

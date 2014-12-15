@@ -1,141 +1,146 @@
-<div ng-controller="ConnectorsCtrl">
-    <div class="ui form" id="connectors">
-        <table class="ui very compact celled table">
-            <thead>
-            <tr>
-                <th></th>
-                <th>Name</th>
-                <th>connectionTimeout</th>
-                <th>idleTimeout</th>
-                <th>maxConnections</th>
-                <th>maxConnectionsPerHost</th>
-                <th>Use Proxy</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr ng-repeat="vo in connectors">
-                <td class="collapsing">
+<div class="ui form" id="connectors">
+    <table class="ui very compact celled table">
+        <thead>
+        <tr>
+            <th></th>
+            <th>Name</th>
+            <th>connectionTimeout</th>
+            <th>idleTimeout</th>
+            <th>maxConnections</th>
+            <th>maxConnectionsPerHost</th>
+            <th>Use Proxy</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr ng-repeat="vo in connectors">
+            <td class="collapsing">
                         <span class="ui tiny basic icon button" ng-click="showEditConnectorDialog(vo)">
                             <i class="edit green icon"></i>
                         </span>
                         <span class="ui tiny basic icon button" ng-click="deleteConnector(vo)">
                             <i class="remove green icon"></i>
                         </span>
-                </td>
-                <td>{{vo.connector.name}}</td>
-                <td>{{vo.connector.connectionTimeout}}</td>
-                <td>{{vo.connector.connectionIdleTimeout}}</td>
-                <td>{{vo.connector.maxConnections}}</td>
-                <td>{{vo.connector.maxConnectionsPerHost}}</td>
-                <td>
-                    {{vo.proxy ? (vo.proxy|displayProxy) : 'No Proxy'}}
-                </td>
-            </tr>
-            </tbody>
-            <tfoot class="full-width">
-            <tr>
-                <th colspan="7">
-                    <a class="ui right floated labeled icon green button" ng-click="showNewConnectorDialog()">
-                        <i class="plus icon"></i> Add Connector
-                    </a>
-                </th>
-            </tr>
-            </tfoot>
-        </table>
+            </td>
+            <td>{{vo.connector.name}}</td>
+            <td>{{vo.connector.connectionTimeout}}</td>
+            <td>{{vo.connector.connectionIdleTimeout}}</td>
+            <td>{{vo.connector.maxConnections}}</td>
+            <td>{{vo.connector.maxConnectionsPerHost}}</td>
+            <td>
+                {{vo.proxy ? (vo.proxy|displayProxy) : 'No Proxy'}}
+            </td>
+        </tr>
+        </tbody>
+        <tfoot class="full-width">
+        <tr>
+            <th colspan="7">
+                <a class="ui right floated labeled icon green button" ng-click="showNewConnectorDialog()">
+                    <i class="plus icon"></i> Add Connector
+                </a>
+            </th>
+        </tr>
+        </tfoot>
+    </table>
+</div>
+
+<div class="ui modal" id="newConnectorDialog">
+    <i class="close icon"></i>
+
+    <div class="ui dividing center aligned header">
+        Add New Connector
     </div>
-
-    <div class="ui modal" id="newConnectorDialog">
-        <i class="close icon"></i>
-
-        <div class="ui dividing center aligned header">
-            Add New Connector
-        </div>
-        <div class="content">
-            <div class="ui form">
+    <div class="content">
+        <div class="ui form">
+            <div class="required field">
+                <label for="new-connector-name">Name</label>
+                <input id="new-connector-name" type="text" ng-model="newConnector.connector.name"/>
+            </div>
+            <div class="two fields">
                 <div class="required field">
-                    <label for="new-connector-name">Name</label>
-                    <input id="new-connector-name" type="text" ng-model="newConnector.connector.name"/>
+                    <label for="new-connector-connection-timeout">connectionTimeout</label>
+                    <input id="new-connector-connection-timeout" type="text"
+                           ng-model="newConnector.connector.connectionTimeout"/>
                 </div>
-                <div class="two fields">
-                    <div class="required field">
-                        <label for="new-connector-connection-timeout">connectionTimeout</label>
-                        <input id="new-connector-connection-timeout" type="text" ng-model="newConnector.connector.connectionTimeout"/>
-                    </div>
-                    <div class="required field">
-                        <label for="new-connector-idle-timeout">idleTimeout</label>
-                        <input type="text" id="new-connector-idle-timeout" ng-model="newConnector.connector.connectionIdleTimeout">
-                    </div>
+                <div class="required field">
+                    <label for="new-connector-idle-timeout">idleTimeout</label>
+                    <input type="text" id="new-connector-idle-timeout"
+                           ng-model="newConnector.connector.connectionIdleTimeout">
                 </div>
-                <div class="two fields">
-                    <div class="required field">
-                        <label for="new-connector-max-connections">maxConnections</label>
-                        <input id="new-connector-max-connections" type="number" ng-model="newConnector.connector.maxConnections"/>
-                    </div>
-                    <div class="required field">
-                        <label for="new-connector-max-connections-per-host">maxConnectionsPerHost</label>
-                        <input type="number" id="new-connector-max-connections-per-host" ng-model="newConnector.connector.maxConnectionsPerHost">
-                    </div>
+            </div>
+            <div class="two fields">
+                <div class="required field">
+                    <label for="new-connector-max-connections">maxConnections</label>
+                    <input id="new-connector-max-connections" type="number"
+                           ng-model="newConnector.connector.maxConnections"/>
                 </div>
-                <div class="field">
-                    <label for="new-connector-proxy">Use Proxy</label>
-                    <select id="new-connector-proxy"
-                            ng-model="newConnector.proxy"
-                            ng-options="proxy.name for proxy in proxies">
-                        <option value="">No Proxy</option>
-                    </select>
+                <div class="required field">
+                    <label for="new-connector-max-connections-per-host">maxConnectionsPerHost</label>
+                    <input type="number" id="new-connector-max-connections-per-host"
+                           ng-model="newConnector.connector.maxConnectionsPerHost">
                 </div>
-                <div class="ui green fluid large submit button"
-                     ng-click="submitNewConnector()">Submit
-                </div>
+            </div>
+            <div class="field">
+                <label for="new-connector-proxy">Use Proxy</label>
+                <select id="new-connector-proxy"
+                        ng-model="newConnector.proxy"
+                        ng-options="proxy.name for proxy in proxies">
+                    <option value="">No Proxy</option>
+                </select>
+            </div>
+            <div class="ui green fluid large submit button"
+                 ng-click="submitNewConnector()">Submit
             </div>
         </div>
     </div>
+</div>
 
-    <div class="ui modal" id="editConnectorDialog">
-        <i class="close icon"></i>
+<div class="ui modal" id="editConnectorDialog">
+    <i class="close icon"></i>
 
-        <div class="ui dividing center aligned header">
-            Edit Connector
-        </div>
-        <div class="content">
-            <div class="ui form">
+    <div class="ui dividing center aligned header">
+        Edit Connector
+    </div>
+    <div class="content">
+        <div class="ui form">
+            <div class="required field">
+                <label for="edit-connector-name">Name</label>
+                <input id="edit-connector-name" type="text" ng-model="editConnector.connector.name"/>
+            </div>
+            <div class="two fields">
                 <div class="required field">
-                    <label for="edit-connector-name">Name</label>
-                    <input id="edit-connector-name" type="text" ng-model="editConnector.connector.name"/>
+                    <label for="edit-connector-connection-timeout">connectionTimeout</label>
+                    <input id="edit-connector-connection-timeout" type="text"
+                           ng-model="editConnector.connector.connectionTimeout"/>
                 </div>
-                <div class="two fields">
-                    <div class="required field">
-                        <label for="edit-connector-connection-timeout">connectionTimeout</label>
-                        <input id="edit-connector-connection-timeout" type="text" ng-model="editConnector.connector.connectionTimeout"/>
-                    </div>
-                    <div class="required field">
-                        <label for="edit-connector-idle-timeout">idleTimeout</label>
-                        <input type="text" id="edit-connector-idle-timeout" ng-model="editConnector.connector.connectionIdleTimeout">
-                    </div>
+                <div class="required field">
+                    <label for="edit-connector-idle-timeout">idleTimeout</label>
+                    <input type="text" id="edit-connector-idle-timeout"
+                           ng-model="editConnector.connector.connectionIdleTimeout">
                 </div>
-                <div class="two fields">
-                    <div class="required field">
-                        <label for="edit-connector-max-connections">maxConnections</label>
-                        <input id="edit-connector-max-connections" type="number" ng-model="editConnector.connector.maxConnections"/>
-                    </div>
-                    <div class="required field">
-                        <label for="edit-connector-max-connections-per-host">maxConnectionsPerHost</label>
-                        <input type="number" id="edit-connector-max-connections-per-host" ng-model="editConnector.connector.maxConnectionsPerHost">
-                    </div>
+            </div>
+            <div class="two fields">
+                <div class="required field">
+                    <label for="edit-connector-max-connections">maxConnections</label>
+                    <input id="edit-connector-max-connections" type="number"
+                           ng-model="editConnector.connector.maxConnections"/>
                 </div>
-                <div class="field">
-                    <label for="edit-connector-proxy">Use Proxy</label>
-                    <select id="edit-connector-proxy"
-                            ng-model="editConnector.proxy"
-                            ng-options="proxy.name for proxy in proxies">
-                        <option value="">No Proxy</option>
-                    </select>
+                <div class="required field">
+                    <label for="edit-connector-max-connections-per-host">maxConnectionsPerHost</label>
+                    <input type="number" id="edit-connector-max-connections-per-host"
+                           ng-model="editConnector.connector.maxConnectionsPerHost">
                 </div>
-                <div class="ui green fluid large submit button"
-                     ng-click="submitEditConnector()">Submit
-                </div>
+            </div>
+            <div class="field">
+                <label for="edit-connector-proxy">Use Proxy</label>
+                <select id="edit-connector-proxy"
+                        ng-model="editConnector.proxy"
+                        ng-options="proxy.name for proxy in proxies">
+                    <option value="">No Proxy</option>
+                </select>
+            </div>
+            <div class="ui green fluid large submit button"
+                 ng-click="submitEditConnector()">Submit
             </div>
         </div>
     </div>
-
 </div>

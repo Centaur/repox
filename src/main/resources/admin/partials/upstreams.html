@@ -1,22 +1,21 @@
-<div ng-controller="UpstreamsCtrl">
-    <div class="ui form" id="upstream">
-        <table class="ui very compact celled table">
-            <thead>
-            <tr>
-                <th></th>
-                <th>Name</th>
-                <th>Priority</th>
-                <th>Base Url</th>
-                <th data-content="Many repositories use maven-only uri layout, we call these 'Pure Maven', repositories that built with sbt in mind serve ivy layout as well."
-                    class="withPopup">Pure Maven
-                </th>
-                <th>Get Only</th>
-                <th>Use Connector</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr ng-repeat="upstream in upstreams">
-                <td class="collapsing">
+<div class="ui form" id="upstream">
+    <table class="ui very compact celled table">
+        <thead>
+        <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Priority</th>
+            <th>Base Url</th>
+            <th data-content="Many repositories use maven-only uri layout, we call these 'Pure Maven', repositories that built with sbt in mind serve ivy layout as well."
+                class="withPopup">Pure Maven
+            </th>
+            <th>Get Only</th>
+            <th>Use Connector</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr ng-repeat="upstream in upstreams">
+            <td class="collapsing">
                         <span class="ui tiny basic icon button" ng-click="toggleDisable(upstream.repo)">
                             <i class="teal icon"
                                ng-class="{ban: !upstream.repo.disabled, checkmark: upstream.repo.disabled}"></i>
@@ -33,151 +32,150 @@
                         <span class="ui tiny basic icon button" ng-click="moveDown(upstream.repo)">
                             <i class="angle down teal icon"></i>
                         </span>
-                </td>
-                <td ng-class="{disabled: upstream.repo.disabled}">{{upstream.repo.name}}</td>
-                <td ng-class="{disabled: upstream.repo.disabled}">{{upstream.repo.priority}}</td>
-                <td ng-class="{disabled: upstream.repo.disabled}">{{upstream.repo.base}}</td>
-                <td ng-class="{positive: upstream.repo.maven}">
-                    {{upstream.repo.maven ? 'Yes' : 'No'}}
-                </td>
-                <td ng-class="{positive: upstream.repo.getOnly}">
-                    {{upstream.repo.getOnly ? 'Yes' : 'No'}}
-                </td>
-                <td>
-                    {{upstream.connector ? upstream.connector.name : 'default'}}
-                </td>
-            </tr>
-            </tbody>
-            <tfoot class="full-width">
-            <tr>
-                <th colspan="7">
-                    <a class="ui right floated labeled icon teal button" ng-click="showNewRepoDialog()">
-                        <i class="plus icon"></i> Add Repo
-                    </a>
-                </th>
-            </tr>
-            </tfoot>
-        </table>
+            </td>
+            <td ng-class="{disabled: upstream.repo.disabled}">{{upstream.repo.name}}</td>
+            <td ng-class="{disabled: upstream.repo.disabled}">{{upstream.repo.priority}}</td>
+            <td ng-class="{disabled: upstream.repo.disabled}">{{upstream.repo.base}}</td>
+            <td ng-class="{positive: upstream.repo.maven}">
+                {{upstream.repo.maven ? 'Yes' : 'No'}}
+            </td>
+            <td ng-class="{positive: upstream.repo.getOnly}">
+                {{upstream.repo.getOnly ? 'Yes' : 'No'}}
+            </td>
+            <td>
+                {{upstream.connector ? upstream.connector.name : 'default'}}
+            </td>
+        </tr>
+        </tbody>
+        <tfoot class="full-width">
+        <tr>
+            <th colspan="7">
+                <a class="ui right floated labeled icon teal button" ng-click="showNewRepoDialog()">
+                    <i class="plus icon"></i> Add Repo
+                </a>
+            </th>
+        </tr>
+        </tfoot>
+    </table>
+</div>
+
+<div class="ui modal" id="newRepoDialog">
+    <i class="close icon"></i>
+
+    <div class="ui dividing center aligned header">
+        Add New Upstream Repo
     </div>
+    <div class="content">
+        <div class="ui form">
+            <div class="required field">
+                <label for="new-repo-name">Name</label>
+                <input id="new-repo-name" type="text" ng-model="newUpstream.repo.name"/>
+            </div>
+            <div class="required field">
+                <label for="new-repo-base">Base Url</label>
+                <input id="new-repo-base" type="text" ng-model="newUpstream.repo.base"/>
+            </div>
+            <div class="required field">
+                <label for="new-repo-priority">Priority</label>
+                <select id="new-repo-priority"
+                        ng-model="newUpstream.repo.priority"
+                        ng-options="i for i in [1,2,3,4,5,6,7,8,9,10]"></select>
+            </div>
+            <div class="two fields">
+                <div class="field">
+                    <label for="new-repo-maven">Pure Maven</label>
 
-    <div class="ui modal" id="newRepoDialog">
-        <i class="close icon"></i>
-
-        <div class="ui dividing center aligned header">
-            Add New Upstream Repo
-        </div>
-        <div class="content">
-            <div class="ui form">
-                <div class="required field">
-                    <label for="new-repo-name">Name</label>
-                    <input id="new-repo-name" type="text" ng-model="newUpstream.repo.name"/>
-                </div>
-                <div class="required field">
-                    <label for="new-repo-base">Base Url</label>
-                    <input id="new-repo-base" type="text" ng-model="newUpstream.repo.base"/>
-                </div>
-                <div class="required field">
-                    <label for="new-repo-priority">Priority</label>
-                    <select id="new-repo-priority"
-                            ng-model="newUpstream.repo.priority"
-                            ng-options="i for i in [1,2,3,4,5,6,7,8,9,10]"></select>
-                </div>
-                <div class="two fields">
-                    <div class="field">
-                        <label for="new-repo-maven">Pure Maven</label>
-
-                        <div class="ui toggle checkbox">
-                            <input id="new-repo-maven"
-                                   type="checkbox"
-                                   ng-model="newUpstream.repo.maven">
-                            <label ng-click="toggleMaven(newUpstream.repo)">{{newUpstream.repo.maven ? 'Yes' :
-                                'No'}}</label>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label for="new-repo-get-only">Get Only</label>
-
-                        <div class="ui toggle checkbox">
-                            <input id="new-repo-get-only"
-                                   type="checkbox"
-                                   ng-model="newUpstream.repo.getOnly">
-                            <label ng-click="toggleGetOnly(newUpstream.repo)">{{newUpstream.repo.getOnly ? 'Yes' :
-                                'No'}}</label>
-                        </div>
+                    <div class="ui toggle checkbox">
+                        <input id="new-repo-maven"
+                               type="checkbox"
+                               ng-model="newUpstream.repo.maven">
+                        <label ng-click="toggleMaven(newUpstream.repo)">{{newUpstream.repo.maven ? 'Yes' :
+                            'No'}}</label>
                     </div>
                 </div>
                 <div class="field">
-                    <label for="new-repo-connector">Use Connector</label>
-                    <select id="new-repo-connector"
-                            ng-model="newUpstream.connector"
-                            ng-options="connector.name for connector in connectors">
-                        <option value="">default</option>
-                    </select>
+                    <label for="new-repo-get-only">Get Only</label>
+
+                    <div class="ui toggle checkbox">
+                        <input id="new-repo-get-only"
+                               type="checkbox"
+                               ng-model="newUpstream.repo.getOnly">
+                        <label ng-click="toggleGetOnly(newUpstream.repo)">{{newUpstream.repo.getOnly ? 'Yes' :
+                            'No'}}</label>
+                    </div>
                 </div>
-                <div class="ui teal fluid large submit button"
-                     ng-click="submitNewRepo()">Submit
-                </div>
+            </div>
+            <div class="field">
+                <label for="new-repo-connector">Use Connector</label>
+                <select id="new-repo-connector"
+                        ng-model="newUpstream.connector"
+                        ng-options="connector.name for connector in connectors">
+                    <option value="">default</option>
+                </select>
+            </div>
+            <div class="ui teal fluid large submit button"
+                 ng-click="submitNewRepo()">Submit
             </div>
         </div>
     </div>
+</div>
 
-    <div class="ui modal" id="editRepoDialog">
-        <i class="close icon"></i>
+<div class="ui modal" id="editRepoDialog">
+    <i class="close icon"></i>
 
-        <div class="ui dividing center aligned header">
-            Edit Upstream Repo
-        </div>
-        <div class="content">
-            <div class="ui form">
-                <div class="required field">
-                    <label for="edit-repo-name">Name</label>
-                    <input id="edit-repo-name" type="text" ng-model="editUpstream.repo.name"/>
-                </div>
-                <div class="required field">
-                    <label for="edit-repo-base">Base Url</label>
-                    <input id="edit-repo-base" type="text" ng-model="editUpstream.repo.base"/>
-                </div>
+    <div class="ui dividing center aligned header">
+        Edit Upstream Repo
+    </div>
+    <div class="content">
+        <div class="ui form">
+            <div class="required field">
+                <label for="edit-repo-name">Name</label>
+                <input id="edit-repo-name" type="text" ng-model="editUpstream.repo.name"/>
+            </div>
+            <div class="required field">
+                <label for="edit-repo-base">Base Url</label>
+                <input id="edit-repo-base" type="text" ng-model="editUpstream.repo.base"/>
+            </div>
+            <div class="field">
+                <label for="edit-repo-priority">Priority</label>
+                <select id="edit-repo-priority"
+                        ng-model="editUpstream.repo.priority"
+                        ng-options="i for i in [1,2,3,4,5,6,7,8,9,10]"></select>
+            </div>
+            <div class="two fields">
                 <div class="field">
-                    <label for="edit-repo-priority">Priority</label>
-                    <select id="edit-repo-priority"
-                            ng-model="editUpstream.repo.priority"
-                            ng-options="i for i in [1,2,3,4,5,6,7,8,9,10]"></select>
-                </div>
-                <div class="two fields">
-                    <div class="field">
-                        <label for="edit-repo-maven">Pure Maven</label>
+                    <label for="edit-repo-maven">Pure Maven</label>
 
-                        <div class="ui toggle checkbox">
-                            <input id="edit-repo-maven"
-                                   type="checkbox"
-                                   ng-model="editUpstream.repo.maven">
-                            <label ng-click="toggleMaven(editUpstream.repo)">{{editUpstream.repo.maven ? 'Yes' :
-                                'No'}}</label>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label for="edit-repo-get-only">Get Only</label>
-
-                        <div class="ui toggle checkbox">
-                            <input id="edit-repo-get-only"
-                                   type="checkbox"
-                                   ng-model="editUpstream.repo.getOnly">
-                            <label ng-click="toggleGetOnly(editUpstream.repo)">{{editUpstream.repo.getOnly ? 'Yes' :
-                                'No'}}</label>
-                        </div>
+                    <div class="ui toggle checkbox">
+                        <input id="edit-repo-maven"
+                               type="checkbox"
+                               ng-model="editUpstream.repo.maven">
+                        <label ng-click="toggleMaven(editUpstream.repo)">{{editUpstream.repo.maven ? 'Yes' :
+                            'No'}}</label>
                     </div>
                 </div>
                 <div class="field">
-                    <label for="edit-repo-connector">Use Connector</label>
-                    <select id="edit-repo-connector"
-                            ng-model="editUpstream.connector"
-                            ng-options="connector.name for connector in connectors">
-                        <option value="">default</option>
-                    </select>
+                    <label for="edit-repo-get-only">Get Only</label>
+
+                    <div class="ui toggle checkbox">
+                        <input id="edit-repo-get-only"
+                               type="checkbox"
+                               ng-model="editUpstream.repo.getOnly">
+                        <label ng-click="toggleGetOnly(editUpstream.repo)">{{editUpstream.repo.getOnly ? 'Yes' :
+                            'No'}}</label>
+                    </div>
                 </div>
-                <div class="ui teal fluid large submit button"
-                     ng-click="submitEditRepo()">Submit
-                </div>
+            </div>
+            <div class="field">
+                <label for="edit-repo-connector">Use Connector</label>
+                <select id="edit-repo-connector"
+                        ng-model="editUpstream.connector"
+                        ng-options="connector.name for connector in connectors">
+                    <option value="">default</option>
+                </select>
+            </div>
+            <div class="ui teal fluid large submit button"
+                 ng-click="submitEditRepo()">Submit
             </div>
         </div>
     </div>

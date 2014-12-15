@@ -20,3 +20,8 @@
     line-height: 2.5em;
 }
 
+.ui.authForm {
+    width: 50%;
+    margin: 0 auto;
+}
+

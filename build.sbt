@@ -8,7 +8,7 @@ val akkaVersion = "2.3.7"
 
 libraryDependencies ++= Seq(
   "io.undertow" % "undertow-core" % "1.1.0.Final" withSources(),
-  ("com.ning" % "async-http-client" % "1.8.15")
+  ("com.ning" % "async-http-client" % "1.9.0")
     .exclude("org.slf4j", "slf4j-api"),
   ("com.typesafe.scala-logging" %% "scala-logging" % "3.1.0")
     .exclude("org.scala-lang", "scala-library"),

@@ -36,6 +36,7 @@ object WebConfigHandler {
     Immediate404RulesHandler,
     ExpireRulesHandler,
     ParametersHandler,
+    AuthHandler,
     ResetHandler
   )
 

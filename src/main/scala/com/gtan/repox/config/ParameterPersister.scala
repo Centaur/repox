@@ -15,4 +15,9 @@ trait ParameterPersister {
     }
   }
 
+  case class ModifyPassword(newPassword: String) extends Cmd {
+    override def transform(old: Config): Config = {
+      old.copy(password = newPassword)
+    }
+  }
 }

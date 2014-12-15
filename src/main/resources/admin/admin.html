@@ -35,6 +35,10 @@
         <a class="{{activeOn('/parameters')}} blue item" href="#/parameters">
             <i class="tasks icon"></i> Parameters
         </a>
+        <div class="right menu">
+            <a class="item" ng-click="modifyPassword()"> <i class="icon write"></i> Modify Password</a>
+            <a class="item" ng-click="logout()"> <i class="icon power"></i>  Logout</a>
+        </div>
     </nav>
     <section id="channel-content" ng-view>
     </section>
@@ -45,6 +49,7 @@
 <script src="/admin/bower_components/underscore/underscore-min.js"></script>
 <script src="/admin/bower_components/angular/angular.js"></script>
 <script src="/admin/bower_components/angular-route/angular-route.js"></script>
+<script src="/admin/bower_components/angular-cookies/angular-cookies.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>
