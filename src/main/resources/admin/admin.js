@@ -51,7 +51,7 @@ repoxApp.filter('displayProxy', function () {
     }
 });
 
-var repoxControllers = angular.module('repoxControllers', ['ngCookies']);
+var repoxControllers = angular.module('repoxControllers', []);
 
 repoxControllers.controller('MenuCtrl', ['$scope', '$location', '$http', '$route', function ($scope, $location, $http, $route) {
     function endsWith(str, suffix) {
