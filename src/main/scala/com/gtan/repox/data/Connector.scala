@@ -16,14 +16,14 @@ case class Connector(id: Option[Long],
 
   def createClient = {
     val configBuilder = new AsyncHttpClientConfig.Builder()
-      .setRequestTimeout(Int.MaxValue)
-      .setConnectTimeout(connectionTimeout.toMillis.toInt)
-      .setAllowPoolingConnections(true)
-      .setAllowPoolingSslConnections(true)
-      .setMaxConnectionsPerHost(maxConnections)
-      .setMaxConnections(maxConnectionsPerHost)
-      .setPooledConnectionIdleTimeout(connectionIdleTimeout.toMillis.toInt)
-      .setFollowRedirect(true)
+      .setRequestTimeoutInMs(Int.MaxValue)
+      .setConnectionTimeoutInMs(connectionTimeout.toMillis.toInt)
+      .setIdleConnectionInPoolTimeoutInMs(connectionIdleTimeout.toMillis.toInt)
+      .setAllowPoolingConnection(true)
+      .setAllowSslConnectionPool(true)
+      .setMaximumConnectionsPerHost(maxConnections)
+      .setMaximumConnectionsTotal(maxConnectionsPerHost)
+      .setFollowRedirects(true)
     val builder = Config.proxyUsage.get(this).fold(configBuilder){x => configBuilder.setProxyServer(x.toJava)}
     new AsyncHttpClient(builder.build())
   }

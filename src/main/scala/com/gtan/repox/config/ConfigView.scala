@@ -19,7 +19,8 @@ class ConfigView extends PersistentView with ActorLogging{
   override val persistenceId = "Config"
 
   def receive: Receive = {
-    case msg => log.debug(s"ConfigView received message: $msg")
+    case ConfigChanged(_, cmd) => log.debug(s"ConfigView received event caused by cmd: $cmd")
+    case UseDefault => log.debug(s"ConfigView received UseDefault evt")
   }
 
 }
