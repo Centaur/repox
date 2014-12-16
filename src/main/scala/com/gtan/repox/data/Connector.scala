@@ -19,6 +19,7 @@ case class Connector(id: Option[Long],
       .setRequestTimeoutInMs(Int.MaxValue)
       .setConnectionTimeoutInMs(connectionTimeout.toMillis.toInt)
       .setIdleConnectionInPoolTimeoutInMs(connectionIdleTimeout.toMillis.toInt)
+      .setIdleConnectionTimeoutInMs(connectionIdleTimeout.toMillis.toInt)
       .setAllowPoolingConnection(true)
       .setAllowSslConnectionPool(true)
       .setMaximumConnectionsPerHost(maxConnections)
