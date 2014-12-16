@@ -23,7 +23,7 @@ object ExpireRulesHandler extends RestHandler {
     case (Methods.GET, "expireRules") =>
       respondJson(exchange, Config.expireRules)
     case (Methods.POST, "expireRule") | (Methods.PUT, "expireRule") =>
-      val newV = URLDecoder.decode(exchange.getQueryParameters.get("v").getFirst, "UTF-8")
+      val newV = exchange.getQueryParameters.get("v").getFirst
       val rule = Json.parse(newV).as[ExpireRule]
       setConfigAndRespond(exchange, Repox.configPersister ? NewOrUpdateExpireRule(rule))
     case (Methods.PUT, "expireRule/enable") =>

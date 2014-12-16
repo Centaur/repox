@@ -21,7 +21,7 @@ object Immediate404RulesHandler extends RestHandler {
     case (Methods.GET, "immediate404Rules") =>
       respondJson(exchange, Config.immediate404Rules)
     case (Methods.POST, "immediate404Rule") | (Methods.PUT, "immediate404Rule") =>
-      val newV = URLDecoder.decode(exchange.getQueryParameters.get("v").getFirst, "UTF-8")
+      val newV = exchange.getQueryParameters.get("v").getFirst
       val rule = Json.parse(newV).as[Immediate404Rule]
       setConfigAndRespond(exchange, Repox.configPersister ? NewOrUpdateImmediate404Rule(rule))
     case (Methods.PUT, "immediate404Rule/enable") =>

@@ -29,7 +29,7 @@ object UpstreamsHandler extends RestHandler {
       ))
 
     case (Methods.POST, "upstream") =>
-      val newV = URLDecoder.decode(exchange.getQueryParameters.get("v").getFirst, "UTF-8")
+      val newV = exchange.getQueryParameters.get("v").getFirst
       val vo = Json.parse(newV).as[RepoVO]
       setConfigAndRespond(exchange, Repox.configPersister ? NewRepo(vo))
     case (Methods.POST, "upstream/up") =>
@@ -39,7 +39,7 @@ object UpstreamsHandler extends RestHandler {
       val id = exchange.getQueryParameters.get("v").getFirst.toLong
       setConfigAndRespond(exchange, Repox.configPersister ? MoveDownRepo(id))
     case (Methods.PUT, "upstream") =>
-      val newV = URLDecoder.decode(exchange.getQueryParameters.get("v").getFirst, "UTF-8")
+      val newV = exchange.getQueryParameters.get("v").getFirst
       val vo = Json.parse(newV).as[RepoVO]
       setConfigAndRespond(exchange, Repox.configPersister ? UpdateRepo(vo))
     case (Methods.PUT, "upstream/disable") =>

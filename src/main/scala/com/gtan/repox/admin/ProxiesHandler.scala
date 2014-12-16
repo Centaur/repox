@@ -22,7 +22,7 @@ object ProxiesHandler extends RestHandler {
     case (Methods.GET, "proxies") =>
       respondJson(exchange, Config.proxies)
     case (Methods.POST, "proxy") | (Methods.PUT, "proxy") =>
-      val newV = URLDecoder.decode(exchange.getQueryParameters.get("v").getFirst, "UTF-8")
+      val newV = exchange.getQueryParameters.get("v").getFirst
       val proxy = Json.parse(newV).as[ProxyServer]
       setConfigAndRespond(exchange, Repox.configPersister ? NewOrUpdateProxy(proxy))
     case (Methods.PUT, "proxy/enable") =>

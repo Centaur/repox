@@ -29,11 +29,11 @@ object ConnectorsHandler extends RestHandler {
         Nil
       ))
     case (Methods.POST, "connector") =>
-      val newV = URLDecoder.decode(exchange.getQueryParameters.get("v").getFirst, "UTF-8")
+      val newV = exchange.getQueryParameters.get("v").getFirst
       val vo = Json.parse(newV).as[ConnectorVO]
       setConfigAndRespond(exchange, Repox.configPersister ? NewConnector(vo))
     case (Methods.PUT, "connector") =>
-      val newV = URLDecoder.decode(exchange.getQueryParameters.get("v").getFirst, "UTF-8")
+      val newV = exchange.getQueryParameters.get("v").getFirst
       val vo = Json.parse(newV).as[ConnectorVO]
       setConfigAndRespond(exchange, Repox.configPersister ? UpdateConnector(vo))
     case (Methods.DELETE, "connector") =>
