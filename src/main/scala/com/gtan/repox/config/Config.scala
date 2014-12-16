@@ -70,10 +70,9 @@ object Config extends LazyLogging {
   val defaultImmediate404Rules: Seq[Immediate404Rule] = Vector(
     Immediate404Rule(Some(1), """.+-javadoc\.jar"""), // we don't want javadoc
     Immediate404Rule(Some(2), """.+-parent.*\.jar"""), // parent have no jar
-    Immediate404Rule(Some(3), """/org/scala-sbt/.*""", exclude = Some( """/org/scala-sbt/test-interface/.*""")), // ivy only artifact have no maven uri
-    //    Immediat404Rule( """/org/scala-tools/.*"""), // ivy only artifact have no maven uri
-    Immediate404Rule(Some(4), """/com/eed3si9n/.*"""), // ivy only artifact have no maven uri
-    Immediate404Rule(Some(5), """/io\.spray/.*""", exclude = Some( """/io\.spray/sbt-revolver.*""")), // maven only artifact have no ivy uri
+    Immediate404Rule(Some(3), """(/.+)+/((.+?-project)(_(.+?)(_(.+))?)?)/(.+?)/\3-\8(-(.+?))?\.jar"""), // maven x-project have no jar
+    Immediate404Rule(Some(4), """(/.+)+/((.+?-pom)(_(.+?)(_(.+))?)?)/(.+?)/\3-\8(-(.+?))?\.jar"""), // maven x-pom have no jar
+    Immediate404Rule(Some(5), """/.+?/(.+?-project)/.+/\1\.jar"""), // ivy x-project have no jar
     Immediate404Rule(Some(6), """/org/jboss/xnio/xnio-all/.+\.jar"""),
     Immediate404Rule(Some(7), """/org\.jboss\.xnio/xnio-all/.+\.jar"""),
     Immediate404Rule(Some(8), """/org/apache/apache/(\d+)/.+\.jar"""),
@@ -86,7 +85,8 @@ object Config extends LazyLogging {
     Immediate404Rule(Some(15), """/com\.github\.mpeltonen/sbt-idea/.*\.jar"""),
     Immediate404Rule(Some(16), """/org/fusesource/leveldbjni/.+-sources\.jar"""),
     Immediate404Rule(Some(17), """/org\.fusesource\.leveldbjni/.+-sources\.jar"""),
-    Immediate404Rule(Some(18), """.*/jsr305.*\-sources\.jar""")
+    Immediate404Rule(Some(18), """.*/jsr305.*\-sources\.jar"""),
+    Immediate404Rule(Some(19), """/.+?/(.+?-pom)/.+/\1\.jar""") // ivy x-pom have no jar
   )
 
   def defaultExpireRules = Seq(

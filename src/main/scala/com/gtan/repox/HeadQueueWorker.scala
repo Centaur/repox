@@ -11,12 +11,15 @@ import scala.language.postfixOps
 import scala.util.Random
 
 object HeadQueueWorker {
+
   case class NotFound(exchange: HttpServerExchange)
+
   case class FoundIn(repo: Repo, headers: Repox.ResponseHeaders, exchange: HttpServerExchange)
 
 }
 
 class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLogging {
+
   import HeadQueueWorker._
 
   override def receive = start
@@ -27,12 +30,18 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
   def start: Receive = {
     case Requests.Head(exchange) =>
       assert(exchange.getRequestURI == uri)
-      if(Repox.downloaded(uri)){
+      if (Repox.downloaded(uri)) {
         Repox.immediateHead(exchange)
         suicide()
       } else {
-        context.actorOf(Props(classOf[HeadMaster], exchange), name = s"HeadMaster_${Random.nextInt()}")
-        context become working
+        Repox.peer(uri) match {
+          case Some(peer) if Repox.downloaded(peer) =>
+            Repox.smart404(exchange)
+            suicide()
+          case _ =>
+            context.actorOf(Props(classOf[HeadMaster], exchange), name = s"HeadMaster_${Random.nextInt()}")
+            context become working
+        }
       }
   }
 
@@ -40,7 +49,7 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
     case Requests.Head(exchange) =>
       assert(exchange.getRequestURI == uri)
       stash()
-    case result @ FoundIn(repo, headers, exchange) =>
+    case result@FoundIn(repo, headers, exchange) =>
       found = true
       resultHeaders = headers
       Repox.respondHead(exchange, headers)
@@ -48,7 +57,7 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
       unstashAll()
       context.setReceiveTimeout(1 second)
       context become flushWaiting
-    case result @ NotFound(exchange) =>
+    case result@NotFound(exchange) =>
       found = false
       Repox.respond404(exchange)
       log.info(s"Tried ${Config.headRetryTimes} times. Give up. Respond with 404. $uri")
@@ -59,7 +68,7 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
 
   def flushWaiting: Receive = {
     case Requests.Head(exchange) =>
-      if(found)
+      if (found)
         Repox.respondHead(exchange, resultHeaders)
       else
         Repox.respond404(exchange)
@@ -67,7 +76,7 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
       suicide()
   }
 
-  def suicide(): Unit ={
+  def suicide(): Unit = {
     val queue = Queue('head, uri)
     log.debug(s"$queue suicide.")
     context.parent ! RequestQueueMaster.Dead(queue)

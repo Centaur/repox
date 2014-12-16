@@ -69,6 +69,11 @@ object Repox extends LazyLogging {
     respond404(exchange)
   }
 
+  def smart404(exchange: HttpServerExchange): Unit = {
+    logger.info(s"Smart 404 ${exchange.getRequestURI}.")
+    respond404(exchange)
+  }
+
   /**
    * this is the one and only truth
    * @param uri resource to get or query
@@ -76,6 +81,34 @@ object Repox extends LazyLogging {
    */
   def downloaded(uri: String): Boolean = {
     Paths.get(Config.storage).resolve(uri.tail).toFile.exists
+  }
+
+  private val MavenFormat = """(/.+)+/((.+?)(_(.+?)(_(.+))?)?)/(.+?)/\3-\8(-(.+?))?\.(.+)""".r
+  private val IvyFormat = """/(.+?)/(.+?)/(scala_(.+?)/)?(sbt_(.+?)/)?(.+?)/(.+?)s/(.+?)(-(.+))?\.(.+)""".r
+  /**
+   * transform between uri formats
+   * @param uri
+   * @return maven format if is ivy format, or ivy format if is maven format
+   */
+  def peer(uri: String): Option[String] = uri match {
+    case MavenFormat(groupIds, _, artifactId, _, scalaVersion, _, sbtVersion, version, _, classifier, ext) =>
+      val organization = groupIds.split("/").filter(_.nonEmpty).mkString(".")
+      val typ = ext match {
+        case "pom" => "ivy"
+        case _ => "jar"
+      }
+      val peerFile = ext match {
+        case "pom" => "ivy.xml"
+        case _ => s"$artifactId.$ext"
+      }
+      if(scalaVersion!=null && sbtVersion!=null) {
+        Some(s"/$organization/$artifactId/scala_$scalaVersion/sbt_$sbtVersion/$version/${typ}s/$peerFile")
+      } else {
+        Some(s"/$organization/$artifactId/$version/${typ}s/$peerFile")
+      }
+    case IvyFormat(organization, module, _, scalaVersion, _, sbtVersion, revision, typ, artifact, _, classifier, ext) =>
+      None
+      // always put maven resolver before ivy then we don't need this
   }
 
   lazy val resourceHandler = Handlers.resource(resourceManager)
