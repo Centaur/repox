@@ -4,7 +4,7 @@ organization := "com.gtan"
 
 scalaVersion := "2.11.4"
 
-val akkaVersion = "2.3.7"
+val akkaVersion = "2.3.8"
 
 libraryDependencies ++= Seq(
   "io.undertow" % "undertow-core" % "1.1.0.Final" withSources(),
@@ -20,14 +20,14 @@ libraryDependencies ++= Seq(
     .exclude("org.slf4j", "slf4j-api"),
   ("com.typesafe.akka" %% "akka-agent" % akkaVersion)
     .exclude("org.scala-lang", "scala-library"),
-  ("com.typesafe.akka" %% "akka-persistence-experimental" % "2.3.7")
+  ("com.typesafe.akka" %% "akka-persistence-experimental" % akkaVersion)
     .exclude("org.scala-lang", "scala-library"),
-  "com.typesafe.play" %% "play-json" % "2.4.0-M1",
+  "com.typesafe.play" %% "play-json" % "2.4.0-M2" withSources(),
   "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 )
 
 // to use repox, this option must be false, or when retry updateClassifiers, it will not download srcs
-updateOptions := updateOptions.value.withCachedResolution(false)
+//updateOptions := updateOptions.value.withCachedResolution(false)
 
 fork := true
 

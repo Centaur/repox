@@ -101,8 +101,12 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
               context.parent ! GetQueueWorker.Get404(uri)
               self ! PoisonPill
             case head :: tail =>
-              log.debug(s"all child failed. to next level.")
-              candidateRepos = tail
+              if (from.length > 1) {
+                log.debug(s"all child failed. to next level.")
+                candidateRepos = tail
+              } else {
+                log.debug(s"only one repo, no other choose, retry. $uri")
+              }
               reset()
           }
         }
@@ -116,8 +120,12 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
             context.parent ! GetQueueWorker.Get404(uri)
             self ! PoisonPill
           case head :: tail =>
-            log.info(s"all child failed. to next level.")
-            candidateRepos = tail
+            if(from.length > 1) {
+              log.debug(s"all child failed. to next level.")
+              candidateRepos = tail
+            } else {
+              log.debug(s"only one repo, no other choose, retry. $uri")
+            }
             reset()
         }
       }
