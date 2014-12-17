@@ -22,7 +22,8 @@ libraryDependencies ++= Seq(
     .exclude("org.scala-lang", "scala-library"),
   ("com.typesafe.akka" %% "akka-persistence-experimental" % "2.3.7")
     .exclude("org.scala-lang", "scala-library"),
-  "com.typesafe.play" %% "play-json" % "2.4.0-M1"
+  "com.typesafe.play" %% "play-json" % "2.4.0-M1",
+  "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 )
 
 // to use repox, this option must be false, or when retry updateClassifiers, it will not download srcs

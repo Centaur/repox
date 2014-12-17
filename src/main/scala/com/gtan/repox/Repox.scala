@@ -83,15 +83,18 @@ object Repox extends LazyLogging {
     Paths.get(Config.storage).resolve(uri.tail).toFile.exists
   }
 
-  private val MavenFormat = """(/.+)+/((.+?)(_(.+?)(_(.+))?)?)/(.+?)/\3-\8(-(.+?))?\.(.+)""".r
-  private val IvyFormat = """/(.+?)/(.+?)/(scala_(.+?)/)?(sbt_(.+?)/)?(.+?)/(.+?)s/(.+?)(-(.+))?\.(.+)""".r
+  val MavenFormat = """(/.+)+/((.+?)(_(.+?)(_(.+))?)?)/(.+?)/(\3-\8(-(.+?))?\.(.+))""".r
+  val IvyFormat = """/(.+?)/(.+?)/(scala_(.+?)/)?(sbt_(.+?)/)?(.+?)/(.+?)s/((.+?)(-(.+))?\.(.+))""".r
+  val supportedScalaVersion = List("2.10", "2.11")
+  val supportedSbtVersion = List("0.13")
+
   /**
    * transform between uri formats
    * @param uri
    * @return maven format if is ivy format, or ivy format if is maven format
    */
-  def peer(uri: String): Option[String] = uri match {
-    case MavenFormat(groupIds, _, artifactId, _, scalaVersion, _, sbtVersion, version, _, classifier, ext) =>
+  def peer(uri: String): List[String] = uri match {
+    case MavenFormat(groupIds, _, artifactId, _, scalaVersion, _, sbtVersion, version, fileName, _, classifier, ext) =>
       val organization = groupIds.split("/").filter(_.nonEmpty).mkString(".")
       val typ = ext match {
         case "pom" => "ivy"
@@ -101,14 +104,22 @@ object Repox extends LazyLogging {
         case "pom" => "ivy.xml"
         case _ => s"$artifactId.$ext"
       }
-      if(scalaVersion!=null && sbtVersion!=null) {
-        Some(s"/$organization/$artifactId/scala_$scalaVersion/sbt_$sbtVersion/$version/${typ}s/$peerFile")
-      } else {
-        Some(s"/$organization/$artifactId/$version/${typ}s/$peerFile")
-      }
-    case IvyFormat(organization, module, _, scalaVersion, _, sbtVersion, revision, typ, artifact, _, classifier, ext) =>
-      None
-      // always put maven resolver before ivy then we don't need this
+      if (scalaVersion != null && sbtVersion != null) {
+        s"/$organization/$artifactId/scala_$scalaVersion/sbt_$sbtVersion/$version/${typ}s/$peerFile" :: Nil
+      } else if (scalaVersion == null && sbtVersion == null) {
+        val guessedMavenArtifacts = for (scala <- supportedScalaVersion; sbt <- supportedSbtVersion) yield
+          s"$groupIds/${artifactId}_${scala}_$sbt/$version/$fileName"
+        s"/$organization/$artifactId/$version/${typ}s/$peerFile" :: guessedMavenArtifacts
+      } else List(s"/$organization/$artifactId/$version/${typ}s/$peerFile")
+
+    case IvyFormat(organization, module, _, scalaVersion, _, sbtVersion, revision, typ, fileName, artifact, _, classifier, ext) =>
+      if(scalaVersion == null && sbtVersion == null) {
+        for (scala <- supportedScalaVersion; sbt <- supportedSbtVersion) yield
+          s"/${organization.split("\\.").mkString("/")}/${module}_${scala}_$sbt/$revision/$module-$revision.$ext"
+      } else Nil
+    case _ =>
+      // this should not happen
+      Nil
   }
 
   lazy val resourceHandler = Handlers.resource(resourceManager)

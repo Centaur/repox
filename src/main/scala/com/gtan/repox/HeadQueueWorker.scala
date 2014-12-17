@@ -34,8 +34,8 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
         Repox.immediateHead(exchange)
         suicide()
       } else {
-        Repox.peer(uri) match {
-          case Some(peer) if Repox.downloaded(peer) =>
+        Repox.peer(uri).find(Repox.downloaded) match {
+          case Some(peer) =>
             Repox.smart404(exchange)
             suicide()
           case _ =>

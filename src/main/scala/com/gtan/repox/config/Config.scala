@@ -81,8 +81,8 @@ object Config extends LazyLogging {
     Immediate404Rule(Some(11), """/com\.google/google/(\d+)/.+\.jar"""),
     Immediate404Rule(Some(12), """/org/ow2/ow2/.+\.jar"""),
     Immediate404Rule(Some(13), """/org\.ow2/ow2/.+\.jar"""),
-    Immediate404Rule(Some(14), """/com/github/mpeltonen/sbt-idea/.*\.jar"""),
-    Immediate404Rule(Some(15), """/com\.github\.mpeltonen/sbt-idea/.*\.jar"""),
+    Immediate404Rule(Some(14), """(/.+)+/((.+?-site)(_(.+?)(_(.+))?)?)/(.+?)/\3-\8(-(.+?))?\.jar"""), // maven x-site have no jar
+    Immediate404Rule(Some(15), """/.+?/(.+?-site)/.+/\1\.jar"""), // ivy x-site have no jar
     Immediate404Rule(Some(16), """/org/fusesource/leveldbjni/.+-sources\.jar"""),
     Immediate404Rule(Some(17), """/org\.fusesource\.leveldbjni/.+-sources\.jar"""),
     Immediate404Rule(Some(18), """.*/jsr305.*\-sources\.jar"""),
