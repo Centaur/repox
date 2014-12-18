@@ -16,6 +16,8 @@ libraryDependencies ++= Seq(
     .exclude("org.slf4j", "slf4j-api"),
   ("com.typesafe.akka" %% "akka-actor" % akkaVersion withSources())
     .exclude("org.slf4j", "slf4j-api"),
+  ("com.typesafe.akka" %% "akka-remote" % akkaVersion withSources())
+    .exclude("org.slf4j", "slf4j-api"),
   ("com.typesafe.akka" %% "akka-slf4j" % akkaVersion)
     .exclude("org.slf4j", "slf4j-api"),
   ("com.typesafe.akka" %% "akka-agent" % akkaVersion)
