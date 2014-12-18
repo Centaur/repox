@@ -35,8 +35,8 @@
     </table>
 </div>
 
-<div class="ui modal" id="new404RuleDialog">
-    <i class="close icon"></i>
+<div class="ui modal" id="new404RuleDialog" ng-class="{active: new404RuleDialogVisible}" ng-keyup="escapeToClose($event)">
+    <i class="purple close icon" ng-click="new404RuleDialogVisible = false"></i>
 
     <div class="ui dividing center aligned header">
         Add New Immediate 404 Rule
@@ -58,8 +58,8 @@
     </div>
 
 </div>
-<div class="ui modal" id="edit404RuleDialog">
-    <i class="close icon"></i>
+<div class="ui modal" id="edit404RuleDialog" ng-class="{active: edit404RuleDialogVisible}" ng-keyup="escapeToClose($event)">
+    <i class="purple close icon" ng-click="edit404RuleDialogVisible = false"></i>
 
     <div class="ui dividing center aligned header">
         Edit Immediate 404 Rule

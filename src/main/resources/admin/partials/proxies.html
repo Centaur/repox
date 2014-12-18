@@ -39,8 +39,8 @@
     </table>
 </div>
 
-<div class="ui modal" id="newProxyDialog">
-    <i class="close icon"></i>
+<div class="ui modal" id="newProxyDialog" ng-keyup="escapeToClose($event)" ng-class="{active: newProxyDialogVisible}">
+    <i class="orange close icon" ng-click="newProxyDialogVisible = false"></i>
 
     <div class="ui dividing center aligned header">
         Add New Proxy
@@ -71,8 +71,8 @@
     </div>
 
 </div>
-<div class="ui modal" id="editProxyDialog">
-    <i class="close icon"></i>
+<div class="ui modal" id="editProxyDialog"  ng-keyup="escapeToClose($event)" ng-class="{active: editProxyDialogVisible}">
+    <i class="orange close icon"  ng-click="editProxyDialogVisible = false"></i>
 
     <div class="ui dividing center aligned header">
         Edit Proxy

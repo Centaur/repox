@@ -84,8 +84,17 @@ repoxControllers.controller('MenuCtrl', ['$scope', '$location', '$http', '$route
     }
 }]);
 
-repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', '$route', 'auth', function ($scope, $http, $route, auth) {
+repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', '$route', 'auth', '$timeout', function ($scope, $http, $route, auth, $timeout) {
     auth(function () {
+        $scope.escapeToClose = function ($event) {
+            if ($event.keyCode == 27) {
+                $scope.newUpstreamDialogVisible = false;
+                $scope.editUpstreamDialogVisible = false;
+            }
+        };
+        $scope.newUpstreamDialogVisible = false;
+        $scope.editUpstreamDialogVisible = false;
+
         $scope.upstreams = [];
         $scope.connectors = [];
 
@@ -131,28 +140,43 @@ repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', '$route', 'auth
 
         $scope.showNewRepoDialog = function () {
             $scope.newUpstream = {repo: {maven: false, getOnly: false, disabled: false, priority: 10}};
-            $('#newRepoDialog').modal('show');
+            $scope.newUpstreamDialogVisible = true;
+            $timeout(function () {
+                $('#new-repo-name').focus();
+            });
         };
         $scope.submitNewRepo = function () {
             $http.post('upstream?v=' + encodeURIComponent(JSON.stringify($scope.newUpstream)), {}).success(function () {
-                $('#newRepoDialog').modal('hide');
+                $scope.newUpstreamDialogVisible = false;
                 $route.reload();
             })
         };
         $scope.showEditRepoDialog = function (upstream) {
-            $scope.editUpstream = upstream;
-            $('#editRepoDialog').modal('show');
+            $scope.editUpstream = {repo: _.clone(upstream.repo), connector: upstream.connector};
+            $scope.editUpstreamDialogVisible = true;
+            $timeout(function () {
+                $('#edit-repo-name').select().focus();
+            });
         };
         $scope.submitEditRepo = function () {
             $http.put('upstream?v=' + encodeURIComponent(JSON.stringify($scope.editUpstream)), {}).success(function () {
-                $('#editRepoDialog').modal('hide');
+                $scope.editUpstreamDialogVisible = false;
                 $route.reload();
             })
         };
     });
 }]);
-repoxControllers.controller('ConnectorsCtrl', ['$scope', '$http', '$route', 'auth', function ($scope, $http, $route, auth) {
+repoxControllers.controller('ConnectorsCtrl', ['$scope', '$http', '$route', 'auth', '$timeout', function ($scope, $http, $route, auth, $timeout) {
     auth(function () {
+        $scope.escapeToClose = function ($event) {
+            if ($event.keyCode == 27) {
+                $scope.newConnectorDialogVisible = false;
+                $scope.editConnectorDialogVisible = false;
+            }
+        };
+        $scope.newConnectorDialogVisible = false;
+        $scope.editConnectorDialogVisible = false;
+
         $scope.proxies = [];
         $scope.connectors = [];
 
@@ -176,21 +200,27 @@ repoxControllers.controller('ConnectorsCtrl', ['$scope', '$http', '$route', 'aut
                     maxConnectionsPerHost: 20
                 }
             };
-            $('#newConnectorDialog').modal('show');
+            $scope.newConnectorDialogVisible = true;
+            $timeout(function () {
+                $('#new-connector-name').focus();
+            })
         };
         $scope.submitNewConnector = function () {
             $http.post('connector?v=' + encodeURIComponent(JSON.stringify($scope.newConnector)), {}).success(function () {
-                $('#newConnectorDialog').modal('hide');
+                $scope.newConnectorDialogVisible = false;
                 $route.reload();
             })
         };
         $scope.showEditConnectorDialog = function (connector) {
-            $scope.editConnector = connector;
-            $('#editConnectorDialog').modal('show');
+            $scope.editConnector = {connector: _.clone(connector.connector), proxy: connector.proxy};
+            $scope.editConnectorDialogVisible = true;
+            $timeout(function () {
+                $('#edit-connector-name').select().focus();
+            });
         };
         $scope.submitEditConnector = function () {
             $http.put('connector?v=' + encodeURIComponent(JSON.stringify($scope.editConnector)), {}).success(function () {
-                $('#editConnectorDialog').modal('hide');
+                $scope.editConnectorDialogVisible = false;
                 $route.reload();
             })
         };
@@ -205,29 +235,44 @@ repoxControllers.controller('ConnectorsCtrl', ['$scope', '$http', '$route', 'aut
 }]);
 
 
-repoxControllers.controller('ProxiesCtrl', ['$scope', '$http', '$route', 'auth', function ($scope, $http, $route, auth) {
+repoxControllers.controller('ProxiesCtrl', ['$scope', '$http', '$route', 'auth', '$timeout', function ($scope, $http, $route, auth, $timeout) {
     auth(function () {
+        $scope.escapeToClose = function ($event) {
+            if ($event.keyCode == 27) {
+                $scope.newProxyDialogVisible = false;
+                $scope.editProxyDialogVisible = false;
+            }
+        };
+        $scope.newProxyDialogVisible = false;
+        $scope.editProxyDialogVisible = false;
+
         $scope.proxies = [];
         $http.get('proxies').success(function (data) {
             $scope.proxies = data;
         })
         $scope.showNewProxyDialog = function () {
             $scope.newProxy = {protocol: 'HTTP', disabled: false};
-            $('#newProxyDialog').modal('show');
+            $scope.newProxyDialogVisible = true;
+            $timeout(function () {
+                $('#new-proxy-name').focus();
+            })
         };
         $scope.submitNewProxy = function () {
             $http.post('proxy?v=' + encodeURIComponent(JSON.stringify($scope.newProxy)), {}).success(function () {
-                $('#newProxyDialog').modal('hide');
+                $scope.newProxyDialogVisible = true;
                 $route.reload();
             })
         };
         $scope.showEditProxyDialog = function (proxy) {
-            $scope.editProxy = proxy;
-            $('#editProxyDialog').modal('show');
+            $scope.editProxy = _.clone(proxy);
+            $scope.editProxyDialogVisible = true;
+            $timeout(function () {
+                $('#edit-proxy-name').select().focus()
+            })
         };
         $scope.submitEditProxy = function () {
             $http.put('proxy?v=' + encodeURIComponent(JSON.stringify($scope.editProxy)), {}).success(function () {
-                $('#editProxyDialog').modal('hide');
+                $scope.editProxyDialogVisible = false;
                 $route.reload();
             })
         }
@@ -244,29 +289,43 @@ repoxControllers.controller('ProxiesCtrl', ['$scope', '$http', '$route', 'auth',
         };
     });
 }]);
-repoxControllers.controller('Immediate404RulesCtrl', ['$scope', '$http', '$route', 'auth', function ($scope, $http, $route, auth) {
+repoxControllers.controller('Immediate404RulesCtrl', ['$scope', '$http', '$route', 'auth', '$timeout', function ($scope, $http, $route, auth, $timeout) {
     auth(function () {
+        $scope.escapeToClose = function ($event) {
+            if ($event.keyCode == 27) {
+                $scope.new404RuleDialogVisible = false;
+                $scope.edit404RuleDialogVisible = false;
+            }
+        };
+        $scope.new404RuleDialogVisible = false;
+        $scope.edit404RuleDialogVisible = false;
         $scope.rules = [];
         $http.get('immediate404Rules').success(function (data) {
             $scope.rules = data;
         });
         $scope.showNewRuleDialog = function () {
             $scope.newRule = {disabled: false};
-            $('#new404RuleDialog').modal('show');
+            $scope.new404RuleDialogVisible = true;
+            $timeout(function () {
+                $('#new-rule-include').focus();
+            })
         };
         $scope.submitNewRule = function () {
             $http.post('immediate404Rule?v=' + encodeURIComponent(JSON.stringify($scope.newRule)), {}).success(function () {
-                $('#new404RuleDialog').modal('hide');
+                $scope.new404RuleDialogVisible = false;
                 $route.reload();
             })
         };
         $scope.showEditRuleDialog = function (rule) {
-            $scope.editRule = rule;
-            $('#edit404RuleDialog').modal('show');
+            $scope.editRule = _.clone(rule);
+            $scope.edit404RuleDialogVisible = true;
+            $timeout(function () {
+                $('#edit-rule-include').select().focus();
+            })
         };
         $scope.submitEditRule = function () {
             $http.put('immediate404Rule?v=' + encodeURIComponent(JSON.stringify($scope.editRule)), {}).success(function () {
-                $('#edit404RuleDialog').modal('hide');
+                $scope.edit404RuleDialogVisible = false;
                 $route.reload();
             })
         };
@@ -284,29 +343,44 @@ repoxControllers.controller('Immediate404RulesCtrl', ['$scope', '$http', '$route
 
     });
 }]);
-repoxControllers.controller('ExpireRulesCtrl', ['$scope', '$http', '$route', 'auth', function ($scope, $http, $route, auth) {
+repoxControllers.controller('ExpireRulesCtrl', ['$scope', '$http', '$route', 'auth', '$timeout', function ($scope, $http, $route, auth, $timeout) {
     auth(function () {
+        $scope.escapeToClose = function ($event) {
+            if ($event.keyCode == 27) {
+                $scope.newExpireRuleDialogVisible = false;
+                $scope.editExpireRuleDialogVisible = false;
+            }
+        };
+        $scope.newExpireRuleDialogVisible = false;
+        $scope.editExpireRuleDialogVisible = false;
+
         $scope.rules = [];
         $http.get('expireRules').success(function (data) {
             $scope.rules = data;
         });
         $scope.showNewRuleDialog = function () {
             $scope.newRule = {disabled: false};
-            $('#newExpireRuleDialog').modal('show');
+            $scope.newExpireRuleDialogVisible = true;
+            $timeout(function () {
+                $('#new-rule-pattern').focus();
+            });
         };
         $scope.submitNewRule = function () {
             $http.post('expireRule?v=' + encodeURIComponent(JSON.stringify($scope.newRule)), {}).success(function () {
-                $('#newExpireRuleDialog').modal('hide');
+                $scope.newExpireRuleDialogVisible = false;
                 $route.reload();
             })
         };
         $scope.showEditRuleDialog = function (rule) {
-            $scope.editRule = rule;
-            $('#editExpireRuleDialog').modal('show');
+            $scope.editRule = _.clone(rule);
+            $scope.editExpireRuleDialogVisible = true;
+            $timeout(function () {
+                $('#edit-rule-pattern').select().focus();
+            });
         };
         $scope.submitEditRule = function () {
             $http.put('expireRule?v=' + encodeURIComponent(JSON.stringify($scope.editRule)), {}).success(function () {
-                $('#editExpireRuleDialog').modal('hide');
+                $scope.editExpireRuleDialogVisible = false;
                 $route.reload();
             })
         };
@@ -324,20 +398,28 @@ repoxControllers.controller('ExpireRulesCtrl', ['$scope', '$http', '$route', 'au
     });
 }]);
 
-repoxControllers.controller('ParametersCtrl', ['$scope', '$http', '$route', 'auth', function ($scope, $http, $route, auth) {
+repoxControllers.controller('ParametersCtrl', ['$scope', '$http', '$route', 'auth', '$timeout', function ($scope, $http, $route, auth, $timeout) {
     auth(function () {
+        $scope.escapeToClose = function ($event) {
+            if ($event.keyCode == 27) {
+                $scope.editParameterDialogVisible = false;
+            }
+        };
         $scope.parameters = [];
         $http.get('parameters').success(function (data) {
             $scope.parameters = data;
         });
 
         $scope.showEditParameterDialog = function (parameter) {
-            $scope.editParameter = parameter;
-            $('#editParameterDialog').modal('show');
+            $scope.editParameter = _.clone(parameter);
+            $scope.editParameterDialogVisible = true;
+            $timeout(function () {
+                $('#edit-parameter').select().focus();
+            })
         };
         $scope.submitParameter = function () {
             $http.put($scope.editParameter.name + '?v=' + $scope.editParameter.value, {}).success(function () {
-                $('#editParameterDialog').modal('hide');
+                $scope.editParameterDialogVisible = false;
                 $route.reload();
             })
         };
@@ -369,7 +451,7 @@ repoxControllers.controller('ModifyPwdCtrl', ['$scope', '$http', '$route', '$win
             })), {}).success(function () {
                 $window.alert('Success. Relogin.');
                 $location.path('/login')
-            }).error(function() {
+            }).error(function () {
                 $window.alert('Failed');
                 $route.reload();
             })
@@ -388,8 +470,9 @@ repoxControllers.factory('auth', ['$location', function ($location) {
         }
         return null;
     }
+
     return function (callback) {
-        if (! (readCookie('authenticated') === 'true')) {
+        if (!(readCookie('authenticated') === 'true')) {
             $location.path('/login')
         } else {
             callback();

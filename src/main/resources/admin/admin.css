@@ -11,6 +11,9 @@
     padding: .39em;
 }
 
+.ui.modal {
+    margin-top: -15%;
+}
 .ui.modal > .header {
     padding: 0.6rem 2rem;
 }
