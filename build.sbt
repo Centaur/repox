@@ -16,20 +16,25 @@ libraryDependencies ++= Seq(
     .exclude("org.slf4j", "slf4j-api"),
   ("com.typesafe.akka" %% "akka-actor" % akkaVersion withSources())
     .exclude("org.slf4j", "slf4j-api"),
-  ("com.typesafe.akka" %% "akka-remote" % akkaVersion withSources())
-    .exclude("org.slf4j", "slf4j-api"),
   ("com.typesafe.akka" %% "akka-slf4j" % akkaVersion)
     .exclude("org.slf4j", "slf4j-api"),
   ("com.typesafe.akka" %% "akka-agent" % akkaVersion)
     .exclude("org.scala-lang", "scala-library"),
   ("com.typesafe.akka" %% "akka-persistence-experimental" % akkaVersion)
+    .exclude("org.scala-lang", "scala-library")
+    .exclude("com.google.protobuf", "protobuf-java")
+    .exclude("org.iq80.leveldb", "leveldb"),
+  ("com.typesafe.play" %% "play-json" % "2.4.0-M2")
     .exclude("org.scala-lang", "scala-library"),
-  "com.typesafe.play" %% "play-json" % "2.4.0-M2" withSources(),
+  "com.google.protobuf" % "protobuf-java" % "2.6.1",
+  "com.google.guava" % "guava" % "18.0",
   "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 )
 
 // to use repox, this option must be false, or when retry updateClassifiers, it will not download srcs
 //updateOptions := updateOptions.value.withCachedResolution(false)
+
+transitiveClassifiers := Seq("sources")
 
 fork := true
 

@@ -2,6 +2,7 @@ package com.gtan.repox.config
 
 import com.gtan.repox.admin.RepoVO
 import com.gtan.repox.data.Repo
+import play.api.libs.json.Json
 
 trait RepoPersister {
 
@@ -23,6 +24,11 @@ trait RepoPersister {
         case Some(p) => newRepos.copy(connectorUsage = oldConnectorUsage.updated(voWithId.repo, p))
       }
     }
+
+    override def toJson = Json.toJson(this)
+  }
+  object NewRepo {
+    implicit val format = Json.format[NewRepo]
   }
 
   case class DisableRepo(id: Long) extends Cmd {
@@ -33,6 +39,10 @@ trait RepoPersister {
         case o => o
       })
     }
+    override def toJson = Json.toJson(this)
+  }
+  object DisableRepo {
+    implicit val format = Json.format[DisableRepo]
   }
 
   case class EnableRepo(id: Long) extends Cmd {
@@ -43,6 +53,10 @@ trait RepoPersister {
         case o => o
       })
     }
+    override def toJson = Json.toJson(this)
+  }
+  object EnableRepo {
+    implicit val format = Json.format[EnableRepo]
   }
 
   case class DeleteRepo(id: Long) extends Cmd {
@@ -54,6 +68,10 @@ trait RepoPersister {
         connectorUsage = oldProxyUsage.filterNot { case (repo, proxy) => repo.id == Some(id)}
       )
     }
+    override def toJson = Json.toJson(this)
+  }
+  object DeleteRepo {
+    implicit val format = Json.format[DeleteRepo]
   }
 
   case class UpdateRepo(vo: RepoVO) extends Cmd {
@@ -74,6 +92,10 @@ trait RepoPersister {
       }
       newConfig.getOrElse(old)
     }
+    override def toJson = Json.toJson(this)
+  }
+  object UpdateRepo {
+    implicit val format = Json.format[UpdateRepo]
   }
 
   case class MoveUpRepo(id: Long) extends Cmd {
@@ -113,6 +135,11 @@ trait RepoPersister {
         }
       }
     }
+    override def toJson = Json.toJson(this)
+  }
+
+  object MoveUpRepo {
+    implicit val format = Json.format[MoveUpRepo]
   }
 
   case class MoveDownRepo(id: Long) extends Cmd {
@@ -153,6 +180,10 @@ trait RepoPersister {
         }
       }
     }
+    override def toJson = Json.toJson(this)
+  }
+  object MoveDownRepo {
+    implicit val format = Json.format[MoveDownRepo]
   }
 
 }

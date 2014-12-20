@@ -7,6 +7,7 @@ import com.gtan.repox.data._
 import com.gtan.repox.Repox
 import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
 import com.typesafe.scalalogging.LazyLogging
+import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -26,7 +27,8 @@ case class Config(proxies: Seq[ProxyServer],
                   headRetryTimes: Int,
                   password: String)
 
-object Config extends LazyLogging {
+object Config extends LazyLogging with ConfigFormats{
+
   val defaultProxies = List(
     ProxyServer(id = Some(1), name = "Lantern", protocol = JProxyServer.Protocol.HTTP, host = "localhost", port = 8787)
   )

@@ -6,12 +6,21 @@ import akka.persistence.{PersistentActor, RecoveryCompleted}
 import com.gtan.repox.{Repox, RequestQueueMaster}
 import com.ning.http.client.{ProxyServer => JProxyServer, AsyncHttpClient}
 import io.undertow.util.StatusCodes
+import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait Cmd {
   def transform(old: Config): Config
+  def toJson: JsValue
+  def serializeToJson = JsObject(
+    Seq(
+      "manifest" -> JsString(this.getClass.getName),
+      "payload" -> toJson
+    )
+  )
+
 }
 
 trait Evt
