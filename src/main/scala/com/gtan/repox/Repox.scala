@@ -17,6 +17,7 @@ import io.undertow.util._
 
 import scala.language.postfixOps
 import scala.concurrent.duration._
+import scala.util.{Success, Failure, Try}
 
 object Repox extends LazyLogging {
   def lookForExpireRule(uri: String): Option[ExpireRule] = Config.expireRules.find(rule => !rule.disabled && uri.matches(rule.pattern))
@@ -26,12 +27,12 @@ object Repox extends LazyLogging {
 
   val system = ActorSystem("repox")
 
-  val configView          = system.actorOf(Props[ConfigView], name = "ConfigView")
-  val configPersister     = system.actorOf(Props[ConfigPersister], "ConfigPersister")
+  val configView = system.actorOf(Props[ConfigView], name = "ConfigView")
+  val configPersister = system.actorOf(Props[ConfigPersister], "ConfigPersister")
   val expirationPersister = system.actorOf(Props[ExpirationPersister], "ExpirationPersister")
-  val head404Cache        = system.actorOf(Props[Head404Cache], "HeaderCache")
-  val requestQueueMaster  = system.actorOf(Props[RequestQueueMaster], "RequestQueueMaster")
-  val sha1Checker         = system.actorOf(Props[SHA1Checker], "SHA1Checker")
+  val head404Cache = system.actorOf(Props[Head404Cache], "HeaderCache")
+  val requestQueueMaster = system.actorOf(Props[RequestQueueMaster], "RequestQueueMaster")
+  val sha1Checker = system.actorOf(Props[SHA1Checker], "SHA1Checker")
 
 
   val clients: Agent[Map[String, AsyncHttpClient]] = Agent(null)
@@ -85,17 +86,17 @@ object Repox extends LazyLogging {
     }
   }
 
-  val MavenFormat           = """(/.+)+/((.+?)(_(.+?)(_(.+))?)?)/(.+?)/(\3-\8(-(.+?))?\.(.+))""".r
-  val IvyFormat             = """/(.+?)/(.+?)/(scala_(.+?)/)?(sbt_(.+?)/)?(.+?)/(.+?)s/((.+?)(-(.+))?\.(.+))""".r
+  val MavenFormat = """(/.+)+/((.+?)(_(.+?)(_(.+))?)?)/(.+?)/(\3-\8(-(.+?))?\.(.+))""".r
+  val IvyFormat = """/(.+?)/(.+?)/(scala_(.+?)/)?(sbt_(.+?)/)?(.+?)/(.+?)s/((.+?)(-(.+))?\.(.+))""".r
   val supportedScalaVersion = List("2.10", "2.11")
-  val supportedSbtVersion   = List("0.13")
+  val supportedSbtVersion = List("0.13")
 
   /**
    * transform between uri formats
    * @param uri
    * @return maven format if is ivy format, or ivy format if is maven format
    */
-  def peer(uri: String): List[String] = uri match {
+  def peer(uri: String): Try[List[String]] = uri match {
     case MavenFormat(groupIds, _, artifactId, _, scalaVersion, _, sbtVersion, version, fileName, _, classifier, ext) =>
       val organization = groupIds.split("/").filter(_.nonEmpty).mkString(".")
       val typ = ext match {
@@ -106,22 +107,22 @@ object Repox extends LazyLogging {
         case "pom" => "ivy.xml"
         case _ => s"$artifactId.$ext"
       }
-      if (scalaVersion != null && sbtVersion != null) {
+      val result = if (scalaVersion != null && sbtVersion != null) {
         s"/$organization/$artifactId/scala_$scalaVersion/sbt_$sbtVersion/$version/${typ}s/$peerFile" :: Nil
       } else if (scalaVersion == null && sbtVersion == null) {
         val guessedMavenArtifacts = for (scala <- supportedScalaVersion; sbt <- supportedSbtVersion) yield
           s"$groupIds/${artifactId}_${scala}_$sbt/$version/$fileName"
         s"/$organization/$artifactId/$version/${typ}s/$peerFile" :: guessedMavenArtifacts
       } else List(s"/$organization/$artifactId/$version/${typ}s/$peerFile")
-
+      Success(result)
     case IvyFormat(organization, module, _, scalaVersion, _, sbtVersion, revision, typ, fileName, artifact, _, classifier, ext) =>
-      if (scalaVersion == null && sbtVersion == null) {
+      val result = if (scalaVersion == null && sbtVersion == null) {
         for (scala <- supportedScalaVersion; sbt <- supportedSbtVersion) yield
           s"/${organization.split("\\.").mkString("/")}/${module}_${scala}_$sbt/$revision/$module-$revision.$ext"
       } else Nil
+      Success(result)
     case _ =>
-      // this should not happen
-      Nil
+      Failure(new RuntimeException("Invalid Request"))
   }
 
   val resourceHandlers: Agent[Map[ResourceManager, ResourceHandler]] = Agent(null)
@@ -160,13 +161,21 @@ object Repox extends LazyLogging {
   }
 
   def handle(exchange: HttpServerExchange): Unit = {
-    exchange.getRequestMethod match {
-      case Methods.HEAD =>
-        requestQueueMaster ! Requests.Head(exchange)
-      case Methods.GET =>
-        requestQueueMaster ! Requests.Get(exchange)
-      case _ =>
-        immediate404(exchange)
+    val uri = exchange.getRequestURI
+    val method = exchange.getRequestMethod
+    Repox.peer(uri) match {
+      case Success(_) =>
+         method match {
+          case Methods.HEAD =>
+            requestQueueMaster ! Requests.Head(exchange)
+          case Methods.GET =>
+            requestQueueMaster ! Requests.Get(exchange)
+          case _ =>
+            immediate404(exchange)
+        }
+      case Failure(_) =>
+        Repox.respond404(exchange)
+        logger.debug(s"Invalid request $method $uri. 404.")
     }
   }
 

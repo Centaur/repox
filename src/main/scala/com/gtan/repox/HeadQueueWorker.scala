@@ -24,7 +24,7 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
 
   override def receive = start
 
-  var found                                = false
+  var found = false
   var resultHeaders: Repox.ResponseHeaders = _
 
   def start: Receive = {
@@ -35,13 +35,15 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
           Repox.immediateHead(resourceManager, exchange)
           suicide()
         case None =>
-          Repox.peer(uri).find(p => Repox.downloaded(p).isDefined) match {
-            case Some(peer) =>
-              Repox.smart404(exchange)
-              suicide()
-            case _ =>
-              context.actorOf(Props(classOf[HeadMaster], exchange), name = s"HeadMaster_${Random.nextInt()}")
-              context become working
+          for (peers <- Repox.peer(uri)) {
+            peers.find(p => Repox.downloaded(p).isDefined) match {
+              case Some(peer) =>
+                Repox.smart404(exchange)
+                suicide()
+              case _ =>
+                context.actorOf(Props(classOf[HeadMaster], exchange), name = s"HeadMaster_${Random.nextInt()}")
+                context become working
+            }
           }
       }
   }

@@ -10,7 +10,7 @@ import io.undertow.server.handlers.resource.{FileResourceManager, ResourceManage
 import io.undertow.util.StatusCodes
 
 import scala.collection.Set
-import scala.util.Random
+import scala.util.{Failure, Success, Random}
 
 case class Queue(method: Symbol, uri: String)
 
@@ -37,7 +37,7 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
   import RequestQueueMaster._
   import concurrent.ExecutionContext.Implicits.global
 
-  var children    = Map.empty[Queue, ActorRef]
+  var children = Map.empty[Queue, ActorRef]
   // Quuee -> Get/HeadQueueWorker
   var quarantined = Map.empty[String, ActorRef] // Uri -> FileDeleter
 
@@ -107,7 +107,6 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
       }
     case req@Requests.Get(exchange) =>
       val uri = exchange.getRequestURI
-      log.debug(s"uri=$uri")
       quarantined.get(uri) match {
         case None =>
           val queue = Queue('get, uri)
@@ -141,35 +140,37 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
           worker ! PoisonPill
         }
       } else {
-        Repox.peer(uri).find(p => Repox.downloaded(p).isDefined) match {
-          case Some(peer) =>
-            Repox.smart404(exchange)
-          case _ =>
-            quarantined.get(uri) match {
-              case None =>
-                Repox.downloaded(uri) match {
-                  case Some(Tuple2(resourceManager, resourceHandler)) =>
-                    Repox.immediateHead(resourceManager, exchange)
-                    for (worker <- children.get(queue)) {
-                      worker ! PoisonPill
-                    }
-                  case None =>
-                    children.get(queue) match {
-                      case None =>
-                        val childName = s"HeadQueueWorker_${Random.nextInt()}"
-                        val worker = context.actorOf(Props(classOf[HeadQueueWorker], uri), name = childName)
-                        log.debug(s"create HeadQueueWorker $childName")
-                        children = children.updated(queue, worker)
-                        worker ! req
-                      case Some(worker) =>
-                        log.debug(s"Enqueue to HeadQueueWorker ${worker.path.name} $uri")
-                        worker ! req
-                    }
-                }
-              case Some(deleter) =>
-                // file quarantined, 404
-                Repox.respond404(exchange)
-            }
+        for (peers <- Repox.peer(uri)) {
+          peers.find(p => Repox.downloaded(p).isDefined) match {
+            case Some(peer) =>
+              Repox.smart404(exchange)
+            case _ =>
+              quarantined.get(uri) match {
+                case None =>
+                  Repox.downloaded(uri) match {
+                    case Some(Tuple2(resourceManager, resourceHandler)) =>
+                      Repox.immediateHead(resourceManager, exchange)
+                      for (worker <- children.get(queue)) {
+                        worker ! PoisonPill
+                      }
+                    case None =>
+                      children.get(queue) match {
+                        case None =>
+                          val childName = s"HeadQueueWorker_${Random.nextInt()}"
+                          val worker = context.actorOf(Props(classOf[HeadQueueWorker], uri), name = childName)
+                          log.debug(s"create HeadQueueWorker $childName")
+                          children = children.updated(queue, worker)
+                          worker ! req
+                        case Some(worker) =>
+                          log.debug(s"Enqueue to HeadQueueWorker ${worker.path.name} $uri")
+                          worker ! req
+                      }
+                  }
+                case Some(deleter) =>
+                  // file quarantined, 404
+                  Repox.respond404(exchange)
+              }
+          }
         }
       }
   }

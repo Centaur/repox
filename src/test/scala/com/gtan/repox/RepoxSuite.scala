@@ -17,7 +17,12 @@ class RepoxSuite extends FunSuite {
 
   val ivyData = Map(
     "/net.virtual-void/sbt-dependency-graph/0.7.4/jars/sbt-dependency-graph.jar" -> "/net/virtual-void/sbt-dependency-graph_2.10_0.13/0.7.4/sbt-dependency-graph-0.7.4.jar"
-    ,"/com.github.mpeltonen/sbt-idea/1.6.0/jars/sbt-idea.jar" -> "/com/github/mpeltonen/sbt-idea_2.10_0.13/1.6.0/sbt-idea-1.6.0.jar"
+    , "/com.github.mpeltonen/sbt-idea/1.6.0/jars/sbt-idea.jar" -> "/com/github/mpeltonen/sbt-idea_2.10_0.13/1.6.0/sbt-idea-1.6.0.jar"
+  )
+
+  val invalidData = Seq(
+    "/joda-time/joda-time/",
+    "/joda-time/joda-time"
   )
 
   test("MavenFormat should match keys of mavenData") {
@@ -30,7 +35,14 @@ class RepoxSuite extends FunSuite {
 
   test("keys in all data map should have the value as peer") {
     assert((mavenData ++ ivyData).forall { case (k, v) =>
-      Repox.peer(k).contains(v)
+      val peers = Repox.peer(k)
+      peers.isSuccess && peers.get.contains(v)
+    })
+  }
+
+  test("requests in invalidData are invalid request") {
+    assert(invalidData.forall { uri =>
+      Repox.peer(uri).isFailure
     })
   }
 }
