@@ -1,11 +1,16 @@
 package com.gtan.repox.config
 
+import java.nio.file.Paths
+
 import akka.actor.{ActorLogging, ActorRef}
 import akka.pattern.pipe
-import akka.persistence.{PersistentActor, RecoveryCompleted}
+import akka.persistence.{RecoveryFailure, PersistentActor, RecoveryCompleted}
 import com.gtan.repox.{Repox, RequestQueueMaster}
 import com.ning.http.client.{ProxyServer => JProxyServer, AsyncHttpClient}
+import io.undertow.Handlers
+import io.undertow.server.handlers.resource.{ResourceManager, FileResourceManager}
 import io.undertow.util.StatusCodes
+import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -20,11 +25,11 @@ case class ConfigChanged(config: Config, cmd: Cmd) extends Evt
 
 case object UseDefault extends Evt
 
-case object ConfigPersister extends RepoPersister with ParameterPersister
-                                    with ConnectorPersister
-                                    with ProxyPersister
-                                    with Immediate404RulePersister
-                                    with ExpireRulePersister
+object ConfigPersister extends RepoPersister with ParameterPersister
+                               with ConnectorPersister
+                               with ProxyPersister
+                               with Immediate404RulePersister
+                               with ExpireRulePersister
 
 class ConfigPersister extends PersistentActor with ActorLogging {
 
@@ -59,7 +64,18 @@ class ConfigPersister extends PersistentActor with ActorLogging {
           }
           clients.updated(vo.connector.name, vo.connector.createClient)
         }
-      case _ => Future {Map.empty[String, AsyncHttpClient]}
+      case SetExtraResources(_) =>
+        Repox.resourceHandlers.alter((for (er <- Config.resourceBases) yield {
+          val resourceManager: ResourceManager = new FileResourceManager(Paths.get(er).toFile, 100 * 1024)
+          val resourceHandler = Handlers.resource(resourceManager)
+          resourceManager -> resourceHandler
+        }).toMap)
+        Future {
+          Map.empty[String, AsyncHttpClient]
+        }
+      case _ => Future {
+        Map.empty[String, AsyncHttpClient]
+      }
     }
     future.map(_ => StatusCodes.OK) pipeTo sender
   }
@@ -98,5 +114,8 @@ class ConfigPersister extends PersistentActor with ActorLogging {
           Repox.requestQueueMaster ! RequestQueueMaster.ConfigLoaded
         }
       }
+
+    case RecoveryFailure(t) =>
+      t.printStackTrace()
   }
 }

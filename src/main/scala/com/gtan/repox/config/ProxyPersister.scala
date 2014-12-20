@@ -1,6 +1,8 @@
 package com.gtan.repox.config
 
+import com.gtan.repox.SerializationSupport
 import com.gtan.repox.data.{ProxyServer, Repo}
+import play.api.libs.json.{JsValue, Json}
 
 trait ProxyPersister {
 
@@ -15,6 +17,10 @@ trait ProxyPersister {
     }
   }
 
+  object NewOrUpdateProxy {
+    implicit val format = Json.format[NewOrUpdateProxy]
+  }
+
   case class EnableProxy(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldProxies = old.proxies
@@ -25,6 +31,10 @@ trait ProxyPersister {
     }
   }
 
+  object EnableProxy {
+    implicit val format = Json.format[EnableProxy]
+  }
+
   case class DisableProxy(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldProxies = old.proxies
@@ -33,6 +43,10 @@ trait ProxyPersister {
         case p => p
       })
     }
+  }
+
+  object DisableProxy {
+    implicit val format = Json.format[DisableProxy]
   }
 
   case class DeleteProxy(id: Long) extends Cmd {
@@ -46,4 +60,30 @@ trait ProxyPersister {
     }
   }
 
+  object DeleteProxy {
+    implicit val format = Json.format[DeleteProxy]
+  }
+}
+
+object ProxyPersister extends SerializationSupport {
+  import ConfigPersister._
+
+  val NewOrUpdateProxyClass            = classOf[NewOrUpdateProxy].getName
+  val EnableProxyClass                 = classOf[EnableProxy].getName
+  val DisableProxyClass                = classOf[DisableProxy].getName
+  val DeleteProxyClass                 = classOf[DeleteProxy].getName
+
+  override val reader: (JsValue) => PartialFunction[String, Cmd] = payload => {
+    case NewOrUpdateProxyClass => payload.as[NewOrUpdateProxy]
+    case DisableProxyClass => payload.as[DisableProxy]
+    case EnableProxyClass => payload.as[EnableProxy]
+    case DeleteProxyClass => payload.as[DeleteProxy]
+  }
+
+  override val writer  : PartialFunction[Cmd, JsValue]             = {
+    case o: NewOrUpdateProxy => Json.toJson(o)
+    case o: DisableProxy => Json.toJson(o)
+    case o: EnableProxy => Json.toJson(o)
+    case o: DeleteProxy => Json.toJson(o)
+  }
 }

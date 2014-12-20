@@ -12,7 +12,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.undertow.Handlers
 import io.undertow.io.{Sender, IoCallback}
 import io.undertow.server.HttpServerExchange
-import io.undertow.server.handlers.resource.FileResourceManager
+import io.undertow.server.handlers.resource.{ResourceManager, ResourceHandler, FileResourceManager}
 import io.undertow.util._
 
 import scala.language.postfixOps
@@ -26,12 +26,12 @@ object Repox extends LazyLogging {
 
   val system = ActorSystem("repox")
 
-  val configView = system.actorOf(Props[ConfigView], name = "ConfigView")
-  val configPersister = system.actorOf(Props[ConfigPersister], "ConfigPersister")
+  val configView          = system.actorOf(Props[ConfigView], name = "ConfigView")
+  val configPersister     = system.actorOf(Props[ConfigPersister], "ConfigPersister")
   val expirationPersister = system.actorOf(Props[ExpirationPersister], "ExpirationPersister")
-  val head404Cache = system.actorOf(Props[Head404Cache], "HeaderCache")
-  val requestQueueMaster = system.actorOf(Props[RequestQueueMaster], "RequestQueueMaster")
-  val sha1Checker = system.actorOf(Props[SHA1Checker], "SHA1Checker")
+  val head404Cache        = system.actorOf(Props[Head404Cache], "HeaderCache")
+  val requestQueueMaster  = system.actorOf(Props[RequestQueueMaster], "RequestQueueMaster")
+  val sha1Checker         = system.actorOf(Props[SHA1Checker], "SHA1Checker")
 
 
   val clients: Agent[Map[String, AsyncHttpClient]] = Agent(null)
@@ -43,7 +43,7 @@ object Repox extends LazyLogging {
       connector -> clients.get().apply(connector.name)
   }
 
-  def resourceManager = new FileResourceManager(Paths.get(Config.storage).toFile, Long.MaxValue)
+  val storageManager = new FileResourceManager(Config.storagePath.toFile, 100 * 1024)
 
   type StatusCode = Int
   type ResponseHeaders = Map[String, java.util.List[String]]
@@ -53,7 +53,7 @@ object Repox extends LazyLogging {
 
   def isIvyUri(uri: String) = uri.matches( """/[^/]+?\.[^/]+?/.+""")
 
-  def resolveToPath(uri: String) = Paths.get(Config.storage).resolve(uri.tail)
+  def resolveToPath(uri: String) = Config.storagePath.resolve(uri.tail)
 
   def orderByPriority(candidates: Seq[Repo]): Seq[Seq[Repo]] =
     candidates.groupBy(_.priority).toSeq.sortBy(_._1).map(_._2)
@@ -79,14 +79,16 @@ object Repox extends LazyLogging {
    * @param uri resource to get or query
    * @return
    */
-  def downloaded(uri: String): Boolean = {
-    Paths.get(Config.storage).resolve(uri.tail).toFile.exists
+  def downloaded(uri: String): Option[(ResourceManager, ResourceHandler)] = {
+    resourceHandlers.get().find { case (resourceManager, handler) =>
+      resourceManager.getResource(uri.tail) != null
+    }
   }
 
-  val MavenFormat = """(/.+)+/((.+?)(_(.+?)(_(.+))?)?)/(.+?)/(\3-\8(-(.+?))?\.(.+))""".r
-  val IvyFormat = """/(.+?)/(.+?)/(scala_(.+?)/)?(sbt_(.+?)/)?(.+?)/(.+?)s/((.+?)(-(.+))?\.(.+))""".r
+  val MavenFormat           = """(/.+)+/((.+?)(_(.+?)(_(.+))?)?)/(.+?)/(\3-\8(-(.+?))?\.(.+))""".r
+  val IvyFormat             = """/(.+?)/(.+?)/(scala_(.+?)/)?(sbt_(.+?)/)?(.+?)/(.+?)s/((.+?)(-(.+))?\.(.+))""".r
   val supportedScalaVersion = List("2.10", "2.11")
-  val supportedSbtVersion = List("0.13")
+  val supportedSbtVersion   = List("0.13")
 
   /**
    * transform between uri formats
@@ -113,7 +115,7 @@ object Repox extends LazyLogging {
       } else List(s"/$organization/$artifactId/$version/${typ}s/$peerFile")
 
     case IvyFormat(organization, module, _, scalaVersion, _, sbtVersion, revision, typ, fileName, artifact, _, classifier, ext) =>
-      if(scalaVersion == null && sbtVersion == null) {
+      if (scalaVersion == null && sbtVersion == null) {
         for (scala <- supportedScalaVersion; sbt <- supportedSbtVersion) yield
           s"/${organization.split("\\.").mkString("/")}/${module}_${scala}_$sbt/$revision/$module-$revision.$ext"
       } else Nil
@@ -122,15 +124,15 @@ object Repox extends LazyLogging {
       Nil
   }
 
-  lazy val resourceHandler = Handlers.resource(resourceManager)
+  val resourceHandlers: Agent[Map[ResourceManager, ResourceHandler]] = Agent(null)
 
-  def sendFile(exchange: HttpServerExchange): Unit = {
+  def sendFile(resourceHandler: ResourceHandler, exchange: HttpServerExchange): Unit = {
     resourceHandler.handleRequest(exchange)
   }
 
-  def immediateFile(exchange: HttpServerExchange): Unit = {
+  def immediateFile(resourceHandler: ResourceHandler, exchange: HttpServerExchange): Unit = {
     logger.debug(s"Immediate file ${exchange.getRequestURI}")
-    sendFile(exchange)
+    sendFile(resourceHandler, exchange)
   }
 
   def respondHead(exchange: HttpServerExchange, headers: ResponseHeaders): Unit = {
@@ -142,7 +144,7 @@ object Repox extends LazyLogging {
     exchange.endExchange()
   }
 
-  def immediateHead(exchange: HttpServerExchange): Unit = {
+  def immediateHead(resourceManager: ResourceManager, exchange: HttpServerExchange): Unit = {
     val uri = exchange.getRequestURI
     val resource = resourceManager.getResource(uri)
     exchange.setResponseCode(StatusCodes.NO_CONTENT)

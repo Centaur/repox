@@ -5,7 +5,7 @@ import com.gtan.repox.config.Config
 import com.gtan.repox.config.ConfigPersister._
 import io.undertow.server.HttpServerExchange
 import io.undertow.util.Methods
-import play.api.libs.json.{JsNumber, JsString, JsObject}
+import play.api.libs.json.{Json, JsNumber, JsString, JsObject}
 import collection.JavaConverters._
 import scala.concurrent.duration._
 import akka.pattern.ask
@@ -23,7 +23,8 @@ object ParametersHandler extends RestHandler {
       val config = Config.get
       respondJson(exchange, Seq(
         JsObject("name" -> JsString("headRetryTimes") :: "value" -> JsNumber(config.headRetryTimes) :: Nil),
-        JsObject("name" -> JsString("headTimeout") :: "value" -> JsNumber(config.headTimeout.toSeconds) :: "unit" -> JsString("s") :: Nil)
+        JsObject("name" -> JsString("headTimeout") :: "value" -> JsNumber(config.headTimeout.toSeconds) :: "unit" -> JsString("s") :: Nil),
+        JsObject("name" -> JsString("extraResources") :: "value" -> Json.toJson(config.extraResources) :: Nil)
       ))
     case (Methods.PUT, "headTimeout") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
@@ -33,5 +34,9 @@ object ParametersHandler extends RestHandler {
       val newV = exchange.getQueryParameters.get("v").getFirst
       setConfigAndRespond(exchange,
         Repox.configPersister ? SetHeadRetryTimes(newV.toInt))
+    case (Methods.PUT, "extraResources") =>
+      val newV = exchange.getQueryParameters.get("v").getFirst
+      setConfigAndRespond(exchange,
+        Repox.configPersister ? SetExtraResources(newV))
   }
 }

@@ -7,6 +7,7 @@ import com.gtan.repox.data._
 import com.gtan.repox.Repox
 import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
 import com.typesafe.scalalogging.LazyLogging
+import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -20,17 +21,18 @@ case class Config(proxies: Seq[ProxyServer],
                   proxyUsage: Map[Connector, ProxyServer],
                   immediate404Rules: Seq[Immediate404Rule],
                   expireRules: Seq[ExpireRule],
-                  storage: String,
                   connectors: Set[Connector],
                   headTimeout: Duration,
                   headRetryTimes: Int,
-                  password: String)
+                  password: String,
+                  extraResources: Seq[String])
 
-object Config extends LazyLogging {
-  val defaultProxies = List(
+object Config extends LazyLogging with ConfigFormats {
+
+  val defaultProxies                 = List(
     ProxyServer(id = Some(1), name = "Lantern", protocol = JProxyServer.Protocol.HTTP, host = "localhost", port = 8787)
   )
-  val defaultConnectors = Set(
+  val defaultConnectors              = Set(
     Connector(id = Some(1),
       name = "default",
       connectionTimeout = 5 seconds,
@@ -103,16 +105,17 @@ object Config extends LazyLogging {
     connectorUsage = Map(
       "koala" use "fast-upstream",
       "typesafe" use "slow-upstream",
-      "oschina" use "fast-upstream"
+      "oschina" use "fast-upstream",
+      "scalajs" use "slow-upstream"
     ),
     proxyUsage = Map(),
     immediate404Rules = defaultImmediate404Rules,
     expireRules = defaultExpireRules,
-    storage = Paths.get(userHome, ".repox", "storage").toString,
     connectors = defaultConnectors,
     headTimeout = 3 seconds,
     headRetryTimes = 3,
-    password = "zhimakaimen"
+    password = "zhimakaimen",
+    extraResources = Seq(Paths.get(userHome, ".m2", "repository").toString)
   )
 
   val instance: Agent[Config] = Agent[Config](null)
@@ -121,7 +124,7 @@ object Config extends LazyLogging {
 
   def get = instance.get()
 
-  def storage: String = instance.get().storage
+  val storagePath = Paths.get(userHome, ".repox", "storage")
 
   def repos: Seq[Repo] = instance.get().repos
 
@@ -150,4 +153,8 @@ object Config extends LazyLogging {
   def headTimeout: Duration = instance.get().headTimeout
 
   def connectors: Set[Connector] = instance.get().connectors
+
+  def extraResources: Seq[String] = instance.get().extraResources
+
+  def resourceBases: Seq[String] = extraResources :+ storagePath.toString
 }

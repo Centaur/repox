@@ -51,6 +51,14 @@ repoxApp.filter('displayProxy', function () {
     }
 });
 
+repoxApp.filter('displayParameter', function () {
+    return function (parameter) {
+        if (parameter.name === 'extraResources')
+            return parameter.value.join(":");
+        else return parameter.value;
+    }
+});
+
 var repoxControllers = angular.module('repoxControllers', []);
 
 repoxControllers.controller('MenuCtrl', ['$scope', '$location', '$http', '$route', function ($scope, $location, $http, $route) {

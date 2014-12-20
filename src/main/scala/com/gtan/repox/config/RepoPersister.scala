@@ -1,7 +1,9 @@
 package com.gtan.repox.config
 
+import com.gtan.repox.SerializationSupport
 import com.gtan.repox.admin.RepoVO
 import com.gtan.repox.data.Repo
+import play.api.libs.json.{JsValue, Json}
 
 trait RepoPersister {
 
@@ -12,9 +14,10 @@ trait RepoPersister {
       // ToDo: validation
       val voWithId = vo.copy(repo = vo.repo.copy(id = Some(Repo.nextId)))
       val insertPoint = oldRepos.indexWhere(_.priority > vo.repo.priority)
-      val newRepos = if(insertPoint == -1) { // put to the last
+      val newRepos = if (insertPoint == -1) {
+        // put to the last
         old.copy(repos = oldRepos :+ voWithId.repo)
-      }  else {
+      } else {
         val (before, after) = oldRepos.splitAt(insertPoint)
         old.copy(repos = (before :+ voWithId.repo) ++ after)
       }
@@ -23,6 +26,10 @@ trait RepoPersister {
         case Some(p) => newRepos.copy(connectorUsage = oldConnectorUsage.updated(voWithId.repo, p))
       }
     }
+  }
+
+  object NewRepo {
+    implicit val format = Json.format[NewRepo]
   }
 
   case class DisableRepo(id: Long) extends Cmd {
@@ -35,6 +42,10 @@ trait RepoPersister {
     }
   }
 
+  object DisableRepo {
+    implicit val format = Json.format[DisableRepo]
+  }
+
   case class EnableRepo(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
@@ -43,6 +54,10 @@ trait RepoPersister {
         case o => o
       })
     }
+  }
+
+  object EnableRepo {
+    implicit val format = Json.format[EnableRepo]
   }
 
   case class DeleteRepo(id: Long) extends Cmd {
@@ -54,6 +69,10 @@ trait RepoPersister {
         connectorUsage = oldProxyUsage.filterNot { case (repo, proxy) => repo.id == Some(id)}
       )
     }
+  }
+
+  object DeleteRepo {
+    implicit val format = Json.format[DeleteRepo]
   }
 
   case class UpdateRepo(vo: RepoVO) extends Cmd {
@@ -74,6 +93,10 @@ trait RepoPersister {
       }
       newConfig.getOrElse(old)
     }
+  }
+
+  object UpdateRepo {
+    implicit val format = Json.format[UpdateRepo]
   }
 
   case class MoveUpRepo(id: Long) extends Cmd {
@@ -113,6 +136,10 @@ trait RepoPersister {
         }
       }
     }
+  }
+
+  object MoveUpRepo {
+    implicit val format = Json.format[MoveUpRepo]
   }
 
   case class MoveDownRepo(id: Long) extends Cmd {
@@ -155,4 +182,41 @@ trait RepoPersister {
     }
   }
 
+  object MoveDownRepo {
+    implicit val format = Json.format[MoveDownRepo]
+  }
+
+}
+
+object RepoPersister extends SerializationSupport {
+
+  import ConfigPersister._
+
+  val NewRepoClass      = classOf[NewRepo].getName
+  val DisableRepoClass  = classOf[DisableRepo].getName
+  val EnableRepoClass   = classOf[EnableRepo].getName
+  val DeleteRepoClass   = classOf[DeleteRepo].getName
+  val UpdateRepoClass   = classOf[UpdateRepo].getName
+  val MoveUpRepoClass   = classOf[MoveUpRepo].getName
+  val MoveDownRepoClass = classOf[MoveDownRepo].getName
+
+  override val reader: JsValue => PartialFunction[String, Cmd] = payload => {
+    case NewRepoClass => payload.as[NewRepo]
+    case DisableRepoClass => payload.as[DisableRepo]
+    case EnableRepoClass => payload.as[EnableRepo]
+    case DeleteRepoClass => payload.as[DeleteRepo]
+    case UpdateRepoClass => payload.as[UpdateRepo]
+    case MoveUpRepoClass => payload.as[MoveUpRepo]
+    case MoveDownRepoClass => payload.as[MoveDownRepo]
+  }
+
+  override val writer: PartialFunction[Cmd, JsValue] = {
+    case o: NewRepo => Json.toJson(o)
+    case o: DisableRepo => Json.toJson(o)
+    case o: EnableRepo => Json.toJson(o)
+    case o: DeleteRepo => Json.toJson(o)
+    case o: UpdateRepo => Json.toJson(o)
+    case o: MoveUpRepo => Json.toJson(o)
+    case o: MoveDownRepo => Json.toJson(o)
+  }
 }

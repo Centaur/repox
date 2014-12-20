@@ -1,6 +1,10 @@
 package com.gtan.repox.config
 
+import javax.sql.rowset.serial.SerialStruct
+
+import com.gtan.repox.SerializationSupport
 import com.gtan.repox.data.ExpireRule
+import play.api.libs.json.{JsValue, Json}
 
 trait ExpireRulePersister {
 
@@ -16,6 +20,10 @@ trait ExpireRulePersister {
     }
   }
 
+  object NewOrUpdateExpireRule {
+    implicit val format = Json.format[NewOrUpdateExpireRule]
+  }
+
   case class EnableExpireRule(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldRules = old.expireRules
@@ -24,6 +32,10 @@ trait ExpireRulePersister {
         case p => p
       })
     }
+  }
+
+  object EnableExpireRule {
+    implicit val format = Json.format[EnableExpireRule]
   }
 
   case class DisableExpireRule(id: Long) extends Cmd {
@@ -36,6 +48,10 @@ trait ExpireRulePersister {
     }
   }
 
+  object DisableExpireRule {
+    implicit val format = Json.format[DisableExpireRule]
+  }
+
   case class DeleteExpireRule(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldRules = old.expireRules
@@ -45,4 +61,32 @@ trait ExpireRulePersister {
     }
   }
 
+  object DeleteExpireRule {
+    implicit val format = Json.format[DeleteExpireRule]
+  }
+
+}
+
+object ExpireRulePersister extends SerializationSupport {
+
+  import ConfigPersister._
+
+  val NewOrUpdateExpireRuleClass = classOf[NewOrUpdateExpireRule].getName
+  val EnableExpireRuleClass      = classOf[EnableExpireRule].getName
+  val DisableExpireRuleClass     = classOf[DisableExpireRule].getName
+  val DeleteExpireRuleClass      = classOf[DeleteExpireRule].getName
+
+  override val reader: (JsValue) => PartialFunction[String, Cmd] = payload => {
+    case NewOrUpdateExpireRuleClass => payload.as[NewOrUpdateExpireRule]
+    case EnableExpireRuleClass => payload.as[EnableExpireRule]
+    case DisableExpireRuleClass => payload.as[DisableExpireRule]
+    case DeleteExpireRuleClass => payload.as[DeleteExpireRule]
+
+  }
+  override val writer  : PartialFunction[Cmd, JsValue]             = {
+    case o: NewOrUpdateExpireRule => Json.toJson(o)
+    case o: EnableExpireRule => Json.toJson(o)
+    case o: DisableExpireRule => Json.toJson(o)
+    case o: DeleteExpireRule => Json.toJson(o)
+  }
 }
