@@ -1,7 +1,9 @@
 package com.gtan.repox.config
 
+import com.gtan.repox.SerializationSupport
 import com.gtan.repox.admin.{ConnectorVO, RepoVO}
 import com.gtan.repox.data.{Connector, Repo}
+import play.api.libs.json.{JsValue, Json}
 
 trait ConnectorPersister {
 
@@ -17,6 +19,10 @@ trait ConnectorPersister {
         case Some(p) => newConfig.copy(proxyUsage = oldProxyUsage.updated(voWithId.connector, p))
       }
     }
+  }
+
+  object NewConnector {
+    implicit val format = Json.format[NewConnector]
   }
 
 
@@ -35,6 +41,10 @@ trait ConnectorPersister {
     }
   }
 
+  object UpdateConnector {
+    implicit val format = Json.format[UpdateConnector]
+  }
+
   case class DeleteConnector(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldConnectors = old.connectors
@@ -46,4 +56,26 @@ trait ConnectorPersister {
     }
   }
 
+  object DeleteConnector {
+    implicit val format = Json.format[DeleteConnector]
+  }
+}
+
+object ConnectorPersister extends SerializationSupport {
+  import ConfigPersister._
+
+  val NewConnectorClass                = classOf[NewConnector].getName
+  val UpdateConnectorClass             = classOf[UpdateConnector].getName
+  val DeleteConnectorClass             = classOf[DeleteConnector].getName
+
+  override val reader: (JsValue) => PartialFunction[String, Cmd] = payload => {
+    case NewConnectorClass => payload.as[NewConnector]
+    case UpdateConnectorClass => payload.as[UpdateConnector]
+    case DeleteConnectorClass => payload.as[DeleteConnector]
+  }
+  override val writer  : PartialFunction[Cmd, JsValue]             = {
+    case o: NewConnector => Json.toJson(o)
+    case o: UpdateConnector => Json.toJson(o)
+    case o: DeleteConnector => Json.toJson(o)
+  }
 }

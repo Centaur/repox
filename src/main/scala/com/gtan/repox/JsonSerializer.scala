@@ -5,18 +5,29 @@ import java.io.NotSerializableException
 import akka.actor.ExtendedActorSystem
 import akka.serialization.Serializer
 import com.gtan.repox.config._
+import com.typesafe.scalalogging.LazyLogging
 import play.api.libs.json.{JsValue, JsString, JsObject, Json}
 import ConfigPersister._
 
-/**
- * Created by xf on 14/12/18.
- */
-class JsonSerializer(val system: ExtendedActorSystem) extends Serializer(system) {
+trait SerializationSupport {
+  val reader: JsValue => PartialFunction[String, Cmd]
+  val writer: PartialFunction[Cmd, JsValue]
+}
+
+class JsonSerializer extends Serializer with LazyLogging with SerializationSupport {
   val ConfigChangedClass = classOf[ConfigChanged].getName
-  val NewRepoClass = classOf[NewRepo].getName
-  val DisableRepoClass = classOf[DisableRepo].getName
-  val EnableRepoClass = classOf[EnableRepo].getName
-  val DeleteRepoClass = classOf[DeleteRepo].getName
+
+  val serializationSupports: Seq[_ <: SerializationSupport] = Seq(RepoPersister, ProxyPersister, ParameterPersister, Immediate404RulePersister, ExpireRulePersister, ConnectorPersister)
+
+  override val reader = { jsValue: JsValue =>
+    serializationSupports.map(_.reader(jsValue)).reduce(_ orElse _) orElse {
+      case clazzName: String =>
+        (throw new NotSerializableException(s"No serialization supported for class $clazzName")): Cmd
+    }: PartialFunction[String, Cmd]
+  }
+  override val writer = serializationSupports.map(_.writer).reduce(_ orElse _) orElse {
+    case cmd: Cmd => throw new NotSerializableException(s"No serialization supported for $cmd")
+  }: PartialFunction[Cmd, JsValue]
 
   override def identifier: Int = 900188
 
@@ -28,12 +39,13 @@ class JsonSerializer(val system: ExtendedActorSystem) extends Serializer(system)
         case JsObject(Seq(
         ("manifest", JsString(ConfigChangedClass)),
         ("config", config),
-        ("cmd", cmd))) => ConfigChanged(configFromJson(config), cmdFromJson(cmd))
+        ("cmd", cmd)
+        )) =>
+          ConfigChanged(configFromJson(config), cmdFromJson(cmd))
         case JsString("UseDefault") => UseDefault
       }
     case Some(_) => throw new NotSerializableException("JsonSerializer does not use extra manifest.")
   }
-
 
   private def configFromJson(config: JsValue): Config = config.as[Config]
 
@@ -41,12 +53,8 @@ class JsonSerializer(val system: ExtendedActorSystem) extends Serializer(system)
     case JsObject(Seq(
     ("manifest", JsString(clazzname)),
     ("payload", payload)
-    )) => clazzname match {
-      case NewRepoClass => payload.as[NewRepo]
-      case DisableRepoClass => payload.as[DisableRepo]
-      case EnableRepoClass => payload.as[EnableRepo]
-      case DeleteRepoClass => payload.as[DeleteRepo]
-    }
+    )) =>
+      reader.apply(payload).apply(clazzname)
     case _ => throw new NotSerializableException(cmd.toString())
   }
 
@@ -59,7 +67,12 @@ class JsonSerializer(val system: ExtendedActorSystem) extends Serializer(system)
           "cmd" -> toJson(cmd)
         )
       )
-    case cmd: Cmd => cmd.serializeToJson
+    case cmd: Cmd =>
+      val payload = writer.apply(cmd)
+      JsObject(Seq(
+        "manifest" -> JsString(cmd.getClass.getName),
+        "payload" -> payload
+      ))
     case UseDefault => JsString("UseDefault")
   }
 

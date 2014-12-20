@@ -2,7 +2,7 @@ package com.gtan.repox.config
 
 import akka.actor.{ActorLogging, ActorRef}
 import akka.pattern.pipe
-import akka.persistence.{PersistentActor, RecoveryCompleted}
+import akka.persistence.{RecoveryFailure, PersistentActor, RecoveryCompleted}
 import com.gtan.repox.{Repox, RequestQueueMaster}
 import com.ning.http.client.{ProxyServer => JProxyServer, AsyncHttpClient}
 import io.undertow.util.StatusCodes
@@ -13,14 +13,6 @@ import scala.concurrent.Future
 
 trait Cmd {
   def transform(old: Config): Config
-  def toJson: JsValue
-  def serializeToJson = JsObject(
-    Seq(
-      "manifest" -> JsString(this.getClass.getName),
-      "payload" -> toJson
-    )
-  )
-
 }
 
 trait Evt
@@ -29,7 +21,7 @@ case class ConfigChanged(config: Config, cmd: Cmd) extends Evt
 
 case object UseDefault extends Evt
 
-case object ConfigPersister extends RepoPersister with ParameterPersister
+object ConfigPersister extends RepoPersister with ParameterPersister
                                     with ConnectorPersister
                                     with ProxyPersister
                                     with Immediate404RulePersister
@@ -107,5 +99,8 @@ class ConfigPersister extends PersistentActor with ActorLogging {
           Repox.requestQueueMaster ! RequestQueueMaster.ConfigLoaded
         }
       }
+
+    case RecoveryFailure(t) =>
+       t.printStackTrace()
   }
 }
