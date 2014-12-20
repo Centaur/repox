@@ -112,7 +112,7 @@ class GetAsyncHandler(val uri: String, val repo: Repo, val worker: ActorRef, val
   }
 
   private def newTempFile(): File = {
-    val parent = Paths.get(Config.storage).resolve("temp").toFile
+    val parent = Config.storagePath.resolve("temp").toFile
     parent.mkdirs()
     File.createTempFile("repox", ".tmp", parent)
   }

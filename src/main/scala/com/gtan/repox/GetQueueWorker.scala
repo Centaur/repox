@@ -30,22 +30,23 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
   def start: Receive = {
     case Requests.Download(u, from) =>
       assert(u == uri)
-      if (!Repox.downloaded(uri)) {
+      if (Repox.downloaded(uri).isEmpty) {
         log.info(s"$uri not downloaded. Downloading.")
         context.actorOf(Props(classOf[GetMaster], uri, from), s"DownloadMaster_${Random.nextInt()}")
       }
       context become working
     case msg@Requests.Get(exchange) =>
       assert(uri == exchange.getRequestURI)
-      if (Repox.downloaded(uri)) {
-        log.info(s"$uri downloaded. Serve immediately.")
-        Repox.immediateFile(exchange)
-        suicide()
-      } else {
-        log.info(s"$uri not downloaded. Downloading.")
-        context.actorOf(Props(classOf[GetMaster], uri, Config.enabledRepos), s"GetMaster_${Random.nextInt()}")
-        self ! msg
-        context become working
+      Repox.downloaded(uri) match {
+        case Some(Tuple2(resourceManager, resourceHandler)) =>
+          log.info(s"$uri downloaded. Serve immediately.")
+          Repox.immediateFile(resourceHandler, exchange)
+          suicide()
+        case None =>
+          log.info(s"$uri not downloaded. Downloading.")
+          context.actorOf(Props(classOf[GetMaster], uri, Config.enabledRepos), s"GetMaster_${Random.nextInt()}")
+          self ! msg
+          context become working
       }
   }
 
@@ -78,7 +79,7 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
     case Requests.Get(exchange) =>
       if (found) {
         log.debug(s"flushWaiting $exchange 200. Sending file ${exchange.getRequestURI}")
-        Repox.sendFile(exchange)
+        Repox.sendFile(Repox.resourceHandlers.get().apply(Repox.storageManager), exchange)
       } else {
         log.debug(s"flushWaiting $exchange 404")
         Repox.respond404(exchange)
