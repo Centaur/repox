@@ -1,5 +1,7 @@
 package com.gtan.repox.data
 
+import java.util.concurrent.atomic.AtomicLong
+
 import com.gtan.repox.Repox
 import com.gtan.repox.config.Config
 import com.ning.http.client.ProxyServer.Protocol
@@ -17,8 +19,7 @@ case class ProxyServer(id: Option[Long], name: String, protocol: JProxyServer.Pr
 }
 
 object ProxyServer {
-  // FixMe: need a threadsafe nextId
-  def nextId: Long = Config.proxies.flatMap(_.id).max + 1
+  lazy val nextId: AtomicLong = new AtomicLong(Config.proxies.flatMap(_.id).max)
 
   implicit val protocolFormat = new Format[JProxyServer.Protocol] {
     override def reads(json: JsValue):JsResult[JProxyServer.Protocol] = json match {

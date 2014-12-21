@@ -9,7 +9,7 @@ trait ProxyPersister {
   case class NewOrUpdateProxy(proxy: ProxyServer) extends Cmd {
     override def transform(old: Config) = {
       val oldProxies = old.proxies
-      old.copy(proxies = proxy.id.fold(oldProxies :+ proxy.copy(id = Some(ProxyServer.nextId))) { _id => oldProxies.map {
+      old.copy(proxies = proxy.id.fold(oldProxies :+ proxy.copy(id = Some(ProxyServer.nextId.incrementAndGet()))) { _id => oldProxies.map {
         case ProxyServer(Some(`_id`), _, _, _, _, _) => proxy
         case p => p
       }

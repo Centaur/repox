@@ -12,7 +12,7 @@ trait RepoPersister {
       val oldRepos = old.repos
       val oldConnectorUsage = old.connectorUsage
       // ToDo: validation
-      val voWithId = vo.copy(repo = vo.repo.copy(id = Some(Repo.nextId)))
+      val voWithId = vo.copy(repo = vo.repo.copy(id = Some(Repo.nextId.incrementAndGet())))
       val insertPoint = oldRepos.indexWhere(_.priority > vo.repo.priority)
       val newRepos = if (insertPoint == -1) {
         // put to the last

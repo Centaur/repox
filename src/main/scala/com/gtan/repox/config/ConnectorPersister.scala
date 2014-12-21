@@ -12,7 +12,7 @@ trait ConnectorPersister {
       val oldConnectors = old.connectors
       val oldProxyUsage = old.proxyUsage
       // ToDo: validation
-      val voWithId = vo.copy(connector = vo.connector.copy(id = Some(Connector.nextId)))
+      val voWithId = vo.copy(connector = vo.connector.copy(id = Some(Connector.nextId.incrementAndGet())))
       val newConfig = old.copy(connectors = oldConnectors + voWithId.connector)
       vo.proxy match {
         case None => newConfig

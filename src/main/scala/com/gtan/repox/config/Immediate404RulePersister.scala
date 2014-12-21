@@ -9,7 +9,7 @@ trait Immediate404RulePersister {
   case class NewOrUpdateImmediate404Rule(rule: Immediate404Rule) extends Cmd {
     override def transform(old: Config) = {
       val oldRules = old.immediate404Rules
-      old.copy(immediate404Rules = rule.id.fold(oldRules :+ rule.copy(id = Some(Immediate404Rule.nextId))) { _id =>
+      old.copy(immediate404Rules = rule.id.fold(oldRules :+ rule.copy(id = Some(Immediate404Rule.nextId.incrementAndGet()))) { _id =>
         oldRules.map {
           case r@Immediate404Rule(Some(`_id`), _, _, _) => rule
           case r => r

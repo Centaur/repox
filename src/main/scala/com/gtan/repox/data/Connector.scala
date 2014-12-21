@@ -1,5 +1,7 @@
 package com.gtan.repox.data
 
+import java.util.concurrent.atomic.AtomicLong
+
 import com.gtan.repox.config.Config
 import com.ning.http.client.{AsyncHttpClientConfig, AsyncHttpClient}
 import play.api.libs.json.Json
@@ -31,7 +33,7 @@ case class Connector(id: Option[Long],
 }
 
 object Connector {
-  def nextId:Long = Config.connectors.flatMap(_.id).max + 1
+  lazy val nextId: AtomicLong = new AtomicLong(Config.connectors.flatMap(_.id).max)
 
   import DurationFormat._
 

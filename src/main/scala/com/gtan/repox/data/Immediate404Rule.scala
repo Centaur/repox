@@ -1,5 +1,7 @@
 package com.gtan.repox.data
 
+import java.util.concurrent.atomic.AtomicLong
+
 import com.gtan.repox.Repox
 import com.gtan.repox.config.Config
 import play.api.libs.json.Json
@@ -26,7 +28,7 @@ case class Immediate404Rule(id: Option[Long], include: String, exclude: Option[S
 }
 
 object Immediate404Rule {
-  def nextId: Long = Config.immediate404Rules.flatMap(_.id).max + 1
+  lazy val nextId: AtomicLong = new AtomicLong(Config.immediate404Rules.flatMap(_.id).max)
   implicit val format = Json.format[Immediate404Rule]
 }
 

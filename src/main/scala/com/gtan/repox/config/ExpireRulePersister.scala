@@ -11,7 +11,7 @@ trait ExpireRulePersister {
   case class NewOrUpdateExpireRule(rule: ExpireRule) extends Cmd {
     override def transform(old: Config) = {
       val oldRules = old.expireRules
-      old.copy(expireRules = rule.id.fold(oldRules :+ rule.copy(id = Some(ExpireRule.nextId))) { _id =>
+      old.copy(expireRules = rule.id.fold(oldRules :+ rule.copy(id = Some(ExpireRule.nextId.incrementAndGet()))) { _id =>
         oldRules.map {
           case r@ExpireRule(Some(`_id`), _, _, _) => rule
           case r => r

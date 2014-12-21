@@ -1,5 +1,7 @@
 package com.gtan.repox.data
 
+import java.util.concurrent.atomic.AtomicLong
+
 import com.gtan.repox.Repox
 import com.gtan.repox.config.Config
 import play.api.libs.json._
@@ -14,7 +16,7 @@ object ExpireRule {
 
   import DurationFormat._
 
-  def nextId: Long = Config.expireRules.flatMap(_.id).max + 1
+  lazy val nextId: AtomicLong = new AtomicLong(Config.expireRules.flatMap(_.id).max)
 
   implicit val format = Json.format[ExpireRule]
 }
