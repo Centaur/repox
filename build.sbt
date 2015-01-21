@@ -2,9 +2,9 @@ name := "repox"
 
 organization := "com.gtan"
 
-scalaVersion := "2.11.4"
+scalaVersion := "2.11.5"
 
-val akkaVersion = "2.3.8"
+val akkaVersion = "2.3.9"
 
 libraryDependencies ++= Seq(
   "io.undertow" % "undertow-core" % "1.1.0.Final",

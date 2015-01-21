@@ -22,10 +22,9 @@ object UpstreamsHandler extends RestHandler {
   override def route(implicit exchange: HttpServerExchange): PartialFunction[(HttpString, String), Unit] = {
     case (Methods.GET, "upstreams") =>
       val config = Config.get
-      respondJson(exchange, JsObject(
-        "upstreams" -> Json.toJson(config.repos.map(RepoVO.wrap)) ::
-        "connectors" -> Json.toJson(config.connectors.filterNot(_.name == "default")) ::
-        Nil
+      respondJson(exchange, Json.obj(
+        "upstreams" -> config.repos.map(RepoVO.wrap),
+        "connectors" -> config.connectors.filterNot(_.name == "default")
       ))
 
     case (Methods.POST, "upstream") =>

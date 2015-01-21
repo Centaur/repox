@@ -23,11 +23,10 @@ object ConnectorsHandler extends RestHandler {
   override def route(implicit exchange: HttpServerExchange): PartialFunction[(HttpString, String), Unit] = {
     case (Methods.GET, "connectors") =>
       val config = Config.get
-      respondJson(exchange, JsObject(
-        "connectors" -> Json.toJson(config.connectors.map(ConnectorVO.wrap)) ::
-        "proxies" -> Json.toJson(config.proxies) ::
-        Nil
-      ))
+      respondJson(exchange, Json.obj(
+        "connectors" -> config.connectors.map(ConnectorVO.wrap),
+        "proxies" -> config.proxies)
+      )
     case (Methods.POST, "connector") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
       val vo = Json.parse(newV).as[ConnectorVO]

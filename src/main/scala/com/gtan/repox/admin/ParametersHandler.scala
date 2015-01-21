@@ -22,9 +22,9 @@ object ParametersHandler extends RestHandler {
     case (Methods.GET, "parameters") =>
       val config = Config.get
       respondJson(exchange, Seq(
-        JsObject("name" -> JsString("headRetryTimes") :: "value" -> JsNumber(config.headRetryTimes) :: Nil),
-        JsObject("name" -> JsString("headTimeout") :: "value" -> JsNumber(config.headTimeout.toSeconds) :: "unit" -> JsString("s") :: Nil),
-        JsObject("name" -> JsString("extraResources") :: "value" -> Json.toJson(config.extraResources) :: Nil)
+        Json.obj("name" -> "headRetryTimes", "value" -> config.headRetryTimes),
+        Json.obj("name" -> "headTimeout", "value" -> config.headTimeout.toSeconds, "unit" -> "s"),
+        Json.obj("name" -> "extraResources", "value" -> config.extraResources)
       ))
     case (Methods.PUT, "headTimeout") =>
       val newV = exchange.getQueryParameters.get("v").getFirst
