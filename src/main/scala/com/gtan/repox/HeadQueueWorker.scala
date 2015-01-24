@@ -29,6 +29,7 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
 
   def start: Receive = {
     case Requests.Head(exchange) =>
+      log.debug(s"Recevied Head request of ${exchange.getRequestURI} in START state")
       assert(exchange.getRequestURI == uri)
       Repox.downloaded(uri) match {
         case Some(Tuple2(resourceManager, _)) =>
@@ -50,6 +51,7 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
 
   def working: Receive = {
     case Requests.Head(exchange) =>
+      log.debug(s"Recevied Head request of ${exchange.getRequestURI} in WORKING state")
       assert(exchange.getRequestURI == uri)
       stash()
     case result@FoundIn(repo, headers, exchange) =>
@@ -71,6 +73,7 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
 
   def flushWaiting: Receive = {
     case Requests.Head(exchange) =>
+      log.debug(s"Recevied Head request of ${exchange.getRequestURI} in FLUSHWAITING state")
       if (found)
         Repox.respondHead(exchange, resultHeaders)
       else
