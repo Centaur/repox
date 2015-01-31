@@ -87,7 +87,9 @@ object Config extends LazyLogging with ConfigFormats {
     Immediate404Rule(Some(15), """/.+?/(.+?-site)/.+/\1\.jar"""), // ivy x-site have no jar
     Immediate404Rule(Some(16), """/org/fusesource/leveldbjni/.+-sources\.jar"""),
     Immediate404Rule(Some(17), """/org\.fusesource\.leveldbjni/.+-sources\.jar"""),
-    Immediate404Rule(Some(18), """/.+?/(.+?-pom)/.+/\1\.jar""") // ivy x-pom have no jar
+    Immediate404Rule(Some(18), """/.+?/(.+?-pom)/.+/\1\.jar"""), // ivy x-pom have no jar
+    Immediate404Rule(Some(19), """/org/webjars/.+-sources.jar"""), // webjars have no sources
+    Immediate404Rule(Some(20), """/org\.webjars/.+-sources.jar""")
   )
 
   def defaultExpireRules = Seq(
