@@ -8,6 +8,7 @@
             <th>idleTimeout</th>
             <th>maxConnections</th>
             <th>maxConnectionsPerHost</th>
+            <th>Credentials</th>
             <th>Use Proxy</th>
         </tr>
         </thead>
@@ -26,6 +27,7 @@
             <td>{{vo.connector.connectionIdleTimeout}}</td>
             <td>{{vo.connector.maxConnections}}</td>
             <td>{{vo.connector.maxConnectionsPerHost}}</td>
+            <td>{{vo.connector.credentials ? (vo.connector.credentials | displayCredentials) : 'None'}}</td>
             <td>
                 {{vo.proxy ? (vo.proxy|displayProxy) : 'No Proxy'}}
             </td>
@@ -33,7 +35,7 @@
         </tbody>
         <tfoot class="full-width">
         <tr>
-            <th colspan="7">
+            <th colspan="8">
                 <a class="ui right floated labeled icon green button" ng-click="showNewConnectorDialog()">
                     <i class="plus icon"></i> Add Connector
                 </a>
@@ -43,7 +45,8 @@
     </table>
 </div>
 
-<div class="ui modal" id="newConnectorDialog" ng-class="{active: newConnectorDialogVisible}" ng-keyup="escapeToClose($event)">
+<div class="ui modal" id="newConnectorDialog" ng-class="{active: newConnectorDialogVisible}"
+     ng-keyup="escapeToClose($event)">
     <i class="green close icon" ng-click="newConnectorDialogVisible = false"></i>
 
     <div class="ui dividing center aligned header">
@@ -79,6 +82,25 @@
                            ng-model="newConnector.connector.maxConnectionsPerHost">
                 </div>
             </div>
+            <div class="three fields">
+                <div class="field">
+                    <label for="new-connector-scheme">scheme</label>
+                    <select id="new-connector-scheme"
+                            ng-model="newConnector.connector.scheme"
+                            ng-options="scheme for scheme in schemes">
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="new-connector-user">user</label>
+                    <input id="new-connector-user" type="text"
+                           ng-model="newConnector.connector.user"/>
+                </div>
+                <div class="field">
+                    <label for="new-connector-password">password</label>
+                    <input type="password" id="new-connector-password"
+                           ng-model="newConnector.connector.password">
+                </div>
+            </div>
             <div class="field">
                 <label for="new-connector-proxy">Use Proxy</label>
                 <select id="new-connector-proxy"
@@ -94,7 +116,8 @@
     </div>
 </div>
 
-<div class="ui modal" id="editConnectorDialog" ng-class="{active: editConnectorDialogVisible}" ng-keyup="escapeToClose($event)">
+<div class="ui modal" id="editConnectorDialog" ng-class="{active: editConnectorDialogVisible}"
+     ng-keyup="escapeToClose($event)">
     <i class="green close icon" ng-click="editConnectorDialogVisible = false"></i>
 
     <div class="ui dividing center aligned header">
@@ -128,6 +151,25 @@
                     <label for="edit-connector-max-connections-per-host">maxConnectionsPerHost</label>
                     <input type="number" id="edit-connector-max-connections-per-host"
                            ng-model="editConnector.connector.maxConnectionsPerHost">
+                </div>
+            </div>
+            <div class="three fields">
+                <div class="field">
+                    <label for="edit-connector-scheme">scheme</label>
+                    <select id="edit-connector-scheme"
+                            ng-model="editConnector.connector.scheme"
+                            ng-options="scheme for scheme in schemes">
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="edit-connector-user">user</label>
+                    <input id="edit-connector-user" type="text"
+                           ng-model="editConnector.connector.user"/>
+                </div>
+                <div class="field">
+                    <label for="edit-connector-password">password</label>
+                    <input type="password" id="edit-connector-password"
+                           ng-model="editConnector.connector.password">
                 </div>
             </div>
             <div class="field">

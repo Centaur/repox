@@ -51,6 +51,12 @@ repoxApp.filter('displayProxy', function () {
     }
 });
 
+repoxApp.filter('displayCredentials', function(){
+    return function(credential) {
+        return credential.scheme+':'+credential.user+':'+ credential.password.replace(/./g,'*')
+    }
+});
+
 repoxApp.filter('displayParameter', function () {
     return function (parameter) {
         if (parameter.name === 'extraResources')
@@ -185,6 +191,8 @@ repoxControllers.controller('ConnectorsCtrl', ['$scope', '$http', '$route', 'aut
         $scope.newConnectorDialogVisible = false;
         $scope.editConnectorDialogVisible = false;
 
+
+        $scope.schemes = ['None', 'BASIC', 'DIGEST'];
         $scope.proxies = [];
         $scope.connectors = [];
 
@@ -205,7 +213,8 @@ repoxControllers.controller('ConnectorsCtrl', ['$scope', '$http', '$route', 'aut
                     connectionTimeout: "6 seconds",
                     connectionIdleTimeout: "10 seconds",
                     maxConnections: 30,
-                    maxConnectionsPerHost: 20
+                    maxConnectionsPerHost: 20,
+                    scheme: 'None'
                 }
             };
             $scope.newConnectorDialogVisible = true;
@@ -214,19 +223,50 @@ repoxControllers.controller('ConnectorsCtrl', ['$scope', '$http', '$route', 'aut
             })
         };
         $scope.submitNewConnector = function () {
+            var current = $scope.newConnector.connector;
+            if(current.scheme !== 'None') {
+                current.credentials = {
+                    scheme: current.scheme,
+                    user: current.user,
+                    password: current.password
+                }
+                delete current.scheme;
+                delete current.user;
+                delete current.password;
+            }
             $http.post('connector?v=' + encodeURIComponent(JSON.stringify($scope.newConnector)), {}).success(function () {
                 $scope.newConnectorDialogVisible = false;
                 $route.reload();
             })
         };
-        $scope.showEditConnectorDialog = function (connector) {
-            $scope.editConnector = {connector: _.clone(connector.connector), proxy: connector.proxy};
+        $scope.showEditConnectorDialog = function (connectorVO) {
+            var current = _.clone(connectorVO.connector);
+            if(current.credentials) {
+                current.user = current.credentials.user;
+                current.password = current.credentials.password;
+                current.scheme = current.credentials.scheme;
+            } else {
+                current.scheme = 'None';
+            }
+            delete current.credentials;
+            $scope.editConnector = {connector: current, proxy: connectorVO.proxy};
             $scope.editConnectorDialogVisible = true;
             $timeout(function () {
                 $('#edit-connector-name').select().focus();
             });
         };
         $scope.submitEditConnector = function () {
+            var current = $scope.editConnector.connector;
+            if(current.scheme !== 'None') {
+                current.credentials = {
+                    scheme: current.scheme,
+                    user: current.user,
+                    password: current.password
+                };
+                delete current.scheme;
+                delete current.user;
+                delete current.password;
+            }
             $http.put('connector?v=' + encodeURIComponent(JSON.stringify($scope.editConnector)), {}).success(function () {
                 $scope.editConnectorDialogVisible = false;
                 $route.reload();

@@ -32,7 +32,7 @@ trait ConnectorPersister {
       val oldProxyUsage = old.proxyUsage
       val id = vo.connector.id
       val newConfig = old.copy(connectors = oldConnectors.map{
-        case Connector(`id`, _, _, _, _, _) => vo.connector
+        case Connector(`id`, _, _, _, _, _, _) => vo.connector
         case c => c
       })
       vo.proxy.fold(newConfig){p =>
