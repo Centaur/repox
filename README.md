@@ -1,6 +1,6 @@
-### Repox是什么
-
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Centaur/repox?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+### Repox是什么
 Repox的主要目标是改善sbt解决依赖的速度，但由于它的服务方式与url的格式无关，因此也支持ivy, gradle, maven, leiningen客户端，可以作为nexus/artifactory的替代品来搭建私服。
 
 如果对Repox的背景不感兴趣，希望快速脏手，可立即前往[入门指南](https://github.com/Centaur/repox/wiki/入门指南)
@@ -87,6 +87,6 @@ Repox是由我们团队自己的需求驱动的，它支持着我们的日常开
 
 这是最推荐的使用方式，这样组织内有一个开发者完成一个项目的依赖更新后，其它开发者能够飞速更新。
 
-2. 开发者本机运行
+1. 开发者本机运行
 
 repox的部署和运行都非常简单，在本机运行也能显著提高生产力。
