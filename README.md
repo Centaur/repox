@@ -1,3 +1,5 @@
+**注意** OpenKaola仓库入口 url 发生了变化，新的入口是 http://nexus.openkoala.org/content/groups/Koala-release
+
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Centaur/repox?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ### Repox是什么

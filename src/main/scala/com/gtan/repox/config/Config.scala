@@ -55,11 +55,11 @@ object Config extends LazyLogging with ConfigFormats {
     )
   )
   val defaultRepos: IndexedSeq[Repo] = IndexedSeq(
-    Repo(Some(1), "koala", "http://nexus.openkoala.org/nexus/content/groups/Koala-release",
+    Repo(Some(1), "koala", "http://nexus.openkoala.org/content/groups/Koala-release",
       priority = 1, getOnly = true, maven = true),
-    Repo(Some(2), "sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 2),
-    Repo(Some(3), "typesafe", "http://repo.typesafe.com/typesafe/releases", priority = 2),
-    Repo(Some(4), "oschina", "http://maven.oschina.net/content/groups/public",
+    Repo(Some(3), "sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 2),
+    Repo(Some(4), "typesafe", "http://repo.typesafe.com/typesafe/releases", priority = 2),
+    Repo(Some(2), "oschina", "http://maven.oschina.net/content/groups/public",
       priority = 2, getOnly = true, maven = true),
     Repo(Some(5), "sbt-plugin", "http://dl.bintray.com/sbt/sbt-plugin-releases", priority = 4),
     Repo(Some(6), "scalaz", "http://dl.bintray.com/scalaz/releases", priority = 4),
@@ -84,7 +84,8 @@ object Config extends LazyLogging with ConfigFormats {
     Immediate404Rule(Some(12), """/org/ow2/ow2/.+\.jar"""),
     Immediate404Rule(Some(13), """/org\.ow2/ow2/.+\.jar"""),
     Immediate404Rule(Some(14), """(/.+)+/((.+?-site)(_(.+?)(_(.+))?)?)/(.+?)/\3-\8(-(.+?))?\.jar"""), // maven x-site have no jar
-    Immediate404Rule(Some(15), """/.+?/(.+?-site)/.+/\1\.jar"""), // ivy x-site have no jar
+    Immediate404Rule(Some(15), """/.+?/(.+?-site)/.+/\1\.jar""", // ivy x-site have no jar
+      Some( """/com\.typesafe\.sbt/sbt-site/.*""")), // except 'sbt-site', being used by akka
     Immediate404Rule(Some(16), """/org/fusesource/leveldbjni/.+-sources\.jar"""),
     Immediate404Rule(Some(17), """/org\.fusesource\.leveldbjni/.+-sources\.jar"""),
     Immediate404Rule(Some(18), """/.+?/(.+?-pom)/.+/\1\.jar"""), // ivy x-pom have no jar
