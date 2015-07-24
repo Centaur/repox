@@ -2,9 +2,9 @@ name := "repox"
 
 organization := "com.gtan"
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.7"
 
-val akkaVersion = "2.3.11"
+val akkaVersion = "2.3.12"
 
 libraryDependencies ++= Seq(
   "io.undertow" % "undertow-core" % "1.1.0.Final",
@@ -28,6 +28,7 @@ libraryDependencies ++= Seq(
     .exclude("org.scala-lang", "scala-library"),
   "com.google.protobuf" % "protobuf-java" % "2.6.1",
   "com.google.guava" % "guava" % "18.0",
+  "org.parboiled" %% "parboiled" % "2.1.0",
   "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 )
 
