@@ -24,12 +24,12 @@ libraryDependencies ++= Seq(
     .exclude("org.scala-lang", "scala-library")
     .exclude("com.google.protobuf", "protobuf-java")
     .exclude("org.iq80.leveldb", "leveldb"),
-  ("com.typesafe.play" %% "play-json" % "2.4.0-M2")
+  ("com.typesafe.play" %% "play-json" % "2.4.2")
     .exclude("org.scala-lang", "scala-library"),
   "com.google.protobuf" % "protobuf-java" % "2.6.1",
   "com.google.guava" % "guava" % "18.0",
   "org.parboiled" %% "parboiled" % "2.1.0",
-  "org.scalatest" %% "scalatest" % "2.2.1" % "test"
+  "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 )
 
 // to use repox, this option must be false, or when retry updateClassifiers, it will not download srcs

@@ -12,31 +12,33 @@ import shapeless._
  @param input url string
  */
 class MavenUrlParser(val input: ParserInput) extends Parser {
+  val validIdChars = CharPredicate.Printable -- '_' -- '/' -- '.'
   def id = rule {
-    oneOrMore(CharPredicate.Printable)
+    capture(validIdChars +)
   }
 
   def number = rule {
-    oneOrMore(CharPredicate.Digit)
+    CharPredicate.Digit +
   }
 
   def version = rule {
-    number ~ optional(oneOrMore('.' ~ number))
+    number + '.'
   }
 
   def crossBuildVersion = rule {
-    '_' ~ version ~ optional('_' ~ version)
+    capture(('_' ~ version) +)
   }
 
   def ext = rule {
-    oneOrMore(CharPredicate.Printable)
+    CharPredicate.Alpha +
   }
 
-  def root = rule {
-    (oneOrMore('/' ~ id) ~ '/' ~ id ~ optional(crossBuildVersion) ~ '/' ~ version ~ '/' ~ id ~ '-' ~ version) ~> {
-      (groupIds: List[String], artifactName: String, crossBuildVersion: Option[String], ver: String, artifactNameC: String, versionC: String) =>
-        test(artifactName == artifactNameC && ver == versionC) ~ push(groupIds :: artifactName :: crossBuildVersion :: ver :: HNil)
-    } ~ '.' ~ ext ~ EOI
+  def root: RuleN[Seq[String]::String::Option[String]::String::HNil] = rule {
+    oneOrMore('/' ~ id) ~ optional(crossBuildVersion) ~ '/' ~ capture(version) ~> {
+      (groupIdsConsArtifactName: Seq[String], crossBuildVersion: Option[String], ver: String) =>
+        val (groupIds, artifactName) = (groupIdsConsArtifactName.init, groupIdsConsArtifactName.last)
+        run('/' ~ str(artifactName) ~ '-' ~ str(ver) ~ '.' ~ ext ~ EOI) ~ push(groupIds :: artifactName :: crossBuildVersion :: ver :: HNil)
+    }
   }
 
 }

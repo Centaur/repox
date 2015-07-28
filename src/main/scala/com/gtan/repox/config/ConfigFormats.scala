@@ -18,8 +18,8 @@ trait ConfigFormats {
       case JsArray(values) =>
         JsSuccess(values.map {
           case JsObject(Seq(
-          ("repo", repoJsVal),
-          ("connector", connectorJsVal))) =>
+          ("repo", repoJsVal: JsValue),
+          ("connector", connectorJsVal: JsValue))) =>
             repoJsVal.as[Repo] -> connectorJsVal.as[Connector]
         }.toMap)
       case _ => JsError("Config.connectorUsage deserialize from json failed.")
@@ -40,8 +40,8 @@ trait ConfigFormats {
           case JsArray(values) =>
             JsSuccess(values.map {
               case JsObject(Seq(
-              ("connector", connectorJsVal),
-              ("proxy", proxyJsVal))) =>
+              ("connector", connectorJsVal:JsValue),
+              ("proxy", proxyJsVal:JsValue))) =>
                 connectorJsVal.as[Connector] -> proxyJsVal.as[ProxyServer]
             }.toMap)
           case _ => JsError("Config.proxyUsage deserialize from json failed.")

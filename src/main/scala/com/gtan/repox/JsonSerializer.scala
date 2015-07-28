@@ -36,11 +36,7 @@ class JsonSerializer extends Serializer with LazyLogging with SerializationSuppo
   override def fromBinary(bytes: Array[Byte], manifest: Option[Class[_]]): AnyRef = manifest match {
     case None =>
       Json.parse(new String(bytes, "UTF-8")) match {
-        case JsObject(Seq(
-        ("manifest", JsString(ConfigChangedClass)),
-        ("config", config),
-        ("cmd", cmd)
-        )) =>
+        case JsObject(Seq(("manifest", JsString(ConfigChangedClass)), ("config", config: JsValue), ("cmd", cmd: JsValue))) =>
           ConfigChanged(configFromJson(config), cmdFromJson(cmd))
         case JsString("UseDefault") => UseDefault
       }
@@ -52,7 +48,7 @@ class JsonSerializer extends Serializer with LazyLogging with SerializationSuppo
   private def cmdFromJson(cmd: JsValue): Cmd = cmd match {
     case JsObject(Seq(
     ("manifest", JsString(clazzname)),
-    ("payload", payload)
+    ("payload", payload: JsValue)
     )) =>
       reader.apply(payload).apply(clazzname)
     case _ => throw new NotSerializableException(cmd.toString())
