@@ -47,10 +47,6 @@ scalacOptions ++= Seq(
 
 fork := true
 
-Revolver.settings
-
-net.virtualvoid.sbt.graph.Plugin.graphSettings
-
 assemblyMergeStrategy in assembly := {
   case str@PathList("admin", "bower_components", remains@_*) => remains match {
     case Seq("angular", "angular.js") => MergeStrategy.deduplicate
