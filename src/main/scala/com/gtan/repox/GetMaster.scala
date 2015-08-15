@@ -1,15 +1,12 @@
 package com.gtan.repox
 
-import java.net.URL
 import java.nio.file.{Files, StandardCopyOption}
 
 import akka.actor._
-import com.gtan.repox.GetWorker.{Cleanup, PeerChosen, WorkerDead}
+import com.gtan.repox.GetWorker.{Cleanup, PeerChosen}
 import com.gtan.repox.Head404Cache.Query
 import com.gtan.repox.data.Repo
-import com.ning.http.client.FluentCaseInsensitiveStringsMap
 import com.typesafe.scalalogging.LazyLogging
-import collection.JavaConverters._
 
 import scala.language.postfixOps
 import scala.util.Random
@@ -28,6 +25,11 @@ object GetMaster extends LazyLogging {
   implicit val timeout = new akka.util.Timeout(1 seconds)
 }
 
+/**
+ * 负责某一个 uri 的 Get, 可能由多个 upstream Repo 生成多个 GetWorker
+ * @param uri 要获取的 uri
+ * @param from 可能的 Repo
+ */
 class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLogging {
 
   import scala.concurrent.duration._
@@ -36,44 +38,40 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
     OneForOneStrategy(maxNrOfRetries = 3, withinTimeRange = 1 minute)(super.supervisorStrategy.decider)
 
 
-  private def reduce(xss: Seq[Seq[Repo]], notFoundIn: Set[Repo]): Seq[Seq[Repo]] = {
-    xss.map(_.filterNot(notFoundIn.contains)).filter(_.nonEmpty)
-  }
+  private def excludeNotFound(xss: Seq[Seq[Repo]], notFoundIn: Set[Repo]): Seq[Seq[Repo]] = for {
+    repos <- xss
+    repo <- repos if !notFoundIn.contains(repo)
+  } yield Seq(repo)
+
 
   val resolvedPath = Repox.resolveToPath(uri)
   var getterChosen = false
   var chosen: ActorRef = null
   var childFailCount = 0
   var candidateRepos = Repox.orderByPriority(
-    if (Repox.isIvyUri(uri))
-      from.filterNot(_.maven)
-    else from
-  )
+                                              if (Repox.isIvyUri(uri))
+                                                from.filterNot(_.maven)
+                                              else from
+                                            )
 
   var thisLevel: Seq[Repo] = _
   var children: Seq[ActorRef] = _
 
   def waitFor404Cache: Receive = {
     case Head404Cache.ExcludeRepos(repos) =>
-      candidateRepos = reduce(candidateRepos, repos)
+      candidateRepos = excludeNotFound(candidateRepos, repos)
       if (candidateRepos.isEmpty) {
         context.parent ! GetQueueWorker.Get404(uri)
         self ! PoisonPill
       } else {
-
         log.debug(s"Try ${candidateRepos.map(_.map(_.name))} $uri")
         thisLevel = candidateRepos.head
         children = for (upstream <- thisLevel) yield {
-          val upstreamUrl = upstream.base + uri
-          val upstreamHost = new URL(upstreamUrl).getHost
-          val requestHeaders = new FluentCaseInsensitiveStringsMap()
-          requestHeaders.put("Host", List(upstreamHost).asJava)
-          requestHeaders.put("Accept-Encoding", List("identity").asJava)
           val childActorName = s"${upstream.name}_${Random.nextInt()}"
           context.actorOf(
-            Props(classOf[GetWorker], upstream, uri, requestHeaders),
-            name = s"GetWorker_$childActorName"
-          )
+                           Props(classOf[GetWorker], upstream, uri, None, -1L),
+                           name = s"GetWorker_$childActorName"
+                         )
         }
         context become working
       }
@@ -88,6 +86,13 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
   def receive = waitFor404Cache
 
   def working: Receive = {
+    case GetWorker.Resume(repo, tempFilePath, totalLength) =>
+      log.debug("Get accept byte ranges. Resuming")
+      val childActorName = s"${repo.name}_${Random.nextInt()}"
+      children = context.actorOf(
+                                  Props(classOf[GetWorker], repo, uri, Some(tempFilePath), totalLength),
+                                  name = s"GetWorker_$childActorName"
+                                ) :: Nil
     case GetWorker.Failed(t) =>
       if (chosen == sender()) {
         log.debug(s"Chosen worker dead. Rechoose")
@@ -120,7 +125,7 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
             context.parent ! GetQueueWorker.Get404(uri)
             self ! PoisonPill
           case head :: tail =>
-            if(from.length > 1) {
+            if (from.length > 1) {
               log.debug(s"all child failed. to next level.")
               candidateRepos = tail
             } else {
@@ -129,7 +134,7 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
             reset()
         }
       }
-    case msg@GetWorker.Completed(path, repo) =>
+    case GetWorker.Completed(path, repo) =>
       if (sender == chosen) {
         resolvedPath.getParent.toFile.mkdirs()
         Files.move(path, resolvedPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
@@ -151,10 +156,6 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
       } else if (sender != chosen) {
         sender ! PeerChosen(chosen)
       }
-    case WorkerDead =>
-      if (sender != chosen)
-        sender ! Cleanup
-      else throw new Exception("Chosen worker dead. Restart and rechoose.")
   }
 
 

@@ -1,7 +1,5 @@
 package com.gtan.repox
 
-import java.util.concurrent.atomic.AtomicBoolean
-
 import akka.actor.ActorRef
 import com.gtan.repox.data.Repo
 import com.ning.http.client.AsyncHandler.STATE
@@ -12,14 +10,14 @@ import io.undertow.util.StatusCodes
 class HeadAsyncHandler(val worker: ActorRef,val uri: String, val repo: Repo) extends AsyncHandler[Unit] with LazyLogging {
   var statusCode = 200
 
-  private val canceled = new AtomicBoolean(false)
+  @volatile private var canceled = false
 
   def cancel(): Unit = {
-    canceled.set(true)
+    canceled = true
   }
 
   override def onThrowable(t: Throwable): Unit = {
-    if(!canceled.get()) {
+    if(!canceled) {
       t.printStackTrace()
       worker ! HeadWorker.Failed(t)
     }
@@ -35,7 +33,7 @@ class HeadAsyncHandler(val worker: ActorRef,val uri: String, val repo: Repo) ext
   }
 
   override def onStatusReceived(responseStatus: HttpResponseStatus): STATE = {
-    if (!canceled.get) {
+    if (!canceled) {
       statusCode = responseStatus.getStatusCode
       statusCode match {
         case StatusCodes.NOT_FOUND =>
@@ -47,7 +45,7 @@ class HeadAsyncHandler(val worker: ActorRef,val uri: String, val repo: Repo) ext
   }
 
   override def onHeadersReceived(headers: HttpResponseHeaders): STATE = {
-    if (!canceled.get) {
+    if (!canceled) {
       import scala.collection.JavaConverters._
       worker ! HeadWorker.Responded(statusCode, mapAsScalaMapConverter(headers.getHeaders).asScala.toMap)
     }

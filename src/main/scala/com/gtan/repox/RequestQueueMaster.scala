@@ -5,12 +5,9 @@ import java.nio.file.Paths
 import akka.actor._
 import com.gtan.repox.config.Config
 import io.undertow.Handlers
-import io.undertow.server.HttpServerExchange
 import io.undertow.server.handlers.resource.{FileResourceManager, ResourceManager}
-import io.undertow.util.StatusCodes
 
-import scala.collection.Set
-import scala.util.{Failure, Success, Random}
+import scala.util.Random
 
 case class Queue(method: Symbol, uri: String)
 
@@ -35,10 +32,11 @@ object RequestQueueMaster {
 class RequestQueueMaster extends Actor with Stash with ActorLogging {
 
   import RequestQueueMaster._
+
   import concurrent.ExecutionContext.Implicits.global
 
-  var children = Map.empty[Queue, ActorRef]
-  // Quuee -> Get/HeadQueueWorker
+  var children = Map.empty[Queue, ActorRef] // Queue -> GetHeadQueueWorker
+
   var quarantined = Map.empty[String, ActorRef] // Uri -> FileDeleter
 
   override def receive = waitingConfigRecover
@@ -47,8 +45,8 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
     case ConfigLoaded =>
       log.debug(s"Config loaded.")
       val fut1 = Repox.clients.alter(Config.connectors.map(
-        connector => connector.name -> connector.createClient
-      ).toMap)
+                                                            connector => connector.name -> connector.createClient
+                                                          ).toMap)
       log.debug(s"storage: ${Config.storagePath}, resourceBases: ${Config.resourceBases}")
       val storage = Repox.storageManager -> Handlers.resource(Repox.storageManager)
       val extra = for (rb <- Config.resourceBases) yield {
@@ -57,7 +55,9 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
         resourceManager -> resourceHandler
       }
       val fut2 = Repox.resourceHandlers.alter((extra :+ storage).toMap)
-      (fut1 zip fut2).onSuccess { case _ => self ! ClientsInitialized}
+      for (both <- fut1 zip fut2) {
+        self ! ClientsInitialized
+      }
     case ClientsInitialized =>
       log.debug(s"AHC clients (${Repox.clients.get().keys.mkString(",")}}) initialized.")
       log.debug(s"ResourceBases (${Repox.resourceHandlers.get().keys.map(base => Option(base.getResource("/")).map(_.getResourceManagerRoot).getOrElse("Invalid Base")).mkString(",")}) initialized.")
@@ -78,8 +78,8 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
         case _ => // already quarantined , ignore
       }
     case FileDeleted(uri) =>
-      quarantined = quarantined - uri - (uri + ".sha1")
-      log.debug(s"Redownloading $uri(and ${uri + ".sha1"})")
+      quarantined = quarantined - uri - s"$uri.sha1"
+      log.debug(s"Redownloading $uri and $uri.sha1")
       self ! Requests.Download(uri, Config.enabledRepos)
     case Dead(queue) =>
       for (worker <- children.get(queue)) {
@@ -98,8 +98,8 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
         case None =>
           children.get(queue) match {
             case None =>
-              val childName = s"DownloadQueueWorker_${Random.nextInt()}_from_${from.map(_.name).mkString("_")}"
-              val worker = context.actorOf(Props(classOf[GetQueueWorker], uri), name = childName)
+              val workerActorName = s"DownloadQueueWorker_${Random.nextInt()}_from_${from.map(_.name).mkString("_")}"
+              val worker = context.actorOf(Props(classOf[GetQueueWorker], uri), workerActorName)
               children = children.updated(queue, worker)
               worker ! req
             case _ => // downloading proceeding, ignore this one
@@ -156,9 +156,9 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
                     case None =>
                       children.get(queue) match {
                         case None =>
-                          val childName = s"HeadQueueWorker_${Random.nextInt()}"
-                          val worker = context.actorOf(Props(classOf[HeadQueueWorker], uri), name = childName)
-                          log.debug(s"create HeadQueueWorker $childName")
+                          val workerActorName = s"HeadQueueWorker_${Random.nextInt()}"
+                          val worker = context.actorOf(Props(classOf[HeadQueueWorker], uri), workerActorName)
+                          log.debug(s"create HeadQueueWorker $workerActorName")
                           children = children.updated(queue, worker)
                           worker ! req
                         case Some(worker) =>

@@ -1,17 +1,13 @@
 package com.gtan.repox
 
-import java.net.URL
-
 import akka.actor._
-import com.gtan.repox.HeadMaster.{HeadTimeout, NotFound, FoundIn}
 import com.gtan.repox.config.Config
 import com.gtan.repox.data.Repo
 import com.ning.http.client.FluentCaseInsensitiveStringsMap
-import io.undertow.server.HttpServerExchange
 import io.undertow.util.{Headers, StatusCodes}
-import concurrent.duration._
+
+import scala.collection.JavaConverters._
 import scala.language.postfixOps
-import collection.JavaConverters._
 
 object HeadWorker {
 
@@ -28,18 +24,15 @@ class HeadWorker(val repo: Repo,
 
   import HeadWorker._
 
-  val upstreamUrl = repo.base + uri
   val handler = new HeadAsyncHandler(self, uri, repo)
 
   context.setReceiveTimeout(Config.headTimeout)
-
-  val upstreamHost = new URL(upstreamUrl).getHost
-  requestHeaders.put(Headers.HOST_STRING, List(upstreamHost).asJava)
+  requestHeaders.put(Headers.HOST_STRING, List(repo.host).asJava)
 
   val (_, client) = Repox.clientOf(repo)
 
   val requestMethod = if (repo.getOnly) client.prepareGet _ else client.prepareHead _
-  requestMethod.apply(upstreamUrl)
+  requestMethod.apply(repo.absolute(uri))
     .setHeaders(requestHeaders)
     .execute(handler)
 
