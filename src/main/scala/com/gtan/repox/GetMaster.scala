@@ -1,5 +1,6 @@
 package com.gtan.repox
 
+import java.io.File
 import java.nio.file.{Files, StandardCopyOption}
 
 import akka.actor._
@@ -87,12 +88,12 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
 
   def working: Receive = {
     case GetWorker.Resume(repo, tempFilePath, totalLength) =>
-      log.debug("Get accept byte ranges. Resuming")
       val childActorName = s"${repo.name}_${Random.nextInt()}"
-      children = context.actorOf(
-                                  Props(classOf[GetWorker], repo, uri, Some(tempFilePath), totalLength),
-                                  name = s"GetWorker_$childActorName"
-                                ) :: Nil
+      chosen = context.actorOf(
+        Props(classOf[GetWorker], repo, uri, Some(tempFilePath), totalLength),
+        name = s"GetWorker_$childActorName"
+      )
+      children = chosen :: Nil
     case GetWorker.Failed(t) =>
       if (chosen == sender()) {
         log.debug(s"Chosen worker dead. Rechoose")
@@ -137,8 +138,8 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
     case GetWorker.Completed(path, repo) =>
       if (sender == chosen) {
         resolvedPath.getParent.toFile.mkdirs()
+        log.info(s"GetWorker ${sender().path.name} completed $uri. ${path.toString} Filesize ${path.toFile.length()}")
         Files.move(path, resolvedPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
-        log.info(s"GetWorker ${sender().path.name} completed $uri.")
         context.parent ! GetQueueWorker.Completed(path, repo)
         children.foreach(child => child ! Cleanup)
         self ! PoisonPill

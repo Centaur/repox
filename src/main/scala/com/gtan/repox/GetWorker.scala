@@ -86,8 +86,15 @@ class GetWorker(val upstream: Repo,
 
   override def receive = {
     case AsyncHandlerThrows(t) =>
-      t.printStackTrace()
-      context.parent ! Failed(t)
+
+      log.debug(s"AsyncHandler throws -- ${t.getMessage}")
+      tempFilePath match {
+        case None =>
+          context.parent ! Failed(t)
+        case Some(path) =>
+          log.debug("In a resuming, retry...")
+          context.parent ! Resume(upstream, path, totalLength)
+      }
       self ! PoisonPill
 
     case Cleanup =>
@@ -97,9 +104,10 @@ class GetWorker(val upstream: Repo,
       handler.cancel()
 
     case ReceiveTimeout | LanternGiveup =>
-      handler.cancel()
+      log.debug("GetWorker timeout (or lantern giveup).")
+      handler.cancel(deleteTempFile = false)
       self ! PoisonPill
-      if(acceptByteRange) {
+      if(acceptByteRange || tempFilePath.isDefined) {
         context.parent ! Resume(upstream,
                                  tempFilePath.fold(handler.tempFile.getAbsolutePath)(identity),
                                  tempFilePath.fold(contentLength)(_ => totalLength))
@@ -120,10 +128,10 @@ class GetWorker(val upstream: Repo,
       }
 
     case HeadersGot(headers) =>
-      val contentLengthHeader = headers.getHeaders.getFirstValue("Content-Length")
-      val acceptRanges = headers.getHeaders.getFirstValue("Accept-Ranges")
       tempFilePath match {
         case None =>
+          val contentLengthHeader = headers.getHeaders.getFirstValue("Content-Length")
+          val acceptRanges = headers.getHeaders.getFirstValue("Accept-Ranges")
           if (contentLengthHeader != null) {
             log.debug(s"contentLength=$contentLengthHeader")
             contentLength = contentLengthHeader.toLong
@@ -132,11 +140,13 @@ class GetWorker(val upstream: Repo,
             log.debug(s"accept-ranges=$acceptRanges")
             acceptByteRange = acceptRanges.toLowerCase == "bytes"
           }
-        case Some(_) =>
-          log.debug("Resume respones headers: $headers")
+          downloaded = 0
+          percentage = 0.0
+        case Some(path) =>
+          downloaded = new File(path).length()
+          percentage = downloaded*100.0 / totalLength
+          log.debug(s"Resuming $uri from ${upstream.name}, temp file $path, $percentage% already downloaded.")
       }
-      downloaded = 0
-      percentage = 0.0
       context.setReceiveTimeout(connector.connectionIdleTimeout - 1.second)
   }
 
