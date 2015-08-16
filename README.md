@@ -1,6 +1,8 @@
-:exclamation: OSChina仓库于2015年8月4日重开服务，请自行更新Upstreams配置
+:exclamation: Repox新增断点续传功能, 广谈公服重新开放, 详情请见wiki.
 
-:exclamation: OpenKaola仓库入口 url 发生了变化，新的入口是 http://nexus.openkoala.org/content/groups/Koala-release
+:exclamation: OSChina仓库于2015年8月4日重开服务, 请自行更新Upstreams配置
+
+:exclamation: OpenKaola仓库似乎已经停止公开服务, 请自行更新Upstreams配置
 
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Centaur/repox?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -67,6 +69,7 @@ Repox的主要目标是改善sbt解决依赖的速度，但由于它的服务方
         * 上游仓库被指定不同的优先级，向同一优先级的所有仓库同时发送GET请求，选取第一个返回200的仓库下载，其它仓库的连接被终止
         * 当某一优先级的所有仓库均失败（返回非200或超时）时，自动进入下一优先级
         * 如果所有仓库都失败，则404
+        * 支持断点续传
 * 有些资源只在某特定的仓库中收藏，而到这个仓库的网络状况比较差。Repox可为某个上游仓库指定HTTP代理
 * 可设置全面禁止javadoc包的下载
 
