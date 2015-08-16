@@ -74,10 +74,13 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
   def flushWaiting: Receive = {
     case Requests.Head(exchange) =>
       log.debug(s"Recevied Head request of ${exchange.getRequestURI} in FLUSHWAITING state")
-      if (found)
+      if (found) {
+        log.debug(s"Send found head: $resultHeaders")
         Repox.respondHead(exchange, resultHeaders)
-      else
+      } else {
+        log.debug(s"Send 404")
         Repox.respond404(exchange)
+      }
     case ReceiveTimeout =>
       suicide()
   }

@@ -43,7 +43,7 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
 
   def waitingConfigRecover: Receive = {
     case ConfigLoaded =>
-      log.debug(s"Config loaded.")
+      log.debug(s"Config loaded. connectorUsage: ${Config.connectorUsage}")
       val fut1 = Repox.clients.alter(Config.connectors.map(
                                                             connector => connector.name -> connector.createClient
                                                           ).toMap)
@@ -79,8 +79,9 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
       }
     case FileDeleted(uri) =>
       quarantined = quarantined - uri - s"$uri.sha1"
-      log.debug(s"Redownloading $uri and $uri.sha1")
-      self ! Requests.Download(uri, Config.enabledRepos)
+//      log.debug(s"Redownloading $uri and $uri.sha1")
+//      self ! Requests.Download(uri, Config.enabledRepos)
+
     case Dead(queue) =>
       for (worker <- children.get(queue)) {
         log.debug(s"RequestQueueMaster stopping worker ${worker.path.name}")
@@ -88,23 +89,23 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
       }
       children = children - queue
 
-    case req@Requests.Download(uri, from) =>
-      val queue = Queue('get, uri)
-      Repox.downloaded(uri) match {
-        case Some(Tuple2(resourceManager, resourceHandler)) =>
-          for (worker <- children.get(queue)) {
-            worker ! PoisonPill
-          }
-        case None =>
-          children.get(queue) match {
-            case None =>
-              val workerActorName = s"DownloadQueueWorker_${Random.nextInt()}_from_${from.map(_.name).mkString("_")}"
-              val worker = context.actorOf(Props(classOf[GetQueueWorker], uri), workerActorName)
-              children = children.updated(queue, worker)
-              worker ! req
-            case _ => // downloading proceeding, ignore this one
-          }
-      }
+//    case req@Requests.Download(uri, from) =>
+//      val queue = Queue('get, uri)
+//      Repox.downloaded(uri) match {
+//        case Some(Tuple2(resourceManager, resourceHandler)) =>
+//          for (worker <- children.get(queue)) {
+//            worker ! PoisonPill
+//          }
+//        case None =>
+//          children.get(queue) match {
+//            case None =>
+//              val workerActorName = s"DownloadQueueWorker_${Random.nextInt()}_from_${from.map(_.name).mkString("_")}"
+//              val worker = context.actorOf(Props(classOf[GetQueueWorker], uri), workerActorName)
+//              children = children.updated(queue, worker)
+//              worker ! req
+//            case _ => // downloading proceeding, ignore this one
+//          }
+//      }
     case req@Requests.Get(exchange) =>
       val uri = exchange.getRequestURI
       quarantined.get(uri) match {

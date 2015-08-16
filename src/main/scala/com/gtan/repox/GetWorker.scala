@@ -93,24 +93,27 @@ class GetWorker(val upstream: Repo,
           context.parent ! Failed(t)
         case Some(path) =>
           log.debug("In a resuming, retry...")
+          handler.cancel(deleteTempFile = false)
           context.parent ! Resume(upstream, path, totalLength)
       }
       self ! PoisonPill
 
     case Cleanup =>
       handler.cancel()
+      self ! PoisonPill
 
     case PeerChosen(who) =>
       handler.cancel()
+      self ! PoisonPill
 
     case ReceiveTimeout | LanternGiveup =>
       log.debug("GetWorker timeout (or lantern giveup).")
       handler.cancel(deleteTempFile = false)
       self ! PoisonPill
-      if(acceptByteRange || tempFilePath.isDefined) {
+      if (acceptByteRange || tempFilePath.isDefined) {
         context.parent ! Resume(upstream,
-                                 tempFilePath.fold(handler.tempFile.getAbsolutePath)(identity),
-                                 tempFilePath.fold(contentLength)(_ => totalLength))
+          tempFilePath.fold(handler.tempFile.getAbsolutePath)(identity),
+          tempFilePath.fold(contentLength)(_ => totalLength))
       } else {
         context.parent ! Failed(new RuntimeException("Chosen worker timeout or lantern giveup"))
       }
@@ -144,8 +147,8 @@ class GetWorker(val upstream: Repo,
           percentage = 0.0
         case Some(path) =>
           downloaded = new File(path).length()
-          percentage = downloaded*100.0 / totalLength
-          log.debug(s"Resuming $uri from ${upstream.name}, temp file $path, $percentage% already downloaded.")
+          percentage = downloaded * 100.0 / totalLength
+          log.debug(f"Resuming $uri%s from ${upstream.name}%s, $percentage%.2f %% already downloaded.")
       }
       context.setReceiveTimeout(connector.connectionIdleTimeout - 1.second)
   }

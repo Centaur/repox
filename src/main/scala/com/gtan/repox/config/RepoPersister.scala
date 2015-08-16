@@ -65,8 +65,8 @@ trait RepoPersister {
       val oldRepos = old.repos
       val oldProxyUsage = old.connectorUsage
       old.copy(
-        repos = oldRepos.filterNot(_.id == Some(id)),
-        connectorUsage = oldProxyUsage.filterNot { case (repo, proxy) => repo.id == Some(id)}
+        repos = oldRepos.filterNot(_.id.contains(id)),
+        connectorUsage = oldProxyUsage.filterNot { case (repo, proxy) => repo.id.contains(id)}
       )
     }
   }
@@ -102,7 +102,7 @@ trait RepoPersister {
   case class MoveUpRepo(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
-      val repo = oldRepos.find(_.id == Some(id))
+      val repo = oldRepos.find(_.id.contains(id))
       repo.fold(old) { _repo =>
         val index = oldRepos.indexOf(_repo)
         if (index == 0) {
@@ -145,7 +145,7 @@ trait RepoPersister {
   case class MoveDownRepo(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
-      val repo = oldRepos.find(_.id == Some(id))
+      val repo = oldRepos.find(_.id.contains(id))
       repo.fold(old) { _repo =>
         val index = oldRepos.indexOf(_repo)
         if (index == oldRepos.length - 1) {

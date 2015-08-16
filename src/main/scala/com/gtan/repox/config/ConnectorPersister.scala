@@ -31,11 +31,17 @@ trait ConnectorPersister {
       val oldConnectors = old.connectors
       val oldProxyUsage = old.proxyUsage
       val id = vo.connector.id
-      val newConfig = old.copy(connectors = oldConnectors.map{
-        case Connector(`id`, _, _, _, _, _, _) => vo.connector
-        case c => c
-      })
-      vo.proxy.fold(newConfig){p =>
+      val newConfig = old.copy(
+        connectors = oldConnectors.map {
+          case Connector(`id`, _, _, _, _, _, _) => vo.connector
+          case c => c
+        },
+        connectorUsage = old.connectorUsage.map {
+          case (repo, Connector(`id`, _, _, _, _, _, _)) => (repo, vo.connector)
+          case p => p
+        }
+      )
+      vo.proxy.fold(newConfig) { p =>
         newConfig.copy(proxyUsage = oldProxyUsage.updated(vo.connector, p))
       }
     }
@@ -50,8 +56,8 @@ trait ConnectorPersister {
       val oldConnectors = old.connectors
       val oldConnectorUsage = old.connectorUsage
       old.copy(
-        connectors = oldConnectors.filterNot(_.id == Some(id)),
-        connectorUsage = oldConnectorUsage.filterNot { case (repo, connector) => repo.id == Some(id)}
+        connectors = oldConnectors.filterNot(_.id.contains(id)),
+        connectorUsage = oldConnectorUsage.filterNot { case (repo, connector) => repo.id.contains(id) }
       )
     }
   }
@@ -59,21 +65,23 @@ trait ConnectorPersister {
   object DeleteConnector {
     implicit val format = Json.format[DeleteConnector]
   }
+
 }
 
 object ConnectorPersister extends SerializationSupport {
+
   import ConfigPersister._
 
-  val NewConnectorClass                = classOf[NewConnector].getName
-  val UpdateConnectorClass             = classOf[UpdateConnector].getName
-  val DeleteConnectorClass             = classOf[DeleteConnector].getName
+  val NewConnectorClass = classOf[NewConnector].getName
+  val UpdateConnectorClass = classOf[UpdateConnector].getName
+  val DeleteConnectorClass = classOf[DeleteConnector].getName
 
   override val reader: (JsValue) => PartialFunction[String, Cmd] = payload => {
     case NewConnectorClass => payload.as[NewConnector]
     case UpdateConnectorClass => payload.as[UpdateConnector]
     case DeleteConnectorClass => payload.as[DeleteConnector]
   }
-  override val writer  : PartialFunction[Cmd, JsValue]             = {
+  override val writer: PartialFunction[Cmd, JsValue] = {
     case o: NewConnector => Json.toJson(o)
     case o: UpdateConnector => Json.toJson(o)
     case o: DeleteConnector => Json.toJson(o)

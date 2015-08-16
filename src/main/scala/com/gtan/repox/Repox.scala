@@ -32,7 +32,6 @@ object Repox extends LazyLogging {
   val expirationPersister = system.actorOf(Props[ExpirationPersister], "ExpirationPersister")
   val head404Cache = system.actorOf(Props[Head404Cache], "HeaderCache")
   val requestQueueMaster = system.actorOf(Props[RequestQueueMaster], "RequestQueueMaster")
-  val sha1Checker = system.actorOf(Props[SHA1Checker], "SHA1Checker")
 
 
   val clients: Agent[Map[String, AsyncHttpClient]] = Agent(null)
@@ -54,7 +53,7 @@ object Repox extends LazyLogging {
 
   def isIvyUri(uri: String) = uri.matches( """/[^/]+?\.[^/]+?/.+""")
 
-  def resolveToPath(uri: String) = Config.storagePath.resolve(uri.tail)
+  def resolveToPaths(uri: String) = (Config.storagePath.resolve(uri.tail), Config.storagePath.resolve(uri.tail + ".sha1"))
 
   def orderByPriority(candidates: Seq[Repo]): Seq[Seq[Repo]] =
     candidates.groupBy(_.priority).toSeq.sortBy(_._1).map(_._2)

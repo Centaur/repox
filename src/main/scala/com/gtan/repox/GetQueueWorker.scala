@@ -3,7 +3,6 @@ package com.gtan.repox
 import java.nio.file.Path
 
 import akka.actor._
-import com.gtan.repox.SHA1Checker.Check
 import com.gtan.repox.config.Config
 import com.gtan.repox.data.Repo
 import io.undertow.server.HttpServerExchange
@@ -17,7 +16,7 @@ object GetQueueWorker {
 
   case class Get404(uri: String)
 
-  case class Completed(path: Path, repo: Repo)
+  case class Completed(path: Path, repo: Repo, checksumSuccess: Boolean)
 
 }
 
@@ -28,13 +27,13 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
   override def receive = start
 
   def start: Receive = {
-    case Requests.Download(u, from) =>
-      assert(u == uri)
-      if (Repox.downloaded(uri).isEmpty) {
-        log.info(s"$uri not downloaded. Downloading.")
-        context.actorOf(Props(classOf[GetMaster], uri, from), s"DownloadMaster_${Random.nextInt()}")
-      }
-      context become working
+//    case Requests.Download(u, from) =>
+//      assert(u == uri)
+//      if (Repox.downloaded(uri).isEmpty) {
+//        log.info(s"$uri not downloaded. Downloading.")
+//        context.actorOf(Props(classOf[GetMaster], uri, from), s"DownloadMaster_${Random.nextInt()}")
+//      }
+//      context become working
     case msg@Requests.Get(exchange) =>
       assert(uri == exchange.getRequestURI)
       Repox.downloaded(uri) match {
@@ -52,18 +51,15 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
 
   var found = false
 
+  var deleteFileAfterResponse = false
+
   def working: Receive = {
     case Requests.Get(_) =>
       stash()
-    case result@Completed(path, repo) =>
+    case result@Completed(path, repo, checksumSuccess) =>
       log.debug(s"GetQueueWorker completed $uri")
       found = true
-      if (!uri.endsWith(".sha1")) {
-        log.debug(s"Prefetch $uri.sha1")
-        context.parent ! Requests.Download(uri + ".sha1", Seq(repo))
-      } else {
-        Repox.sha1Checker ! Check(uri.dropRight(5))
-      }
+      deleteFileAfterResponse = !checksumSuccess
       unstashAll()
       context.setReceiveTimeout(1 second)
       context become flushWaiting
@@ -80,6 +76,9 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
       if (found) {
         log.debug(s"flushWaiting $exchange 200. Sending file ${exchange.getRequestURI}")
         Repox.sendFile(Repox.resourceHandlers.get().apply(Repox.storageManager), exchange)
+        if(deleteFileAfterResponse) {
+          context.actorOf(Props(classOf[FileDeleter], uri, 'GetQueueWorker))
+        }
       } else {
         log.debug(s"flushWaiting $exchange 404")
         Repox.respond404(exchange)
@@ -90,7 +89,7 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
 
   private def suicide(): Unit = {
     context.parent ! RequestQueueMaster.Dead(Queue('get, uri))
-    self ! PoisonPill
+//    self ! PoisonPill
   }
 
 }

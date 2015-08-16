@@ -17,8 +17,7 @@ class FileDeleter(uri: String, initiator: Symbol) extends Actor with ActorLoggin
   Repox.requestQueueMaster ! RequestQueueMaster.Quarantine(uri: String)
   override def receive = {
     case Quarantined =>
-      val path = Repox.resolveToPath(uri)
-      val sha1Path = path.resolveSibling(path.getFileName + ".sha1")
+      val (path, sha1Path) = Repox.resolveToPaths(uri)
       path.toFile.delete()
       sha1Path.toFile.delete()
       Repox.requestQueueMaster ! RequestQueueMaster.FileDeleted(uri)

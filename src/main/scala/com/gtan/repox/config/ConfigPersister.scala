@@ -42,42 +42,45 @@ class ConfigPersister extends PersistentActor with ActorLogging {
   def onConfigSaved(sender: ActorRef, c: ConfigChanged) = {
     log.debug(s"event caused by cmd: ${c.cmd}")
     config = c.config
-    Config.set(config)
-    val future = c.cmd match {
-      case NewConnector(vo) =>
-        Repox.clients.alter { clients =>
-          clients.updated(vo.connector.name, vo.connector.createClient)
-        }
-      case DeleteConnector(id) =>
-        Repox.clients.alter { clients =>
-          Config.connectors.find(_.id == Some(id)).fold(clients) { connector =>
-            for (client <- clients.get(connector.name)) {
+    for {
+      _ <- Config.set(config)
+      _ <- c.cmd match {
+        case NewConnector(vo) =>
+          Repox.clients.alter { clients =>
+            clients.updated(vo.connector.name, vo.connector.createClient)
+          }
+        case DeleteConnector(id) =>
+          Repox.clients.alter { clients =>
+            Config.connectors.find(_.id.contains(id)).fold(clients) { connector =>
+              for (client <- clients.get(connector.name)) {
+                client.closeAsynchronously()
+              }
+              clients - connector.name
+            }
+          }
+        case UpdateConnector(vo) =>
+          Repox.clients.alter { clients =>
+            for (client <- clients.get(vo.connector.name)) {
               client.closeAsynchronously()
             }
-            clients - connector.name
+            clients.updated(vo.connector.name, vo.connector.createClient)
           }
-        }
-      case UpdateConnector(vo) =>
-        Repox.clients.alter { clients =>
-          for (client <- clients.get(vo.connector.name)) {
-            client.closeAsynchronously()
+        case SetExtraResources(_) =>
+          Repox.resourceHandlers.alter((for (er <- Config.resourceBases) yield {
+            val resourceManager: ResourceManager = new FileResourceManager(Paths.get(er).toFile, 100 * 1024)
+            val resourceHandler = Handlers.resource(resourceManager)
+            resourceManager -> resourceHandler
+          }).toMap)
+          Future {
+            Map.empty[String, AsyncHttpClient]
           }
-          clients.updated(vo.connector.name, vo.connector.createClient)
-        }
-      case SetExtraResources(_) =>
-        Repox.resourceHandlers.alter((for (er <- Config.resourceBases) yield {
-          val resourceManager: ResourceManager = new FileResourceManager(Paths.get(er).toFile, 100 * 1024)
-          val resourceHandler = Handlers.resource(resourceManager)
-          resourceManager -> resourceHandler
-        }).toMap)
-        Future {
+        case _ => Future {
           Map.empty[String, AsyncHttpClient]
         }
-      case _ => Future {
-        Map.empty[String, AsyncHttpClient]
       }
+    } {
+      sender ! StatusCodes.OK
     }
-    future.map(_ => StatusCodes.OK) pipeTo sender
   }
 
   val receiveCommand: Receive = {
@@ -100,6 +103,7 @@ class ConfigPersister extends PersistentActor with ActorLogging {
 
   val receiveRecover: Receive = {
     case ConfigChanged(data, cmd) =>
+      log.debug(s"data=$data, cmd=$cmd")
       config = data
 
     case UseDefault =>

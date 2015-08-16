@@ -1,11 +1,12 @@
 package com.gtan.repox
 
-import java.io.File
-import java.nio.file.{Files, StandardCopyOption}
+import java.nio.file.StandardCopyOption._
+import java.nio.file.{Path, StandardCopyOption}
 
 import akka.actor._
+import com.google.common.hash.Hashing
 import com.gtan.repox.GetWorker.{Cleanup, PeerChosen}
-import com.gtan.repox.Head404Cache.Query
+import com.gtan.repox.Head404Cache.{NotFound, Query}
 import com.gtan.repox.data.Repo
 import com.typesafe.scalalogging.LazyLogging
 
@@ -32,22 +33,22 @@ object GetMaster extends LazyLogging {
  * @param from 可能的 Repo
  */
 class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLogging {
-
   import scala.concurrent.duration._
 
   override val supervisorStrategy =
     OneForOneStrategy(maxNrOfRetries = 3, withinTimeRange = 1 minute)(super.supervisorStrategy.decider)
-
 
   private def excludeNotFound(xss: Seq[Seq[Repo]], notFoundIn: Set[Repo]): Seq[Seq[Repo]] = for {
     repos <- xss
     repo <- repos if !notFoundIn.contains(repo)
   } yield Seq(repo)
 
+  val (resolvedPath, resolvedChecksumPath) = Repox.resolveToPaths(uri)
+  var downloadedTempFilePath: Path = _
 
-  val resolvedPath = Repox.resolveToPath(uri)
   var getterChosen = false
   var chosen: ActorRef = null
+  var chosenRepo: Repo = null
   var childFailCount = 0
   var candidateRepos = Repox.orderByPriority(
                                               if (Repox.isIvyUri(uri))
@@ -74,7 +75,7 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
                            name = s"GetWorker_$childActorName"
                          )
         }
-        context become working
+        context become gettingFile
       }
   }
 
@@ -86,7 +87,7 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
 
   def receive = waitFor404Cache
 
-  def working: Receive = {
+  def gettingFile: Receive = {
     case GetWorker.Resume(repo, tempFilePath, totalLength) =>
       val childActorName = s"${repo.name}_${Random.nextInt()}"
       chosen = context.actorOf(
@@ -137,12 +138,18 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
       }
     case GetWorker.Completed(path, repo) =>
       if (sender == chosen) {
-        resolvedPath.getParent.toFile.mkdirs()
-        log.info(s"GetWorker ${sender().path.name} completed $uri. ${path.toString} Filesize ${path.toFile.length()}")
-        Files.move(path, resolvedPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
-        context.parent ! GetQueueWorker.Completed(path, repo)
-        children.foreach(child => child ! Cleanup)
-        self ! PoisonPill
+        for(child <- children) {
+          child ! PoisonPill
+        }
+        downloadedTempFilePath = path
+        chosenRepo = repo
+        val childActorName = s"${repo.name}_${Random.nextInt()}"
+        chosen = context.actorOf(
+          Props(classOf[GetWorker], repo, uri + ".sha1", None, -1L),
+          name = s"GetWorker_$childActorName"
+        )
+        children = chosen :: Nil
+        context become gettingChecksum
       } else {
         sender ! Cleanup
       }
@@ -159,6 +166,38 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
       }
   }
 
+  def gettingChecksum: Receive = {
+    case GetWorker.Completed(path, repo) =>
+      val computed = com.google.common.io.Files.hash(downloadedTempFilePath.toFile, Hashing.sha1()).toString
+      val downloaded = scala.io.Source.fromFile(path.toFile).mkString
+      val checksumSuccess: Boolean = computed == downloaded
+      if(checksumSuccess || candidateRepos.flatten.size == 1) {
+        resolvedPath.getParent.toFile.mkdirs()
+        log.info(s"GetWorker ${sender().path.name} completed $uri. Checksum ${if(checksumSuccess)  "success" else "failed"}")
+        java.nio.file.Files.move(downloadedTempFilePath, resolvedPath, REPLACE_EXISTING, ATOMIC_MOVE)
+        java.nio.file.Files.move(path, resolvedChecksumPath, REPLACE_EXISTING, ATOMIC_MOVE)
+        context.parent ! GetQueueWorker.Completed(path, repo, checksumSuccess)
+        children.foreach(child => child ! Cleanup)
+        self ! PoisonPill
+      } else {
+        Repox.head404Cache ! NotFound(uri, repo)
+        Repox.head404Cache ! NotFound(uri + ".sha1", repo)
+        downloadedTempFilePath.toFile.delete()
+        path.toFile.delete()
+        throw new RuntimeException("Restart GetMaster")
+      }
+    case GetWorker.Failed(t) =>
+      log.debug(s"GetWorker failed in gettingChecksum state: ${t.getMessage}. Restart.")
+      sender ! PoisonPill
+      val childActorName = s"${chosenRepo.name}_${Random.nextInt()}"
+      chosen = context.actorOf(
+        Props(classOf[GetWorker], chosenRepo, uri + ".sha1", None, -1L),
+        name = s"GetWorker_$childActorName"
+      )
+      children = chosen :: Nil
+    case msg =>
+      log.debug(s"Received message in gettingChecksum state: $msg. Ignore.")
+  }
 
   private def reset() = {
     childFailCount = 0
