@@ -5,7 +5,7 @@ import java.nio.file.Paths
 import akka.actor.{ActorLogging, ActorRef}
 import akka.pattern.pipe
 import akka.persistence.{RecoveryFailure, PersistentActor, RecoveryCompleted}
-import com.gtan.repox.{Repox, RequestQueueMaster}
+import com.gtan.repox.{DebugResourceHandler, Repox, RequestQueueMaster}
 import com.ning.http.client.{ProxyServer => JProxyServer, AsyncHttpClient}
 import io.undertow.Handlers
 import io.undertow.server.handlers.resource.{ResourceManager, FileResourceManager}
@@ -68,7 +68,8 @@ class ConfigPersister extends PersistentActor with ActorLogging {
         case SetExtraResources(_) =>
           Repox.resourceHandlers.alter((for (er <- Config.resourceBases) yield {
             val resourceManager: ResourceManager = new FileResourceManager(Paths.get(er).toFile, 100 * 1024)
-            val resourceHandler = Handlers.resource(resourceManager)
+            val resourceHandler = new DebugResourceHandler(resourceManager).setDirectoryListingEnabled(false)
+//            val resourceHandler = Handlers.resource(resourceManager)
             resourceManager -> resourceHandler
           }).toMap)
           Future {

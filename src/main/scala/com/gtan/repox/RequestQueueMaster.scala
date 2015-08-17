@@ -48,10 +48,12 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
                                                             connector => connector.name -> connector.createClient
                                                           ).toMap)
       log.debug(s"storage: ${Config.storagePath}, resourceBases: ${Config.resourceBases}")
-      val storage = Repox.storageManager -> Handlers.resource(Repox.storageManager)
+//      val storage = Repox.storageManager -> Handlers.resource(Repox.storageManager)
+      val storage = Repox.storageManager -> new DebugResourceHandler(Repox.storageManager).setDirectoryListingEnabled(false)
       val extra = for (rb <- Config.resourceBases) yield {
         val resourceManager: ResourceManager = new FileResourceManager(Paths.get(rb).toFile, 100 * 1024)
-        val resourceHandler = Handlers.resource(resourceManager)
+        val resourceHandler = new DebugResourceHandler(resourceManager).setDirectoryListingEnabled(false)
+//        val resourceHandler = Handlers.resource(resourceManager)
         resourceManager -> resourceHandler
       }
       val fut2 = Repox.resourceHandlers.alter((extra :+ storage).toMap)

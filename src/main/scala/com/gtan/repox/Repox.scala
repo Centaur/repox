@@ -79,7 +79,7 @@ object Repox extends LazyLogging {
    * @param uri resource to get or query
    * @return
    */
-  def downloaded(uri: String): Option[(ResourceManager, ResourceHandler)] = {
+  def downloaded(uri: String): Option[(ResourceManager, DebugResourceHandler)] = {
     resourceHandlers.get().find { case (resourceManager, handler) =>
       resourceManager.getResource(uri.tail) != null
     }
@@ -124,13 +124,13 @@ object Repox extends LazyLogging {
       Failure(new RuntimeException("Invalid Request"))
   }
 
-  val resourceHandlers: Agent[Map[ResourceManager, ResourceHandler]] = Agent(null)
+  val resourceHandlers: Agent[Map[ResourceManager, DebugResourceHandler]] = Agent(null)
 
-  def sendFile(resourceHandler: ResourceHandler, exchange: HttpServerExchange): Unit = {
+  def sendFile(resourceHandler: DebugResourceHandler, exchange: HttpServerExchange): Unit = {
     resourceHandler.handleRequest(exchange)
   }
 
-  def immediateFile(resourceHandler: ResourceHandler, exchange: HttpServerExchange): Unit = {
+  def immediateFile(resourceHandler: DebugResourceHandler, exchange: HttpServerExchange): Unit = {
     logger.debug(s"Immediate file ${exchange.getRequestURI}")
     sendFile(resourceHandler, exchange)
   }
