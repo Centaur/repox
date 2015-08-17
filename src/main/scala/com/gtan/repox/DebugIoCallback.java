@@ -33,7 +33,8 @@ public class DebugIoCallback implements IoCallback {
 
     @Override
     public void onException(final HttpServerExchange exchange, final Sender sender, final IOException exception) {
-        System.out.println("DebugIoCallback onException: " + exception.getMessage());
+        System.out.println("DebugIoCallback onException");
+        exception.printStackTrace();
         try {
             exchange.endExchange();
         } finally {
