@@ -1,10 +1,12 @@
 package com.gtan.repox
 
+
 import com.gtan.repox.admin.WebConfigHandler
-import io.undertow.Undertow
+import io.undertow.{UndertowOptions, Undertow}
 import io.undertow.predicate.{Predicates, Predicate}
 import io.undertow.server.handlers.{PredicateContextHandler, PredicateHandler}
 import io.undertow.server.{HttpServerExchange, HttpHandler}
+import org.xnio.Options
 
 object Main {
   def httpHandlerBridge(realHandler: HttpServerExchange => Unit): HttpHandler = new HttpHandler() {
@@ -19,6 +21,8 @@ object Main {
     Repox.init()
     val server: Undertow = Undertow.builder
       .addHttpListener(8078, "0.0.0.0")
+      .setServerOption(UndertowOptions.IDLE_TIMEOUT, Integer.MAX_VALUE)
+      .setSocketOption(Options.KEEP_ALIVE, true)
       .setHandler(
         new PredicateContextHandler(
           new PredicateHandler(
