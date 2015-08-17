@@ -21,7 +21,7 @@ object Main {
     Repox.init()
     val server: Undertow = Undertow.builder
       .addHttpListener(8078, "0.0.0.0")
-      .setServerOption[Integer](UndertowOptions.IDLE_TIMEOUT, new Integer(Integer.MAX_VALUE))
+      .setServerOption[Integer](UndertowOptions.IDLE_TIMEOUT, 1000 * 60 * 30)
       .setSocketOption[java.lang.Boolean](Options.KEEP_ALIVE, true)
       .setHandler(
         new PredicateContextHandler(
