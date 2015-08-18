@@ -106,7 +106,6 @@ public class DebugResourceHandler implements HttpHandler {
 
     @Override
     public void handleRequest(final HttpServerExchange exchange) throws Exception {
-        System.out.println("Checkpoint 0");
         if (exchange.getRequestMethod().equals(Methods.GET) ||
                 exchange.getRequestMethod().equals(Methods.POST)) {
             serveResource(exchange, true);

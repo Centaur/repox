@@ -154,15 +154,19 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
         sender ! Cleanup
       }
     case GetWorker.HeadersGot(headers) =>
-      if (!getterChosen) {
-        log.debug(s"chose ${sender().path.name}, canceling others. ")
-        for (others <- children.filterNot(_ == sender())) {
-          others ! PeerChosen(sender())
+      if(children.contains(sender())) {
+        if (!getterChosen) {
+          log.debug(s"chose ${sender().path.name}, canceling others. ")
+          for (others <- children.filterNot(_ == sender())) {
+            others ! PeerChosen(sender())
+          }
+          chosen = sender()
+          getterChosen = true
+        } else if (sender != chosen) {
+          sender ! PeerChosen(chosen)
         }
-        chosen = sender()
-        getterChosen = true
-      } else if (sender != chosen) {
-        sender ! PeerChosen(chosen)
+      } else {
+        log.debug(s"HeadersGot msg from previous level ${sender().path.name} received. Ignore.")
       }
   }
 
