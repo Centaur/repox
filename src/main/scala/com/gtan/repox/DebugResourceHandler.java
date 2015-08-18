@@ -119,18 +119,15 @@ public class DebugResourceHandler implements HttpHandler {
     }
 
     private void serveResource(final HttpServerExchange exchange, final boolean sendContent) {
-        System.out.println("Checkpoint 1");
         if (DirectoryUtils.sendRequestedBlobs(exchange)) {
             return;
         }
 
-        System.out.println("Checkpoint 2");
         if (!allowed.resolve(exchange)) {
             exchange.setResponseCode(403);
             exchange.endExchange();
             return;
         }
-        System.out.println("Checkpoint 3");
 
         ResponseCache cache = exchange.getAttachment(ResponseCache.ATTACHMENT_KEY);
         final boolean cachable = this.cachable.resolve(exchange);
@@ -152,15 +149,12 @@ public class DebugResourceHandler implements HttpHandler {
             }
         }
 
-        System.out.println("Checkpoint 4");
-
         //we now dispatch to a worker thread
         //as resource manager methods are potentially blocking
         exchange.dispatch(new Runnable() {
             @Override
             public void run() {
                 Resource resource = null;
-                System.out.println("Checkpoint 5");
                 try {
                     if(File.separatorChar == '/' || !exchange.getRelativePath().contains(File.separator)) {
                         //we don't process resources that contain the sperator character if this is not /
@@ -179,7 +173,6 @@ public class DebugResourceHandler implements HttpHandler {
                     exchange.endExchange();
                     return;
                 }
-                System.out.println("Checkpoint 7");
 
                 if (resource.isDirectory()) {
                     Resource indexResource = null;
@@ -223,7 +216,6 @@ public class DebugResourceHandler implements HttpHandler {
                     exchange.endExchange();
                     return;
                 }
-                System.out.println("Checkpoint 8");
                 //todo: handle range requests
                 //we are going to proceed. Set the appropriate headers
                 final String contentType = resource.getContentType(mimeMappings);
@@ -245,7 +237,6 @@ public class DebugResourceHandler implements HttpHandler {
                 if (contentLength != null) {
                     exchange.getResponseHeaders().put(Headers.CONTENT_LENGTH, contentLength.toString());
                 }
-                System.out.println("Checkpoint 9");
 
                 final ContentEncodedResourceManager contentEncodedResourceManager = DebugResourceHandler.this.contentEncodedResourceManager;
                 if (contentEncodedResourceManager != null) {
@@ -266,14 +257,11 @@ public class DebugResourceHandler implements HttpHandler {
                         return;
                     }
                 }
-                System.out.println("Checkpoint 10");
 
                 if (!sendContent) {
-                    System.out.println("Checkpoint 11");
                     exchange.endExchange();
                 } else {
 //                    resource.serve(exchange.getResponseSender(), exchange, IoCallback.END_EXCHANGE);
-                    System.out.println("Checkpoint 12");
                     resource.serve(exchange.getResponseSender(), exchange, new DebugIoCallback());
                 }
             }
