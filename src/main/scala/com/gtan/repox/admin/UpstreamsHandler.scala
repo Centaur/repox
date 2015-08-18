@@ -23,7 +23,7 @@ object UpstreamsHandler extends RestHandler {
     case (Methods.GET, "upstreams") =>
       val config = Config.get
       respondJson(exchange, Json.obj(
-        "upstreams" -> config.repos.map(RepoVO.wrap),
+        "upstreams" -> config.repos.sortBy(_.priority).map(RepoVO.wrap),
         "connectors" -> config.connectors.filterNot(_.name == "default")
       ))
 

@@ -28,7 +28,12 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
   import com.gtan.repox.HeadMaster._
 
   val uri = exchange.getRequestURI
-  val upstreams = if(Repox.isIvyUri(uri)) Config.enabledRepos.filterNot(_.maven) else Config.enabledRepos
+  val upstreams = {
+    val candidates = Config.enabledRepos.filterNot(_.getOnly)
+    if(Repox.isIvyUri(uri))
+      candidates.filterNot(_.maven)
+    else candidates
+  }
 
   val requestHeaders = new FluentCaseInsensitiveStringsMap()
   for (name <- exchange.getRequestHeaders.getHeaderNames.asScala) {
@@ -72,13 +77,13 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
       self ! PoisonPill
     case msg@NotFound(repo) =>
       finishedChildren += 1
-      allReturned()
+      testAllReturned()
     case msg@HeadTimeout(repo) =>
       finishedChildren += 1
-      allReturned()
+      testAllReturned()
   }
 
-  def allReturned(): Unit = {
+  def testAllReturned(): Unit = {
     if (finishedChildren == children.size) {
       // all returned
       retryTimes += 1
@@ -93,6 +98,5 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
         context become start
       }
     }
-
   }
 }

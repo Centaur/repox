@@ -1,6 +1,7 @@
 package com.gtan.repox
 
 import akka.actor.ActorRef
+import com.gtan.repox.config.Config
 import com.gtan.repox.data.Repo
 import com.ning.http.client.AsyncHandler.STATE
 import com.ning.http.client.{AsyncHandler, HttpResponseBodyPart, HttpResponseHeaders, HttpResponseStatus}
@@ -38,6 +39,10 @@ class HeadAsyncHandler(val worker: ActorRef,val uri: String, val repo: Repo) ext
       statusCode match {
         case StatusCodes.NOT_FOUND =>
           Repox.head404Cache ! Head404Cache.NotFound(uri, repo)
+          if(repo.name == "ibiblio") {
+            // Todo: this is a hack, try generalize
+            Repox.head404Cache ! Head404Cache.NotFound(uri, Config.repos.find(_.name == "oschina").get)
+          }
         case _ =>
       }
       STATE.CONTINUE
