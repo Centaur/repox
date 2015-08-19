@@ -42,7 +42,7 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
                 Repox.smart404(exchange)
                 suicide()
               case _ =>
-                context.actorOf(Props(classOf[HeadMaster], exchange), name = s"HeadMaster_${Random.nextInt()}")
+                context.actorOf(Props(classOf[HeadMaster], exchange), name = s"HeadMaster_${Repox.nextId}")
                 context become working
             }
           }

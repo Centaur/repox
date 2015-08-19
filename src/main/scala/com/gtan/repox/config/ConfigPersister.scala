@@ -3,14 +3,12 @@ package com.gtan.repox.config
 import java.nio.file.Paths
 
 import akka.actor.{ActorLogging, ActorRef}
-import akka.pattern.pipe
-import akka.persistence.{RecoveryFailure, PersistentActor, RecoveryCompleted}
-import com.gtan.repox.{DebugResourceHandler, Repox, RequestQueueMaster}
-import com.ning.http.client.{ProxyServer => JProxyServer, AsyncHttpClient}
+import akka.persistence.{PersistentActor, RecoveryCompleted, RecoveryFailure}
+import com.gtan.repox.{Repox, RequestQueueMaster}
+import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
 import io.undertow.Handlers
-import io.undertow.server.handlers.resource.{ResourceManager, FileResourceManager}
+import io.undertow.server.handlers.resource.{FileResourceManager, ResourceManager}
 import io.undertow.util.StatusCodes
-import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -68,8 +66,7 @@ class ConfigPersister extends PersistentActor with ActorLogging {
         case SetExtraResources(_) =>
           Repox.resourceHandlers.alter((for (er <- Config.resourceBases) yield {
             val resourceManager: ResourceManager = new FileResourceManager(Paths.get(er).toFile, 100 * 1024)
-            val resourceHandler = new DebugResourceHandler(resourceManager).setDirectoryListingEnabled(false)
-//            val resourceHandler = Handlers.resource(resourceManager)
+            val resourceHandler = Handlers.resource(resourceManager)
             resourceManager -> resourceHandler
           }).toMap)
           Future {

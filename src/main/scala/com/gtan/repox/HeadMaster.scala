@@ -60,7 +60,7 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
         self ! PoisonPill
       }
       children = for (upstream <- candidateRepos) yield {
-        val childName = s"HeadWorker_${upstream.name}_${Random.nextInt()}"
+        val childName = s"HeadWorker_${upstream.name}_${Repox.nextId}"
         context.actorOf(
           Props(classOf[HeadWorker], upstream, uri, requestHeaders),
           name = childName)

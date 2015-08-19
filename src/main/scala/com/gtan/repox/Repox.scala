@@ -2,6 +2,7 @@ package com.gtan.repox
 
 import java.io.IOException
 import java.nio.file.Paths
+import java.util.concurrent.atomic.AtomicLong
 
 import akka.actor.{ActorSystem, Props}
 import akka.agent.Agent
@@ -26,6 +27,9 @@ object Repox extends LazyLogging {
   import concurrent.ExecutionContext.Implicits.global
 
   val system = ActorSystem("repox")
+  private[this] val idGenerator = new AtomicLong(1)
+
+  def nextId: Long = idGenerator.getAndIncrement()
 
   val configView = system.actorOf(Props[ConfigView], name = "ConfigView")
   val configPersister = system.actorOf(Props[ConfigPersister], "ConfigPersister")
@@ -79,7 +83,7 @@ object Repox extends LazyLogging {
    * @param uri resource to get or query
    * @return
    */
-  def downloaded(uri: String): Option[(ResourceManager, DebugResourceHandler)] = {
+  def downloaded(uri: String): Option[(ResourceManager, ResourceHandler)] = {
     resourceHandlers.get().find { case (resourceManager, handler) =>
       resourceManager.getResource(uri.tail) != null
     }
@@ -124,13 +128,13 @@ object Repox extends LazyLogging {
       Failure(new RuntimeException("Invalid Request"))
   }
 
-  val resourceHandlers: Agent[Map[ResourceManager, DebugResourceHandler]] = Agent(null)
+  val resourceHandlers: Agent[Map[ResourceManager, ResourceHandler]] = Agent(null)
 
-  def sendFile(resourceHandler: DebugResourceHandler, exchange: HttpServerExchange): Unit = {
+  def sendFile(resourceHandler: ResourceHandler, exchange: HttpServerExchange): Unit = {
     resourceHandler.handleRequest(exchange)
   }
 
-  def immediateFile(resourceHandler: DebugResourceHandler, exchange: HttpServerExchange): Unit = {
+  def immediateFile(resourceHandler: ResourceHandler, exchange: HttpServerExchange): Unit = {
     logger.debug(s"Immediate file ${exchange.getRequestURI}")
     sendFile(resourceHandler, exchange)
   }

@@ -27,13 +27,6 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
   override def receive = start
 
   def start: Receive = {
-//    case Requests.Download(u, from) =>
-//      assert(u == uri)
-//      if (Repox.downloaded(uri).isEmpty) {
-//        log.info(s"$uri not downloaded. Downloading.")
-//        context.actorOf(Props(classOf[GetMaster], uri, from), s"DownloadMaster_${Random.nextInt()}")
-//      }
-//      context become working
     case msg@Requests.Get(exchange) =>
       assert(uri == exchange.getRequestURI)
       Repox.downloaded(uri) match {
@@ -43,7 +36,7 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
           suicide()
         case None =>
           log.info(s"$uri not downloaded. Downloading.")
-          context.actorOf(Props(classOf[GetMaster], uri, Config.enabledRepos), s"GetMaster_${Random.nextInt()}")
+          context.actorOf(Props(classOf[GetMaster], uri, Config.enabledRepos), s"GetMaster_${Repox.nextId}")
           self ! msg
           context become working
       }

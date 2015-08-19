@@ -48,12 +48,10 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
                                                             connector => connector.name -> connector.createClient
                                                           ).toMap)
       log.debug(s"storage: ${Config.storagePath}, resourceBases: ${Config.resourceBases}")
-//      val storage = Repox.storageManager -> Handlers.resource(Repox.storageManager)
-      val storage = Repox.storageManager -> new DebugResourceHandler(Repox.storageManager).setDirectoryListingEnabled(false)
+      val storage = Repox.storageManager -> Handlers.resource(Repox.storageManager)
       val extra = for (rb <- Config.resourceBases) yield {
         val resourceManager: ResourceManager = new FileResourceManager(Paths.get(rb).toFile, 100 * 1024)
-        val resourceHandler = new DebugResourceHandler(resourceManager).setDirectoryListingEnabled(false)
-//        val resourceHandler = Handlers.resource(resourceManager)
+        val resourceHandler = Handlers.resource(resourceManager)
         resourceManager -> resourceHandler
       }
       val fut2 = Repox.resourceHandlers.alter((extra :+ storage).toMap)
@@ -91,23 +89,6 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
       }
       children = children - queue
 
-//    case req@Requests.Download(uri, from) =>
-//      val queue = Queue('get, uri)
-//      Repox.downloaded(uri) match {
-//        case Some(Tuple2(resourceManager, resourceHandler)) =>
-//          for (worker <- children.get(queue)) {
-//            worker ! PoisonPill
-//          }
-//        case None =>
-//          children.get(queue) match {
-//            case None =>
-//              val workerActorName = s"DownloadQueueWorker_${Random.nextInt()}_from_${from.map(_.name).mkString("_")}"
-//              val worker = context.actorOf(Props(classOf[GetQueueWorker], uri), workerActorName)
-//              children = children.updated(queue, worker)
-//              worker ! req
-//            case _ => // downloading proceeding, ignore this one
-//          }
-//      }
     case req@Requests.Get(exchange) =>
       val uri = exchange.getRequestURI
       quarantined.get(uri) match {
@@ -122,7 +103,7 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
             case None =>
               children.get(queue) match {
                 case None =>
-                  val childName = s"GetQueueWorker_${Random.nextInt()}"
+                  val childName = s"GetQueueWorker_${Repox.nextId}"
                   val worker = context.actorOf(Props(classOf[GetQueueWorker], uri), name = childName)
                   children = children.updated(Queue('get, uri), worker)
                   worker ! req
@@ -159,7 +140,7 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
                     case None =>
                       children.get(queue) match {
                         case None =>
-                          val workerActorName = s"HeadQueueWorker_${Random.nextInt()}"
+                          val workerActorName = s"HeadQueueWorker_${Repox.nextId}"
                           val worker = context.actorOf(Props(classOf[HeadQueueWorker], uri), workerActorName)
                           log.debug(s"create HeadQueueWorker $workerActorName")
                           children = children.updated(queue, worker)
