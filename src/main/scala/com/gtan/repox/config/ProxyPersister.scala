@@ -4,7 +4,8 @@ import com.gtan.repox.SerializationSupport
 import com.gtan.repox.data.{ProxyServer, Repo}
 import play.api.libs.json.{JsValue, Json}
 
-trait ProxyPersister {
+object ProxyPersister extends SerializationSupport {
+
   // ToDo: need to update ProxyUsage when update Proxy. Separate New and Update
   case class NewOrUpdateProxy(proxy: ProxyServer) extends Cmd {
     override def transform(old: Config) = {
@@ -18,9 +19,7 @@ trait ProxyPersister {
     }
   }
 
-  object NewOrUpdateProxy {
-    implicit val format = Json.format[NewOrUpdateProxy]
-  }
+  implicit val newOrUpdateProxyformat = Json.format[NewOrUpdateProxy]
 
   case class EnableProxy(id: Long) extends Cmd {
     override def transform(old: Config) = {
@@ -32,9 +31,7 @@ trait ProxyPersister {
     }
   }
 
-  object EnableProxy {
-    implicit val format = Json.format[EnableProxy]
-  }
+  implicit val enableProxyFormat = Json.format[EnableProxy]
 
   case class DisableProxy(id: Long) extends Cmd {
     override def transform(old: Config) = {
@@ -46,9 +43,7 @@ trait ProxyPersister {
     }
   }
 
-  object DisableProxy {
-    implicit val format = Json.format[DisableProxy]
-  }
+  implicit val disableProxyFormat = Json.format[DisableProxy]
 
   case class DeleteProxy(id: Long) extends Cmd {
     override def transform(old: Config) = {
@@ -61,15 +56,7 @@ trait ProxyPersister {
     }
   }
 
-  object DeleteProxy {
-    implicit val format = Json.format[DeleteProxy]
-  }
-
-}
-
-object ProxyPersister extends SerializationSupport {
-
-  import ConfigPersister._
+  implicit val deleteProxyFormat = Json.format[DeleteProxy]
 
   val NewOrUpdateProxyClass = classOf[NewOrUpdateProxy].getName
   val EnableProxyClass = classOf[EnableProxy].getName

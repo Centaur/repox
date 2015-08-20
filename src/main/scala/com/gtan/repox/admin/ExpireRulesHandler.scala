@@ -10,7 +10,7 @@ import io.undertow.util.Methods
 import play.api.libs.json.Json
 import akka.pattern.ask
 import concurrent.duration._
-import com.gtan.repox.config.ConfigPersister._
+import com.gtan.repox.config.ExpireRulePersister._
 
 import collection.JavaConverters._
 

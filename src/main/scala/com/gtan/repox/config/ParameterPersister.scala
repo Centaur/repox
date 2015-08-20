@@ -6,17 +6,18 @@ import play.api.libs.json.{JsValue, Json}
 
 import scala.concurrent.duration.Duration
 
-trait ParameterPersister {
+
+object ParameterPersister extends SerializationSupport {
+
   case class SetHeadTimeout(m: Duration) extends Cmd {
     override def transform(old: Config) = {
       old.copy(headTimeout = m)
     }
   }
 
-  object SetHeadTimeout {
-    import DurationFormat._
-    implicit val format = Json.format[SetHeadTimeout]
-  }
+
+  import DurationFormat._
+  implicit val SetHeadTimeoutFormat = Json.format[SetHeadTimeout]
 
   case class SetHeadRetryTimes(m: Int) extends Cmd {
     override def transform(old: Config) = {
@@ -24,9 +25,7 @@ trait ParameterPersister {
     }
   }
 
-  object SetHeadRetryTimes {
-    implicit val format = Json.format[SetHeadRetryTimes]
-  }
+  implicit val SetHeadRetryTimesFormat = Json.format[SetHeadRetryTimes]
 
   case class ModifyPassword(newPassword: String) extends Cmd {
     override def transform(old: Config): Config = {
@@ -34,9 +33,7 @@ trait ParameterPersister {
     }
   }
 
-  object ModifyPassword {
-    implicit val format = Json.format[ModifyPassword]
-  }
+  implicit val ModifyPasswordFormat = Json.format[ModifyPassword]
 
   case class SetExtraResources(value: String) extends Cmd {
     override def transform(old: Config): Config = {
@@ -44,17 +41,11 @@ trait ParameterPersister {
     }
   }
 
-  object SetExtraResources {
-    implicit val format = Json.format[SetExtraResources]
-  }
-}
+  implicit val SetExtraResourcesFormat = Json.format[SetExtraResources]
 
-object ParameterPersister extends SerializationSupport {
-  import ConfigPersister._
-
-  val SetHeadTimeoutClass              = classOf[SetHeadTimeout].getName
-  val SetHeadRetryTimesClass           = classOf[SetHeadRetryTimes].getName
-  val ModifyPasswordClass              = classOf[ModifyPassword].getName
+  val SetHeadTimeoutClass = classOf[SetHeadTimeout].getName
+  val SetHeadRetryTimesClass = classOf[SetHeadRetryTimes].getName
+  val ModifyPasswordClass = classOf[ModifyPassword].getName
   val SetExtraResourcesClass = classOf[SetExtraResources].getName
 
   override val reader: (JsValue) => PartialFunction[String, Cmd] = payload => {
@@ -63,7 +54,7 @@ object ParameterPersister extends SerializationSupport {
     case ModifyPasswordClass => payload.as[ModifyPassword]
     case SetExtraResourcesClass => payload.as[SetExtraResources]
   }
-  override val writer  : PartialFunction[Cmd, JsValue]             = {
+  override val writer: PartialFunction[Cmd, JsValue] = {
     case o: SetHeadTimeout => Json.toJson(o)
     case o: SetHeadRetryTimes => Json.toJson(o)
     case o: ModifyPassword => Json.toJson(o)

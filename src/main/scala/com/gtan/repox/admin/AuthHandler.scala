@@ -3,7 +3,7 @@ package com.gtan.repox.admin
 import java.util.Date
 
 import com.gtan.repox.Repox
-import com.gtan.repox.config.{ConfigPersister, Config}
+import com.gtan.repox.config.{ParameterPersister, ConfigPersister, Config}
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.server.HttpServerExchange
 import io.undertow.server.handlers.{CookieImpl, Cookie}
@@ -16,7 +16,7 @@ import scala.language.postfixOps
 object AuthHandler extends RestHandler with LazyLogging {
 
   import WebConfigHandler._
-  import ConfigPersister._
+  import ParameterPersister._
 
   implicit val timeout = akka.util.Timeout(1 second)
 

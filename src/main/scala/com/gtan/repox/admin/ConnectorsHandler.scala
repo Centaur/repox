@@ -16,7 +16,7 @@ import scala.language.postfixOps
 object ConnectorsHandler extends RestHandler {
 
   import com.gtan.repox.admin.WebConfigHandler._
-  import com.gtan.repox.config.ConfigPersister._
+  import com.gtan.repox.config.ConnectorPersister._
 
   implicit val timeout = akka.util.Timeout(1 second)
 

@@ -4,7 +4,7 @@ import com.gtan.repox.SerializationSupport
 import com.gtan.repox.data.Immediate404Rule
 import play.api.libs.json.{JsValue, Json}
 
-trait Immediate404RulePersister {
+object Immediate404RulePersister extends SerializationSupport {
 
   case class NewOrUpdateImmediate404Rule(rule: Immediate404Rule) extends Cmd {
     override def transform(old: Config) = {
@@ -18,9 +18,7 @@ trait Immediate404RulePersister {
     }
   }
 
-  object NewOrUpdateImmediate404Rule {
-    implicit val format = Json.format[NewOrUpdateImmediate404Rule]
-  }
+  implicit val newOrUpdateImmediate404RuleFormat = Json.format[NewOrUpdateImmediate404Rule]
 
   case class EnableImmediate404Rule(id: Long) extends Cmd {
     override def transform(old: Config) = {
@@ -32,9 +30,7 @@ trait Immediate404RulePersister {
     }
   }
 
-  object EnableImmediate404Rule {
-    implicit val format = Json.format[EnableImmediate404Rule]
-  }
+  implicit val enableImmediate404RuleFormat = Json.format[EnableImmediate404Rule]
 
   case class DisableImmediate404Rule(id: Long) extends Cmd {
     override def transform(old: Config) = {
@@ -46,33 +42,23 @@ trait Immediate404RulePersister {
     }
   }
 
-  object DisableImmediate404Rule {
-    implicit val format = Json.format[DisableImmediate404Rule]
-  }
+  implicit val DisableImmediate404RuleFormat = Json.format[DisableImmediate404Rule]
 
   case class DeleteImmediate404Rule(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldRules = old.immediate404Rules
       old.copy(
-        immediate404Rules = oldRules.filterNot(_.id == Some(id))
+        immediate404Rules = oldRules.filterNot(_.id.contains(id))
       )
     }
   }
 
-  object DeleteImmediate404Rule {
-    implicit val format = Json.format[DeleteImmediate404Rule]
-  }
-
-}
-
-object Immediate404RulePersister extends SerializationSupport {
-
-  import ConfigPersister._
+  implicit val DeleteImmediat404RuleFormat = Json.format[DeleteImmediate404Rule]
 
   val NewOrUpdateImmediate404RuleClass = classOf[NewOrUpdateImmediate404Rule].getName
-  val EnableImmediate404RuleClass      = classOf[EnableImmediate404Rule].getName
-  val DisableImmediate404RuleClass     = classOf[DisableImmediate404Rule].getName
-  val DeleteImmediate404RuleClass      = classOf[DeleteImmediate404Rule].getName
+  val EnableImmediate404RuleClass = classOf[EnableImmediate404Rule].getName
+  val DisableImmediate404RuleClass = classOf[DisableImmediate404Rule].getName
+  val DeleteImmediate404RuleClass = classOf[DeleteImmediate404Rule].getName
 
   override val reader: (JsValue) => PartialFunction[String, Cmd] = payload => {
     case NewOrUpdateImmediate404RuleClass => payload.as[NewOrUpdateImmediate404Rule]
@@ -80,7 +66,7 @@ object Immediate404RulePersister extends SerializationSupport {
     case DisableImmediate404RuleClass => payload.as[DisableImmediate404Rule]
     case DeleteImmediate404RuleClass => payload.as[DeleteImmediate404Rule]
   }
-  override val writer  : PartialFunction[Cmd, JsValue]             = {
+  override val writer: PartialFunction[Cmd, JsValue] = {
     case o: NewOrUpdateImmediate404Rule => Json.toJson(o)
     case o: EnableImmediate404Rule => Json.toJson(o)
     case o: DisableImmediate404Rule => Json.toJson(o)

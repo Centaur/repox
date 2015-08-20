@@ -2,7 +2,7 @@ package com.gtan.repox.admin
 
 import com.gtan.repox.Repox
 import com.gtan.repox.config.Config
-import com.gtan.repox.config.ConfigPersister._
+import com.gtan.repox.config.ParameterPersister._
 import io.undertow.server.HttpServerExchange
 import io.undertow.util.Methods
 import play.api.libs.json.{Json, JsNumber, JsString, JsObject}

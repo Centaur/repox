@@ -23,15 +23,16 @@ case class ConfigChanged(config: Config, cmd: Cmd) extends Evt
 
 case object UseDefault extends Evt
 
-object ConfigPersister extends RepoPersister with ParameterPersister
-                               with ConnectorPersister
-                               with ProxyPersister
-                               with Immediate404RulePersister
-                               with ExpireRulePersister
+//object ConfigPersister extends RepoPersister with ParameterPersister
+//                               with ConnectorPersister
+//                               with ProxyPersister
+//                               with Immediate404RulePersister
+//                               with ExpireRulePersister
 
 class ConfigPersister extends PersistentActor with ActorLogging {
 
-  import com.gtan.repox.config.ConfigPersister._
+  import com.gtan.repox.config.ConnectorPersister._
+  import com.gtan.repox.config.ParameterPersister._
 
   override def persistenceId = "Config"
 

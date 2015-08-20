@@ -2,12 +2,10 @@ package com.gtan.repox
 
 import java.io.NotSerializableException
 
-import akka.actor.ExtendedActorSystem
 import akka.serialization.Serializer
 import com.gtan.repox.config._
 import com.typesafe.scalalogging.LazyLogging
-import play.api.libs.json.{JsValue, JsString, JsObject, Json}
-import ConfigPersister._
+import play.api.libs.json.{JsObject, JsString, JsValue, Json}
 
 trait SerializationSupport {
   val reader: JsValue => PartialFunction[String, Cmd]
@@ -17,7 +15,7 @@ trait SerializationSupport {
 class JsonSerializer extends Serializer with LazyLogging with SerializationSupport {
   val ConfigChangedClass = classOf[ConfigChanged].getName
 
-  val serializationSupports: Seq[_ <: SerializationSupport] = Seq(RepoPersister, ProxyPersister, ParameterPersister, Immediate404RulePersister, ExpireRulePersister, ConnectorPersister, ExpirationPersister)
+  val serializationSupports: Seq[_ <: SerializationSupport] = Seq(RepoPersister, ProxyPersister, ParameterPersister, Immediate404RulePersister, ExpireRulePersister, ConnectorPersister, ExpirationManager)
 
   override val reader = { jsValue: JsValue =>
     serializationSupports.map(_.reader(jsValue)).reduce(_ orElse _) orElse {

@@ -9,29 +9,23 @@ import play.api.libs.json.{JsValue, Json}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-object ExpirationManager {
+
+object ExpirationManager extends SerializationSupport {
 
   // ToDo: Cmd should be decoupled with Config
   case class CreateExpiration(uri: String, duration: Duration)
 
   case class CancelExpiration(uri: String) extends Cmd
 
-  object CancelExpiration {
-    implicit val format = Json.format[CancelExpiration]
-  }
+  implicit val cancelExpirationFormat = Json.format[CancelExpiration]
 
   case class PerformExpiration(uri: String)
 
   case class Expiration(uri: String, timestamp: DateTime) extends Cmd
 
-  object Expiration {
-    implicit val format = Json.format[Expiration]
-  }
-}
+  implicit val expirationFormat = Json.format[Expiration]
 
-object ExpirationPersister extends SerializationSupport {
-  import ExpirationManager._
-  val  ExpirationClass = classOf[Expiration].getName
+  val ExpirationClass = classOf[Expiration].getName
   val CancelExpirationClass = classOf[CancelExpiration].getName
 
   override val reader: JsValue => PartialFunction[String, Cmd] = payload => {

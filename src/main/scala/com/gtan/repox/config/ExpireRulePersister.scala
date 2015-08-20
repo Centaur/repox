@@ -6,7 +6,7 @@ import com.gtan.repox.SerializationSupport
 import com.gtan.repox.data.ExpireRule
 import play.api.libs.json.{JsValue, Json}
 
-trait ExpireRulePersister {
+object ExpireRulePersister extends SerializationSupport {
 
   case class NewOrUpdateExpireRule(rule: ExpireRule) extends Cmd {
     override def transform(old: Config) = {
@@ -20,9 +20,7 @@ trait ExpireRulePersister {
     }
   }
 
-  object NewOrUpdateExpireRule {
-    implicit val format = Json.format[NewOrUpdateExpireRule]
-  }
+  implicit val NewOrUpdateExpireRuleFormat = Json.format[NewOrUpdateExpireRule]
 
   case class EnableExpireRule(id: Long) extends Cmd {
     override def transform(old: Config) = {
@@ -34,9 +32,7 @@ trait ExpireRulePersister {
     }
   }
 
-  object EnableExpireRule {
-    implicit val format = Json.format[EnableExpireRule]
-  }
+  implicit val EnableExpireRuleFormat = Json.format[EnableExpireRule]
 
   case class DisableExpireRule(id: Long) extends Cmd {
     override def transform(old: Config) = {
@@ -48,33 +44,23 @@ trait ExpireRulePersister {
     }
   }
 
-  object DisableExpireRule {
-    implicit val format = Json.format[DisableExpireRule]
-  }
+  implicit val DisalbExpireRuleFormat = Json.format[DisableExpireRule]
 
   case class DeleteExpireRule(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldRules = old.expireRules
       old.copy(
-        expireRules = oldRules.filterNot(_.id == Some(id))
+        expireRules = oldRules.filterNot(_.id.contains(id))
       )
     }
   }
 
-  object DeleteExpireRule {
-    implicit val format = Json.format[DeleteExpireRule]
-  }
-
-}
-
-object ExpireRulePersister extends SerializationSupport {
-
-  import ConfigPersister._
+  implicit val DeleteExpireRuleFormat = Json.format[DeleteExpireRule]
 
   val NewOrUpdateExpireRuleClass = classOf[NewOrUpdateExpireRule].getName
-  val EnableExpireRuleClass      = classOf[EnableExpireRule].getName
-  val DisableExpireRuleClass     = classOf[DisableExpireRule].getName
-  val DeleteExpireRuleClass      = classOf[DeleteExpireRule].getName
+  val EnableExpireRuleClass = classOf[EnableExpireRule].getName
+  val DisableExpireRuleClass = classOf[DisableExpireRule].getName
+  val DeleteExpireRuleClass = classOf[DeleteExpireRule].getName
 
   override val reader: (JsValue) => PartialFunction[String, Cmd] = payload => {
     case NewOrUpdateExpireRuleClass => payload.as[NewOrUpdateExpireRule]
@@ -83,7 +69,7 @@ object ExpireRulePersister extends SerializationSupport {
     case DeleteExpireRuleClass => payload.as[DeleteExpireRule]
 
   }
-  override val writer  : PartialFunction[Cmd, JsValue]             = {
+  override val writer: PartialFunction[Cmd, JsValue] = {
     case o: NewOrUpdateExpireRule => Json.toJson(o)
     case o: EnableExpireRule => Json.toJson(o)
     case o: DisableExpireRule => Json.toJson(o)

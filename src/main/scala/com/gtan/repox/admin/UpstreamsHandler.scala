@@ -1,21 +1,19 @@
 package com.gtan.repox.admin
 
-import java.net.URLDecoder
-
-import com.gtan.repox.Repox
-import com.gtan.repox.config.{ConfigPersister, Config}
-import io.undertow.server.HttpServerExchange
-import io.undertow.util.{Methods, HttpString}
-import play.api.libs.json.{JsObject, Format, Json}
-import collection.JavaConverters._
 import akka.pattern.ask
-import concurrent.duration._
+import com.gtan.repox.Repox
+import com.gtan.repox.config.Config
+import com.gtan.repox.config.RepoPersister._
+import io.undertow.server.HttpServerExchange
+import io.undertow.util.{HttpString, Methods}
+import play.api.libs.json.Json
+
+import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object UpstreamsHandler extends RestHandler {
 
   import WebConfigHandler._
-  import ConfigPersister._
 
   implicit val timeout = akka.util.Timeout(1 second)
 

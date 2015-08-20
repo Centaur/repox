@@ -4,7 +4,7 @@ import java.net.URLDecoder
 
 import com.gtan.repox.Repox
 import com.gtan.repox.config.Config
-import com.gtan.repox.config.ConfigPersister._
+import com.gtan.repox.config.Immediate404RulePersister._
 import com.gtan.repox.data.Immediate404Rule
 import io.undertow.server.HttpServerExchange
 import io.undertow.util.Methods

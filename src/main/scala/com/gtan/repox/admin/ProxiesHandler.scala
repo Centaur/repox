@@ -4,7 +4,7 @@ import java.net.URLDecoder
 
 import com.gtan.repox.Repox
 import com.gtan.repox.config.Config
-import com.gtan.repox.config.ConfigPersister._
+import com.gtan.repox.config.ProxyPersister._
 import com.gtan.repox.data.ProxyServer
 import io.undertow.server.HttpServerExchange
 import io.undertow.util.{HttpString, Methods}

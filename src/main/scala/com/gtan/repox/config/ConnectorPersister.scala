@@ -5,7 +5,7 @@ import com.gtan.repox.admin.{ConnectorVO, RepoVO}
 import com.gtan.repox.data.{Connector, Repo}
 import play.api.libs.json.{JsValue, Json}
 
-trait ConnectorPersister {
+object ConnectorPersister extends SerializationSupport {
 
   case class NewConnector(vo: ConnectorVO) extends Cmd {
     override def transform(old: Config) = {
@@ -21,9 +21,7 @@ trait ConnectorPersister {
     }
   }
 
-  object NewConnector {
-    implicit val format = Json.format[NewConnector]
-  }
+  implicit val NewConnectorFormat = Json.format[NewConnector]
 
 
   case class UpdateConnector(vo: ConnectorVO) extends Cmd {
@@ -47,9 +45,7 @@ trait ConnectorPersister {
     }
   }
 
-  object UpdateConnector {
-    implicit val format = Json.format[UpdateConnector]
-  }
+  implicit val updateConnectorFormat = Json.format[UpdateConnector]
 
   case class DeleteConnector(id: Long) extends Cmd {
     override def transform(old: Config) = {
@@ -62,15 +58,7 @@ trait ConnectorPersister {
     }
   }
 
-  object DeleteConnector {
-    implicit val format = Json.format[DeleteConnector]
-  }
-
-}
-
-object ConnectorPersister extends SerializationSupport {
-
-  import ConfigPersister._
+  implicit val DeleteConnectorFormat = Json.format[DeleteConnector]
 
   val NewConnectorClass = classOf[NewConnector].getName
   val UpdateConnectorClass = classOf[UpdateConnector].getName
