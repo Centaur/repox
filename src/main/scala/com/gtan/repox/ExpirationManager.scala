@@ -2,41 +2,71 @@ package com.gtan.repox
 
 import akka.actor.{ActorLogging, Cancellable, Props}
 import akka.persistence.PersistentActor
+import com.gtan.repox.config.{Config, Cmd}
 import org.joda.time.DateTime
+import play.api.libs.json.{JsValue, Json}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-object ExpirationPersister {
+object ExpirationManager {
 
+  // ToDo: Cmd should be decoupled with Config
   case class CreateExpiration(uri: String, duration: Duration)
 
-  case class CancelExpiration(uri: String)
+  case class CancelExpiration(uri: String) extends Cmd
+
+  object CancelExpiration {
+    implicit val format = Json.format[CancelExpiration]
+  }
 
   case class PerformExpiration(uri: String)
 
+  case class Expiration(uri: String, timestamp: DateTime) extends Cmd
+
+  object Expiration {
+    implicit val format = Json.format[Expiration]
+  }
 }
 
-case class Expiration(uri: String, timestamp: DateTime)
+object ExpirationPersister extends SerializationSupport {
+  import ExpirationManager._
+  val  ExpirationClass = classOf[Expiration].getName
+  val CancelExpirationClass = classOf[CancelExpiration].getName
 
-class ExpirationPersister extends PersistentActor with ActorLogging {
+  override val reader: JsValue => PartialFunction[String, Cmd] = payload => {
+    case CancelExpirationClass => payload.as[CancelExpiration]
+    case ExpirationClass => payload.as[Expiration]
+  }
 
-  import com.gtan.repox.ExpirationPersister._
+  override val writer: PartialFunction[Cmd, JsValue] = {
+    case o: CancelExpiration => Json.toJson(o)
+    case o: Expiration => Json.toJson(o)
+  }
+}
+
+
+class ExpirationManager extends PersistentActor with ActorLogging {
+
+  import com.gtan.repox.ExpirationManager._
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
   override def persistenceId: String = "Expiration"
 
-  var scheduledExpirations: Map[String, Cancellable] = _
+  var scheduledExpirations: Map[String, Cancellable] = Map.empty
 
   def scheduleFileDelete(expiration: Expiration): Unit = {
     if (expiration.timestamp.isAfterNow) {
+      val delay: Long = expiration.timestamp.getMillis - DateTime.now().getMillis
+      log.debug(s"Schedule expiration for ${expiration.uri} at ${expiration.timestamp} in $delay ms")
       val cancellable = Repox.system.scheduler.scheduleOnce(
-        expiration.timestamp.getMillis - DateTime.now().getMillis millis,
+        delay.millis,
         self,
         PerformExpiration(expiration.uri))
       scheduledExpirations = scheduledExpirations.updated(expiration.uri, cancellable)
     } else {
+      log.debug(s"${expiration.uri} expired, trigger FileDelete now.")
       context.actorOf(Props(classOf[FileDeleter], expiration.uri, 'ExpirationPersister))
     }
   }
@@ -61,12 +91,13 @@ class ExpirationPersister extends PersistentActor with ActorLogging {
     case CreateExpiration(uri, duration) =>
       val timestamp = DateTime.now().plusMillis(duration.toMillis.toInt)
       val expiration = Expiration(uri, timestamp)
-      persist(expiration) { _ =>}
+      persist(expiration) { _ => }
       scheduleFileDelete(expiration)
     case CancelExpiration(pattern) =>
-      persist(CancelExpiration(pattern)) { _ =>}
+      persist(CancelExpiration(pattern)) { _ => }
       cancelExpirations(pattern)
     case PerformExpiration(uri) =>
+      log.debug(s"$uri expired, trigger FileDelete now.")
       context.actorOf(Props(classOf[FileDeleter], uri, 'ExpirationPersister))
       scheduledExpirations = scheduledExpirations - uri
   }

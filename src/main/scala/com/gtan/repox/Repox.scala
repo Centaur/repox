@@ -33,7 +33,7 @@ object Repox extends LazyLogging {
 
   val configView = system.actorOf(Props[ConfigView], name = "ConfigView")
   val configPersister = system.actorOf(Props[ConfigPersister], "ConfigPersister")
-  val expirationPersister = system.actorOf(Props[ExpirationPersister], "ExpirationPersister")
+  val expirationPersister = system.actorOf(Props[ExpirationManager], "ExpirationPersister")
   val head404Cache = system.actorOf(Props[Head404Cache], "HeaderCache")
   val requestQueueMaster = system.actorOf(Props[RequestQueueMaster], "RequestQueueMaster")
 
@@ -91,6 +91,7 @@ object Repox extends LazyLogging {
 
   val MavenFormat = """(/.+)+/((.+?)(_(.+?)(_(.+))?)?)/(.+?)/(\3-\8(-(.+?))?\.(.+))""".r
   val IvyFormat = """/(.+?)/(.+?)/(scala_(.+?)/)?(sbt_(.+?)/)?(.+?)/(.+?)s/((.+?)(-(.+))?\.(.+))""".r
+  val MetaDataFormat = """.+/maven-metadata\.xml""".r
   val supportedScalaVersion = List("2.10", "2.11")
   val supportedSbtVersion = List("0.13")
 
@@ -100,6 +101,7 @@ object Repox extends LazyLogging {
    * @return maven format if is ivy format, or ivy format if is maven format
    */
   def peer(uri: String): Try[List[String]] = uri match {
+    case MetaDataFormat() => Success(Nil)
     case MavenFormat(groupIds, _, artifactId, _, scalaVersion, _, sbtVersion, version, fileName, _, classifier, ext) =>
       val organization = groupIds.split("/").filter(_.nonEmpty).mkString(".")
       val typ = ext match {

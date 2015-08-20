@@ -3,6 +3,7 @@ package com.gtan.repox
 import java.nio.file.Path
 
 import akka.actor._
+import com.gtan.repox.ExpirationManager.CreateExpiration
 import com.gtan.repox.config.Config
 import com.gtan.repox.data.Repo
 import io.undertow.server.HttpServerExchange
@@ -28,7 +29,6 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
 
   def start: Receive = {
     case msg@Requests.Get(exchange) =>
-      assert(uri == exchange.getRequestURI)
       Repox.downloaded(uri) match {
         case Some(Tuple2(resourceManager, resourceHandler)) =>
           log.info(s"$uri downloaded. Serve immediately.")
@@ -67,10 +67,14 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
   def flushWaiting: Receive = {
     case Requests.Get(exchange) =>
       if (found) {
-        log.debug(s"flushWaiting $exchange 200. Sending file ${exchange.getRequestURI}")
+        log.debug(s"flushWaiting $exchange 200. Sending file $uri")
         Repox.sendFile(Repox.resourceHandlers.get().apply(Repox.storageManager), exchange)
         if(deleteFileAfterResponse) {
           context.actorOf(Props(classOf[FileDeleter], uri, 'GetQueueWorker))
+        } else Config.enabledExpireRules.find(rule => uri.matches(rule.pattern)) match {
+          case Some(r) =>
+            Repox.expirationPersister ! CreateExpiration(uri, r.duration)
+          case _ =>
         }
       } else {
         log.debug(s"flushWaiting $exchange 404")

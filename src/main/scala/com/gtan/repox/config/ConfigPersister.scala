@@ -14,7 +14,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait Cmd {
-  def transform(old: Config): Config
+  def transform(old: Config): Config = old
 }
 
 trait Evt
