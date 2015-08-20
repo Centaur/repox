@@ -1,19 +1,24 @@
 package com.gtan.repox.config
 
 import com.gtan.repox.SerializationSupport
-import com.gtan.repox.data.{ProxyServer, Repo}
+import com.gtan.repox.data.{Connector, ProxyServer, Repo}
 import play.api.libs.json.{JsValue, Json}
 
 object ProxyPersister extends SerializationSupport {
 
-  // ToDo: need to update ProxyUsage when update Proxy. Separate New and Update
   case class NewOrUpdateProxy(proxy: ProxyServer) extends Cmd {
     override def transform(old: Config) = {
       val oldProxies = old.proxies
+      val oldProxyUsages: Map[Connector, ProxyServer] = old.proxyUsage
       old.copy(proxies = proxy.id.fold(oldProxies :+ proxy.copy(id = Some(ProxyServer.nextId.incrementAndGet()))) { _id =>
         oldProxies.map {
           case ProxyServer(Some(`_id`), _, _, _, _, _) => proxy
           case p => p
+        }
+      }, proxyUsage = proxy.id.fold(oldProxyUsages) { _id =>
+        oldProxyUsages.map {
+          case (connector, ProxyServer(Some(`_id`), _, _, _, _, _)) => connector -> proxy
+          case u => u
         }
       })
     }
@@ -23,8 +28,7 @@ object ProxyPersister extends SerializationSupport {
 
   case class EnableProxy(id: Long) extends Cmd {
     override def transform(old: Config) = {
-      val oldProxies = old.proxies
-      old.copy(proxies = oldProxies.map {
+      old.copy(proxies = old.proxies.map {
         case p@ProxyServer(Some(`id`), _, _, _, _, _) => p.copy(disabled = false)
         case p => p
       })
@@ -35,10 +39,11 @@ object ProxyPersister extends SerializationSupport {
 
   case class DisableProxy(id: Long) extends Cmd {
     override def transform(old: Config) = {
-      val oldProxies = old.proxies
-      old.copy(proxies = oldProxies.map {
+      old.copy(proxies = old.proxies.map {
         case p@ProxyServer(Some(`id`), _, _, _, _, _) => p.copy(disabled = true)
         case p => p
+      }, proxyUsage = old.proxyUsage.filterNot {
+        case (connector, proxy) => proxy.id.contains(id)
       })
     }
   }
@@ -47,11 +52,9 @@ object ProxyPersister extends SerializationSupport {
 
   case class DeleteProxy(id: Long) extends Cmd {
     override def transform(old: Config) = {
-      val oldProxies = old.proxies
-      val oldProxyUsage = old.connectorUsage
       old.copy(
-        proxies = oldProxies.filterNot(_.id.contains(id)),
-        connectorUsage = oldProxyUsage.filterNot { case (repo, proxy) => proxy.id.contains(id) }
+        proxies = old.proxies.filterNot(_.id.contains(id)),
+        proxyUsage = old.proxyUsage.filterNot { case (connector, proxy) => proxy.id.contains(id) }
       )
     }
   }

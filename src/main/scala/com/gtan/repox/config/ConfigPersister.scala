@@ -9,6 +9,7 @@ import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
 import io.undertow.Handlers
 import io.undertow.server.handlers.resource.{FileResourceManager, ResourceManager}
 import io.undertow.util.StatusCodes
+import play.api.libs.json.Json
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -22,12 +23,6 @@ trait Evt
 case class ConfigChanged(config: Config, cmd: Cmd) extends Evt
 
 case object UseDefault extends Evt
-
-//object ConfigPersister extends RepoPersister with ParameterPersister
-//                               with ConnectorPersister
-//                               with ProxyPersister
-//                               with Immediate404RulePersister
-//                               with ExpireRulePersister
 
 class ConfigPersister extends PersistentActor with ActorLogging {
 
@@ -102,7 +97,7 @@ class ConfigPersister extends PersistentActor with ActorLogging {
 
   val receiveRecover: Receive = {
     case ConfigChanged(data, cmd) =>
-      log.debug(s"data=$data, cmd=$cmd")
+      log.debug(s"Config changed, cmd=$cmd")
       config = data
 
     case UseDefault =>

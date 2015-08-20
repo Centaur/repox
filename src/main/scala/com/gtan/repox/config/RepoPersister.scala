@@ -33,9 +33,13 @@ object RepoPersister extends SerializationSupport {
   case class DisableRepo(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
+      val oldConnectorUsage = old.connectorUsage
       old.copy(repos = oldRepos.map {
         case o@Repo(Some(`id`), _, _, _, _, _, _) => o.copy(disabled = true)
         case o => o
+      }, connectorUsage = oldConnectorUsage.map {
+        case (o@Repo(Some(`id`), _, _, _, _, _, _), connector) => o.copy(disabled = true) -> connector
+        case u => u
       })
     }
   }
@@ -45,9 +49,13 @@ object RepoPersister extends SerializationSupport {
   case class EnableRepo(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
+      val oldConnectorUsage = old.connectorUsage
       old.copy(repos = oldRepos.map {
         case o@Repo(Some(`id`), _, _, _, _, _, _) => o.copy(disabled = false)
         case o => o
+      }, connectorUsage = oldConnectorUsage.map {
+        case (o@Repo(Some(`id`), _, _, _, _, _, _), connector) => o.copy(disabled = false) -> connector
+        case u => u
       })
     }
   }
@@ -92,6 +100,8 @@ object RepoPersister extends SerializationSupport {
   case class MoveUpRepo(id: Long) extends Cmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
+      val oldConnectorUsage = old.connectorUsage
+
       val repo = oldRepos.find(_.id.contains(id))
       repo.fold(old) { _repo =>
         val index = oldRepos.indexOf(_repo)
@@ -101,6 +111,9 @@ object RepoPersister extends SerializationSupport {
             repos = oldRepos.map {
               case `_repo` => _repo.copy(priority = _repo.priority - 1)
               case r => r
+            }, connectorUsage = oldConnectorUsage.map {
+              case (o@Repo(Some(`id`), _, _, oldPriority, _, _, _), connector) => o.copy(priority = oldPriority - 1) -> connector
+              case u => u
             })
         } else {
           val previous = oldRepos(index - 1)
@@ -120,8 +133,10 @@ object RepoPersister extends SerializationSupport {
               repos = oldRepos.map {
                 case `_repo` => _repo.copy(priority = _repo.priority - 1)
                 case r => r
-              }
-            )
+              }, connectorUsage = oldConnectorUsage.map {
+                case (o@Repo(Some(`id`), _, _, oldPriority, _, _, _), connector) => o.copy(priority = oldPriority - 1) -> connector
+                case u => u
+              })
           }
         }
       }

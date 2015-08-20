@@ -3,9 +3,10 @@ package com.gtan.repox
 import java.nio.file.Paths
 
 import akka.actor._
-import com.gtan.repox.config.Config
+import com.gtan.repox.config.{ConfigFormats, Config}
 import io.undertow.Handlers
 import io.undertow.server.handlers.resource.{FileResourceManager, ResourceManager}
+import play.api.libs.json.Json
 
 import scala.util.Random
 
@@ -29,7 +30,7 @@ object RequestQueueMaster {
 
 }
 
-class RequestQueueMaster extends Actor with Stash with ActorLogging {
+class RequestQueueMaster extends Actor with Stash with ActorLogging with ConfigFormats {
 
   import RequestQueueMaster._
 
@@ -43,7 +44,10 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging {
 
   def waitingConfigRecover: Receive = {
     case ConfigLoaded =>
-      log.debug(s"Config loaded. connectorUsage: ${Config.connectorUsage}")
+      log.info("Config loaded.")
+      log.debug(s"connectors: ${Json.prettyPrint(Json.toJson(Config.connectors))}")
+      log.debug(s"repos: ${Json.prettyPrint(Json.toJson(Config.repos))}")
+      log.debug(s"connectorUsage: ${Json.prettyPrint(Json.toJson(Config.connectorUsage))}")
       val fut1 = Repox.clients.alter(Config.connectors.map(
                                                             connector => connector.name -> connector.createClient
                                                           ).toMap)
