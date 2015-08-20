@@ -1,13 +1,11 @@
 package com.gtan.repox.config
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Paths
 
 import akka.agent.Agent
 import com.gtan.repox.data._
-import com.gtan.repox.Repox
-import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
+import com.ning.http.client.{ProxyServer => JProxyServer}
 import com.typesafe.scalalogging.LazyLogging
-import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -121,7 +119,7 @@ object Config extends LazyLogging with ConfigFormats {
     extraResources = Seq(Paths.get(userHome, ".m2", "repository").toString)
   )
 
-  val instance: Agent[Config] = Agent[Config](null)
+  private[this] val instance: Agent[Config] = Agent[Config](null)
 
   def set(data: Config): Future[Config] = instance.alter(data)
 

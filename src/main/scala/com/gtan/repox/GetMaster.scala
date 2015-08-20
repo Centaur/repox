@@ -1,7 +1,7 @@
 package com.gtan.repox
 
+import java.nio.file.Path
 import java.nio.file.StandardCopyOption._
-import java.nio.file.{Path, StandardCopyOption}
 
 import akka.actor._
 import com.google.common.hash.Hashing
@@ -11,7 +11,6 @@ import com.gtan.repox.data.Repo
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.language.postfixOps
-import scala.util.Random
 
 object GetMaster extends LazyLogging {
 
@@ -31,10 +30,8 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
   override val supervisorStrategy =
     OneForOneStrategy(maxNrOfRetries = 3, withinTimeRange = 1 minute)(super.supervisorStrategy.decider)
 
-  private[this] def excludeNotFound(xss: Seq[Seq[Repo]], notFoundIn: Set[Repo]): Seq[Seq[Repo]] = for {
-    repos <- xss
-    repo <- repos if !notFoundIn.contains(repo)
-  } yield Seq(repo)
+  private[this] def excludeNotFound[T](xss: Seq[Seq[T]], notFoundIn: Set[T]): Seq[Seq[T]] =
+    xss.map(_.filterNot(notFoundIn)).filter(_.nonEmpty)
 
   val (resolvedPath, resolvedChecksumPath) = Repox.resolveToPaths(uri)
   var downloadedTempFilePath: Path = _
