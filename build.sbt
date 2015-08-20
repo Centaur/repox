@@ -7,12 +7,12 @@ scalaVersion := "2.11.7"
 val akkaVersion = "2.3.12"
 
 libraryDependencies ++= Seq(
-  "io.undertow" % "undertow-core" % "1.1.0.Final",
+  "io.undertow" % "undertow-core" % "1.2.10.Final",
   ("com.ning" % "async-http-client" % "1.8.15")
     .exclude("org.slf4j", "slf4j-api"),
   ("com.typesafe.scala-logging" %% "scala-logging" % "3.1.0")
     .exclude("org.scala-lang", "scala-library"),
-  ("ch.qos.logback" % "logback-classic" % "1.1.2")
+  ("ch.qos.logback" % "logback-classic" % "1.1.3")
     .exclude("org.slf4j", "slf4j-api"),
   ("com.typesafe.akka" %% "akka-actor" % akkaVersion)
     .exclude("org.slf4j", "slf4j-api"),
@@ -28,7 +28,7 @@ libraryDependencies ++= Seq(
     .exclude("org.scala-lang", "scala-library"),
   "com.google.protobuf" % "protobuf-java" % "2.6.1",
   "com.google.guava" % "guava" % "18.0",
-  "org.scalatest" %% "scalatest" % "2.2.1" % "test"
+  "org.scalatest" %% "scalatest" % "2.2.5" % "test"
 )
 
 // to use repox, this option must be false, or when retry updateClassifiers, it will not download srcs
