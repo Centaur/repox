@@ -40,10 +40,13 @@ object Repox extends LazyLogging {
 
   val clients: Agent[Map[String, AsyncHttpClient]] = Agent(null)
 
-  def clientOf(repo: Repo): (Connector, AsyncHttpClient) = Config.connectorUsage.get(repo) match {
+  def clientOf(repo: Repo): (Connector, AsyncHttpClient) = Config.connectorUsage.find {
+    case (r, connector) => r.id == repo.id
+  } match {
     case None =>
       Config.connectors.find(_.name == "default").get -> clients.get().apply("default")
-    case Some(connector) =>
+    case Some(Tuple2(r, connector)) =>
+      println(s"Using client of ${connector.name} for ${repo.name}")
       connector -> clients.get().apply(connector.name)
   }
 
