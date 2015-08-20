@@ -45,13 +45,9 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging with ConfigF
   def waitingConfigRecover: Receive = {
     case ConfigLoaded =>
       log.info("Config loaded.")
-      log.debug(s"connectors: ${Json.prettyPrint(Json.toJson(Config.connectors))}")
-      log.debug(s"repos: ${Json.prettyPrint(Json.toJson(Config.repos))}")
-      log.debug(s"connectorUsage: ${Json.prettyPrint(Json.toJson(Config.connectorUsage))}")
       val fut1 = Repox.clients.alter(Config.connectors.map(
                                                             connector => connector.name -> connector.createClient
                                                           ).toMap)
-      log.debug(s"storage: ${Config.storagePath}, resourceBases: ${Config.resourceBases}")
       val storage = Repox.storageManager -> Handlers.resource(Repox.storageManager)
       val extra = for (rb <- Config.resourceBases) yield {
         val resourceManager: ResourceManager = new FileResourceManager(Paths.get(rb).toFile, 100 * 1024)
