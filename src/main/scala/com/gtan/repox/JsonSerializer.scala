@@ -41,6 +41,7 @@ class JsonSerializer extends Serializer with LazyLogging with SerializationSuppo
         )) =>
           ConfigChanged(configFromJson(config), cmdFromJson(cmd))
         case JsString("UseDefault") => UseDefault
+        case other => cmdFromJson(other)
       }
     case Some(_) => throw new NotSerializableException("JsonSerializer does not use extra manifest.")
   }
