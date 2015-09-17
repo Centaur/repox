@@ -4,7 +4,7 @@ organization := "com.gtan"
 
 scalaVersion := "2.11.7"
 
-val akkaVersion = "2.3.13"
+val akkaVersion = "2.3.14"
 
 libraryDependencies ++= Seq(
   "io.undertow" % "undertow-core" % "1.2.10.Final",
