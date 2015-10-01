@@ -3,13 +3,12 @@ package com.gtan.repox.config
 import java.nio.file.Paths
 
 import akka.actor.{ActorLogging, ActorRef}
-import akka.persistence.{PersistentActor, RecoveryCompleted, RecoveryFailure}
+import akka.persistence.{PersistentActor, RecoveryCompleted}
 import com.gtan.repox.{Repox, RequestQueueMaster}
 import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
 import io.undertow.Handlers
 import io.undertow.server.handlers.resource.{FileResourceManager, ResourceManager}
 import io.undertow.util.StatusCodes
-import play.api.libs.json.Json
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -112,8 +111,5 @@ class ConfigPersister extends PersistentActor with ActorLogging {
           Repox.requestQueueMaster ! RequestQueueMaster.ConfigLoaded
         }
       }
-
-    case RecoveryFailure(t) =>
-      t.printStackTrace()
   }
 }

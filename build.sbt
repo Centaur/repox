@@ -4,32 +4,33 @@ organization := "com.gtan"
 
 scalaVersion := "2.11.7"
 
-val akkaVersion = "2.3.14"
+val akkaVersion = "2.4.0"
 
 libraryDependencies ++= Seq(
-  "io.undertow" % "undertow-core" % "1.2.10.Final",
-  ("com.ning" % "async-http-client" % "1.8.15")
-    .exclude("org.slf4j", "slf4j-api"),
-  ("com.typesafe.scala-logging" %% "scala-logging" % "3.1.0")
-    .exclude("org.scala-lang", "scala-library"),
-  ("ch.qos.logback" % "logback-classic" % "1.1.3")
-    .exclude("org.slf4j", "slf4j-api"),
-  ("com.typesafe.akka" %% "akka-actor" % akkaVersion)
-    .exclude("org.slf4j", "slf4j-api"),
-  ("com.typesafe.akka" %% "akka-slf4j" % akkaVersion)
-    .exclude("org.slf4j", "slf4j-api"),
-  ("com.typesafe.akka" %% "akka-agent" % akkaVersion)
-    .exclude("org.scala-lang", "scala-library"),
-  ("com.typesafe.akka" %% "akka-persistence-experimental" % akkaVersion)
-    .exclude("org.scala-lang", "scala-library")
-    .exclude("com.google.protobuf", "protobuf-java")
-    .exclude("org.iq80.leveldb", "leveldb"),
-  ("com.typesafe.play" %% "play-json" % "2.4.0-M2")
-    .exclude("org.scala-lang", "scala-library"),
-  "com.google.protobuf" % "protobuf-java" % "2.6.1",
-  "com.google.guava" % "guava" % "18.0",
-  "org.scalatest" %% "scalatest" % "2.2.5" % "test"
-)
+                             "io.undertow" % "undertow-core" % "1.2.10.Final",
+                             ("com.ning" % "async-http-client" % "1.8.15")
+                               .exclude("org.slf4j", "slf4j-api"),
+                             ("com.typesafe.scala-logging" %% "scala-logging" % "3.1.0")
+                               .exclude("org.scala-lang", "scala-library"),
+                             ("ch.qos.logback" % "logback-classic" % "1.1.3")
+                               .exclude("org.slf4j", "slf4j-api"),
+                             ("com.typesafe.akka" %% "akka-actor" % akkaVersion)
+                               .exclude("org.slf4j", "slf4j-api"),
+                             ("com.typesafe.akka" %% "akka-slf4j" % akkaVersion)
+                               .exclude("org.slf4j", "slf4j-api"),
+                             ("com.typesafe.akka" %% "akka-agent" % akkaVersion)
+                               .exclude("org.scala-lang", "scala-library"),
+                             ("com.typesafe.akka" %% "akka-persistence" % akkaVersion)
+                               .exclude("org.scala-lang", "scala-library"),
+                              "org.iq80.leveldb" % "leveldb" % "0.7",
+                              "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
+                             "com.typesafe.akka" %% "akka-persistence-query-experimental" % akkaVersion,
+                             ("com.typesafe.play" %% "play-json" % "2.4.0-M2")
+                               .exclude("org.scala-lang", "scala-library"),
+                             "com.google.protobuf" % "protobuf-java" % "2.6.1",
+                             "com.google.guava" % "guava" % "18.0",
+                             "org.scalatest" %% "scalatest" % "2.2.5" % "test"
+                           )
 
 // to use repox, this option must be false, or when retry updateClassifiers, it will not download srcs
 //updateOptions := updateOptions.value.withCachedResolution(false)
@@ -37,13 +38,13 @@ libraryDependencies ++= Seq(
 transitiveClassifiers := Seq("sources")
 
 scalacOptions ++= Seq(
-  "-feature",
-  "-deprecation",
-  "-language:implicitConversions",
-//  "-language:higherKinds",
-//  "-language:existentials",
-  "-language:postfixOps"
-)
+                       "-feature",
+                       "-deprecation",
+                       "-language:implicitConversions",
+                       //  "-language:higherKinds",
+                       //  "-language:existentials",
+                       "-language:postfixOps"
+                     )
 
 fork := true
 
