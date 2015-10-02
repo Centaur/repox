@@ -2,7 +2,7 @@
 
 :exclamation: OSChina仓库于2015年8月4日重开服务, 请自行更新Upstreams配置
 
-:exclamation: OpenKaola仓库似乎已经停止公开服务, 请自行更新Upstreams配置
+:exclamation: OpenKoala仓库似乎已经停止公开服务, 请自行更新Upstreams配置
 
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Centaur/repox?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
