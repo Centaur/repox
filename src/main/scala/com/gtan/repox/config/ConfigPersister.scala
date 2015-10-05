@@ -3,7 +3,7 @@ package com.gtan.repox.config
 import java.nio.file.Paths
 
 import akka.actor.{ActorLogging, ActorRef}
-import akka.persistence.{PersistentActor, Recovery, RecoveryCompleted}
+import akka.persistence.{PersistentActor, RecoveryCompleted}
 import com.gtan.repox.{Repox, RequestQueueMaster}
 import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
 import io.undertow.Handlers
@@ -28,11 +28,10 @@ class ConfigPersister extends PersistentActor with ActorLogging {
   import com.gtan.repox.config.ConnectorPersister._
   import com.gtan.repox.config.ParameterPersister._
 
+
   override def persistenceId = "Config"
 
   var config: Config = _
-
-  override def recovery: Recovery = Recovery()
 
   def onConfigSaved(sender: ActorRef, c: ConfigChanged) = {
     log.debug(s"event caused by cmd: ${c.cmd}")
@@ -105,6 +104,7 @@ class ConfigPersister extends PersistentActor with ActorLogging {
       config = Config.default
 
     case RecoveryCompleted =>
+      println(s"ReceoveryCompleted")
       if (config == null) {
         // no config history, save default data as snapshot
         self ! UseDefault
