@@ -41,10 +41,12 @@ trait ConfigFormats {
     override def reads(json: JsValue) = json match {
       case JsArray(values) =>
         JsSuccess(values.map {
-          case JsObject(Seq(
-          ("connector", connectorJsVal: JsValue),
-          ("proxy", proxyJsVal: JsValue))) =>
-            connectorJsVal.as[Connector] -> proxyJsVal.as[ProxyServer]
+          case obj: JsObject => obj.fields match {
+            case Seq(
+            ("connector", connectorJsVal: JsValue),
+            ("proxy", proxyJsVal: JsValue)) =>
+              connectorJsVal.as[Connector] -> proxyJsVal.as[ProxyServer]
+          }
         }.toMap)
       case _ => JsError("Config.proxyUsage deserialize from json failed.")
     }
