@@ -12,11 +12,16 @@ libraryDependencies ++= {
   val leveldbVer = "0.7"
   val leveldbjniVer = "1.8"
   val scalaTestVer = "2.2.5"
+  val playJsonVer = "2.4.3"
+  val scalaLoggingVer = "3.1.0"
+  val ningVer = "1.8.15"
+  val protobufVer = "2.6.1"
+  val guavaVer = "18.0"
   Seq(
     "io.undertow" % "undertow-core" % undertowVer,
-    ("com.ning" % "async-http-client" % "1.8.15")
+    ("com.ning" % "async-http-client" % ningVer)
       .exclude("org.slf4j", "slf4j-api"),
-    ("com.typesafe.scala-logging" %% "scala-logging" % "3.1.0")
+    ("com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVer)
       .exclude("org.scala-lang", "scala-library"),
     ("ch.qos.logback" % "logback-classic" % logbackVer)
       .exclude("org.slf4j", "slf4j-api"),
@@ -31,10 +36,10 @@ libraryDependencies ++= {
     "org.iq80.leveldb" % "leveldb" % leveldbVer,
     "org.fusesource.leveldbjni" % "leveldbjni-all" % leveldbjniVer,
     "com.typesafe.akka" %% "akka-persistence-query-experimental" % akkaVersion,
-    ("com.typesafe.play" %% "play-json" % "2.4.0-M2")
+    ("com.typesafe.play" %% "play-json" % playJsonVer)
       .exclude("org.scala-lang", "scala-library"),
-    "com.google.protobuf" % "protobuf-java" % "2.6.1",
-    "com.google.guava" % "guava" % "18.0",
+    "com.google.protobuf" % "protobuf-java" % protobufVer,
+    "com.google.guava" % "guava" % guavaVer,
     "org.scalatest" %% "scalatest" % scalaTestVer % "test"
   )
 }

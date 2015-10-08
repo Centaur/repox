@@ -17,37 +17,41 @@ trait ConfigFormats {
     override def reads(json: JsValue) = json match {
       case JsArray(values) =>
         JsSuccess(values.map {
-          case JsObject(Seq(
-          ("repo", repoJsVal),
-          ("connector", connectorJsVal))) =>
-            repoJsVal.as[Repo] -> connectorJsVal.as[Connector]
+          case obj: JsObject => obj.fields match {
+            case Seq(
+            ("repo", repoJsVal: JsValue),
+            ("connector", connectorJsVal: JsValue)) =>
+              repoJsVal.as[Repo] -> connectorJsVal.as[Connector]
+          }
         }.toMap)
       case _ => JsError("Config.connectorUsage deserialize from json failed.")
     }
   }
 
-  implicit val proxyUsageFormat = new Format[Map[Connector, ProxyServer]]{
+  implicit val proxyUsageFormat = new Format[Map[Connector, ProxyServer]] {
     override def writes(o: Map[Connector, ProxyServer]) = JsArray(o.map {
-          case (connector, proxy) => JsObject(
-            Seq(
-              "connector" -> Json.toJson(connector),
-              "proxy" -> Json.toJson(proxy)
-            )
-          )
-        }.toSeq)
+      case (connector, proxy) => JsObject(
+        Seq(
+          "connector" -> Json.toJson(connector),
+          "proxy" -> Json.toJson(proxy)
+        )
+      )
+    }.toSeq)
 
     override def reads(json: JsValue) = json match {
-          case JsArray(values) =>
-            JsSuccess(values.map {
-              case JsObject(Seq(
-              ("connector", connectorJsVal),
-              ("proxy", proxyJsVal))) =>
-                connectorJsVal.as[Connector] -> proxyJsVal.as[ProxyServer]
-            }.toMap)
-          case _ => JsError("Config.proxyUsage deserialize from json failed.")
-        }
+      case JsArray(values) =>
+        JsSuccess(values.map {
+          case JsObject(Seq(
+          ("connector", connectorJsVal: JsValue),
+          ("proxy", proxyJsVal: JsValue))) =>
+            connectorJsVal.as[Connector] -> proxyJsVal.as[ProxyServer]
+        }.toMap)
+      case _ => JsError("Config.proxyUsage deserialize from json failed.")
+    }
   }
+
   import com.gtan.repox.data.DurationFormat._
+
   implicit val format = Json.format[Config]
 
 }
