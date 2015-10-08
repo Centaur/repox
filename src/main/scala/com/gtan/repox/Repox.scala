@@ -1,24 +1,20 @@
 package com.gtan.repox
 
-import java.io.IOException
-import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicLong
 
 import akka.actor.{ActorSystem, Props}
 import akka.agent.Agent
-import com.gtan.repox.config.{ConfigView, ConfigPersister, Config}
-import com.gtan.repox.data.{Connector, ExpireRule, ProxyServer, Repo}
-import com.ning.http.client.{ProxyServer => JProxyServer, AsyncHttpClientConfig, AsyncHttpClient}
+import com.gtan.repox.config.{Config, ConfigPersister, ConfigQuery}
+import com.gtan.repox.data.{Connector, ExpireRule, Repo}
+import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
 import com.typesafe.scalalogging.LazyLogging
-import io.undertow.Handlers
-import io.undertow.io.{Sender, IoCallback}
 import io.undertow.server.HttpServerExchange
-import io.undertow.server.handlers.resource.{ResourceManager, ResourceHandler, FileResourceManager}
+import io.undertow.server.handlers.resource.{FileResourceManager, ResourceHandler, ResourceManager}
 import io.undertow.util._
 
-import scala.language.postfixOps
 import scala.concurrent.duration._
-import scala.util.{Success, Failure, Try}
+import scala.language.postfixOps
+import scala.util.{Failure, Success, Try}
 
 object Repox extends LazyLogging {
   def lookForExpireRule(uri: String): Option[ExpireRule] = Config.expireRules.find(rule => !rule.disabled && uri.matches(rule.pattern))
@@ -31,7 +27,7 @@ object Repox extends LazyLogging {
 
   def nextId: Long = idGenerator.getAndIncrement()
 
-  val configView = system.actorOf(Props[ConfigView], name = "ConfigView")
+  val configQuery = new ConfigQuery(system)
   val configPersister = system.actorOf(Props[ConfigPersister], "ConfigPersister")
   val expirationPersister = system.actorOf(Props[ExpirationManager], "ExpirationPersister")
   val head404Cache = system.actorOf(Props[Head404Cache], "HeaderCache")
