@@ -129,7 +129,7 @@ object Repox extends LazyLogging {
       Failure(new RuntimeException("Invalid Request"))
   }
 
-  val resourceHandlers: Agent[Map[ResourceManager, ResourceHandler]] = Agent(null)
+  val resourceHandlers: Agent[Map[FileResourceManager, ResourceHandler]] = Agent(null)
 
   def sendFile(resourceHandler: ResourceHandler, exchange: HttpServerExchange): Unit = {
     resourceHandler.handleRequest(exchange)

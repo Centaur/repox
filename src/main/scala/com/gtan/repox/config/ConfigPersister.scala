@@ -13,13 +13,15 @@ import io.undertow.util.StatusCodes
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait Cmd {
+trait Jsonable
+
+trait ConfigCmd extends Jsonable {
   def transform(old: Config): Config = old
 }
 
 trait Evt
 
-case class ConfigChanged(config: Config, cmd: Cmd) extends Evt
+case class ConfigChanged(config: Config, configCmd: Jsonable) extends Evt
 
 case object UseDefault extends Evt
 
@@ -34,11 +36,11 @@ class ConfigPersister extends PersistentActor with ActorLogging {
   var config: Config = _
 
   def onConfigSaved(sender: ActorRef, c: ConfigChanged) = {
-    log.debug(s"event caused by cmd: ${c.cmd}")
+    log.debug(s"event caused by cmd: ${c.configCmd}")
     config = c.config
     for {
       _ <- Config.set(config)
-      _ <- c.cmd match {
+      _ <- c.configCmd match {
         case NewConnector(vo) =>
           Repox.clients.alter { clients =>
             clients.updated(vo.connector.name, vo.connector.createClient)
@@ -61,7 +63,7 @@ class ConfigPersister extends PersistentActor with ActorLogging {
           }
         case SetExtraResources(_) =>
           Repox.resourceHandlers.alter((for (er <- Config.resourceBases) yield {
-            val resourceManager: ResourceManager = new FileResourceManager(Paths.get(er).toFile, 100 * 1024)
+            val resourceManager: FileResourceManager = new FileResourceManager(Paths.get(er).toFile, 100 * 1024)
             val resourceHandler = Handlers.resource(resourceManager)
             resourceManager -> resourceHandler
           }).toMap)
@@ -78,7 +80,7 @@ class ConfigPersister extends PersistentActor with ActorLogging {
   }
 
   val receiveCommand: Receive = {
-    case cmd: Cmd =>
+    case cmd: ConfigCmd =>
       val newConfig = cmd.transform(config)
       if (newConfig == config) {
         // no change

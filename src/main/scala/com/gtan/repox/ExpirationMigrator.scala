@@ -3,7 +3,7 @@ package com.gtan.repox
 import java.nio.file.Paths
 
 import akka.actor.{Props, ActorSystem, ActorLogging}
-import akka.persistence.{RecoveryCompleted, PersistentActor}
+import akka.persistence.{DeleteMessagesSuccess, RecoveryCompleted, PersistentActor}
 import com.gtan.repox.ExpirationManager.Expiration
 
 import scala.util.Properties._
@@ -21,14 +21,14 @@ class ExpirationMigrator extends PersistentActor {
       path.toFile.delete()
       sha1Path.toFile.delete()
       println(s"$path and $sha1Path deleted.")
-    case RecoveryCompleted =>
+    case RecoveryCompleted => // This is the last message that receiveRecover would receive
       deleteMessages(Long.MaxValue)
-      println("Migration finished.")
-      context.system.terminate()
   }
 
   override def receiveCommand: Receive = {
-    case _ =>
+    case DeleteMessagesSuccess(_) =>
+      println("Migration finished.")
+      context.system.terminate()
   }
 
   override def persistenceId: String = "Expiration"

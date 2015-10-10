@@ -7,7 +7,7 @@ import play.api.libs.json.{JsValue, Json}
 
 object ConnectorPersister extends SerializationSupport {
 
-  case class NewConnector(vo: ConnectorVO) extends Cmd {
+  case class NewConnector(vo: ConnectorVO) extends ConfigCmd {
     override def transform(old: Config) = {
       val oldConnectors = old.connectors
       val oldProxyUsage = old.proxyUsage
@@ -24,7 +24,7 @@ object ConnectorPersister extends SerializationSupport {
   implicit val NewConnectorFormat = Json.format[NewConnector]
 
 
-  case class UpdateConnector(vo: ConnectorVO) extends Cmd {
+  case class UpdateConnector(vo: ConnectorVO) extends ConfigCmd {
     override def transform(old: Config) = {
       val oldConnectors = old.connectors
       val oldProxyUsage = old.proxyUsage
@@ -47,7 +47,7 @@ object ConnectorPersister extends SerializationSupport {
 
   implicit val updateConnectorFormat = Json.format[UpdateConnector]
 
-  case class DeleteConnector(id: Long) extends Cmd {
+  case class DeleteConnector(id: Long) extends ConfigCmd {
     override def transform(old: Config) = {
       val oldConnectors = old.connectors
       val oldConnectorUsage = old.connectorUsage
@@ -64,12 +64,12 @@ object ConnectorPersister extends SerializationSupport {
   val UpdateConnectorClass = classOf[UpdateConnector].getName
   val DeleteConnectorClass = classOf[DeleteConnector].getName
 
-  override val reader: (JsValue) => PartialFunction[String, Cmd] = payload => {
+  override val reader: (JsValue) => PartialFunction[String, Jsonable] = payload => {
     case NewConnectorClass => payload.as[NewConnector]
     case UpdateConnectorClass => payload.as[UpdateConnector]
     case DeleteConnectorClass => payload.as[DeleteConnector]
   }
-  override val writer: PartialFunction[Cmd, JsValue] = {
+  override val writer: PartialFunction[Jsonable, JsValue] = {
     case o: NewConnector => Json.toJson(o)
     case o: UpdateConnector => Json.toJson(o)
     case o: DeleteConnector => Json.toJson(o)

@@ -7,7 +7,7 @@ import play.api.libs.json.{JsValue, Json}
 
 object RepoPersister extends SerializationSupport {
 
-  case class NewRepo(vo: RepoVO) extends Cmd {
+  case class NewRepo(vo: RepoVO) extends ConfigCmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
       val oldConnectorUsage = old.connectorUsage
@@ -30,7 +30,7 @@ object RepoPersister extends SerializationSupport {
 
   implicit val newRepoFormat = Json.format[NewRepo]
 
-  case class DisableRepo(id: Long) extends Cmd {
+  case class DisableRepo(id: Long) extends ConfigCmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
       val oldConnectorUsage = old.connectorUsage
@@ -46,7 +46,7 @@ object RepoPersister extends SerializationSupport {
 
   implicit val disableRepoFormat = Json.format[DisableRepo]
 
-  case class EnableRepo(id: Long) extends Cmd {
+  case class EnableRepo(id: Long) extends ConfigCmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
       val oldConnectorUsage = old.connectorUsage
@@ -62,7 +62,7 @@ object RepoPersister extends SerializationSupport {
 
   implicit val enableRepoFormat = Json.format[EnableRepo]
 
-  case class DeleteRepo(id: Long) extends Cmd {
+  case class DeleteRepo(id: Long) extends ConfigCmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
       val oldProxyUsage = old.connectorUsage
@@ -75,7 +75,7 @@ object RepoPersister extends SerializationSupport {
 
   implicit val deleteRepoFormat = Json.format[DeleteRepo]
 
-  case class UpdateRepo(vo: RepoVO) extends Cmd {
+  case class UpdateRepo(vo: RepoVO) extends ConfigCmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
       val oldConnectorUsage = old.connectorUsage
@@ -97,7 +97,7 @@ object RepoPersister extends SerializationSupport {
 
   implicit val updateRepoFormat = Json.format[UpdateRepo]
 
-  case class MoveUpRepo(id: Long) extends Cmd {
+  case class MoveUpRepo(id: Long) extends ConfigCmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
       val oldConnectorUsage = old.connectorUsage
@@ -145,7 +145,7 @@ object RepoPersister extends SerializationSupport {
 
   implicit val moveUpRepoFormat = Json.format[MoveUpRepo]
 
-  case class MoveDownRepo(id: Long) extends Cmd {
+  case class MoveDownRepo(id: Long) extends ConfigCmd {
     override def transform(old: Config) = {
       val oldRepos = old.repos
       val repo = oldRepos.find(_.id.contains(id))
@@ -195,7 +195,7 @@ object RepoPersister extends SerializationSupport {
   val MoveUpRepoClass = classOf[MoveUpRepo].getName
   val MoveDownRepoClass = classOf[MoveDownRepo].getName
 
-  override val reader: JsValue => PartialFunction[String, Cmd] = payload => {
+  override val reader: JsValue => PartialFunction[String, Jsonable] = payload => {
     case NewRepoClass => payload.as[NewRepo]
     case DisableRepoClass => payload.as[DisableRepo]
     case EnableRepoClass => payload.as[EnableRepo]
@@ -205,7 +205,7 @@ object RepoPersister extends SerializationSupport {
     case MoveDownRepoClass => payload.as[MoveDownRepo]
   }
 
-  override val writer: PartialFunction[Cmd, JsValue] = {
+  override val writer: PartialFunction[Jsonable, JsValue] = {
     case o: NewRepo => Json.toJson(o)
     case o: DisableRepo => Json.toJson(o)
     case o: EnableRepo => Json.toJson(o)

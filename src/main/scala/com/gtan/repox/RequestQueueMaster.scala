@@ -40,17 +40,21 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging with ConfigF
 
   var quarantined = Map.empty[String, ActorRef] // Uri -> FileDeleter
 
-  override def receive = waitingConfigRecover
+  override def receive = initializing
 
-  def waitingConfigRecover: Receive = {
+  def initializing: Receive = {
     case ConfigLoaded =>
       log.info("Config loaded.")
-      val fut1 = Repox.clients.alter(Config.connectors.map(
-                                                            connector => connector.name -> connector.createClient
-                                                          ).toMap)
+      val fut1 = Repox.clients.alter(Config.connectors.map { connector =>
+        connector.name -> connector.createClient
+      }.toMap)
       val storage = Repox.storageManager -> Handlers.resource(Repox.storageManager)
-      val extra = for (rb <- Config.resourceBases) yield {
-        val resourceManager: ResourceManager = new FileResourceManager(Paths.get(rb).toFile, 100 * 1024)
+      val (valid, invalid) = Config.resourceBases.partition { base =>
+        Paths.get(base).toFile.exists()
+      }
+      log.debug(s"Excluded invalid base(s) (${invalid.mkString(",")})")
+      val extra = for (rb <- valid) yield {
+        val resourceManager: FileResourceManager = new FileResourceManager(Paths.get(rb).toFile, 100 * 1024)
         val resourceHandler = Handlers.resource(resourceManager)
         resourceManager -> resourceHandler
       }
@@ -59,12 +63,12 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging with ConfigF
         self ! ClientsInitialized
       }
     case ClientsInitialized =>
-      log.debug(s"AHC clients (${Repox.clients.get().keys.mkString(",")}}) initialized.")
-      log.debug(s"ResourceBases (${Repox.resourceHandlers.get().keys.map(base => Option(base.getResource("/")).map(_.getResourceManagerRoot).getOrElse("Invalid Base")).mkString(",")}) initialized.")
+      log.debug(s"ResourceBases (${Repox.resourceHandlers.get().keys.map(_.getBase).mkString(",")}) initialized.")
+      log.debug(s"AHC clients (${Repox.clients.get().keys.mkString(",")}) initialized.")
       unstashAll()
       context become started
     case msg =>
-      log.debug("Config loading , stash all msgs...")
+      log.debug("Repox initializing , stash all msgs...")
       stash()
   }
 
@@ -79,8 +83,8 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging with ConfigF
       }
     case FileDeleted(uri) =>
       quarantined = quarantined - uri - s"$uri.sha1"
-//      log.debug(s"Redownloading $uri and $uri.sha1")
-//      self ! Requests.Download(uri, Config.enabledRepos)
+    //      log.debug(s"Redownloading $uri and $uri.sha1")
+    //      self ! Requests.Download(uri, Config.enabledRepos)
 
     case Dead(queue) =>
       for (worker <- children.get(queue)) {
