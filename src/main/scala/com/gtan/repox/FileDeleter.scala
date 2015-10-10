@@ -1,6 +1,7 @@
 package com.gtan.repox
 
 import akka.actor.{PoisonPill, Actor, ActorLogging}
+import com.gtan.repox.ExpirationManager.ExpirationPerformed
 
 object FileDeleter {
   case object Quarantined
@@ -22,6 +23,9 @@ class FileDeleter(uri: String, initiator: Symbol) extends Actor with ActorLoggin
       sha1Path.toFile.delete()
       Repox.requestQueueMaster ! RequestQueueMaster.FileDeleted(uri)
       log.debug(s"$path and $sha1Path deleted.")
+      if (initiator == 'ExpirationPersister) {
+        context.parent ! ExpirationPerformed(uri)
+      }
       self ! PoisonPill
   }
 }

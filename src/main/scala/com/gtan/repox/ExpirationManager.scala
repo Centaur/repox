@@ -1,7 +1,7 @@
 package com.gtan.repox
 
 import akka.actor.{ActorLogging, Cancellable, Props}
-import akka.persistence.PersistentActor
+import akka.persistence.{SnapshotSelectionCriteria, SaveSnapshotFailure, SaveSnapshotSuccess, PersistentActor}
 import com.gtan.repox.config.{Config, Cmd}
 import org.joda.time.DateTime
 import play.api.libs.json.{JsValue, Json}
@@ -20,6 +20,8 @@ object ExpirationManager extends SerializationSupport {
   implicit val cancelExpirationFormat = Json.format[CancelExpiration]
 
   case class PerformExpiration(uri: String)
+
+  case class ExpirationPerformed(uri: String)
 
   case class Expiration(uri: String, timestamp: DateTime) extends Cmd
 
@@ -93,7 +95,9 @@ class ExpirationManager extends PersistentActor with ActorLogging {
     case PerformExpiration(uri) =>
       log.debug(s"$uri expired, trigger FileDelete now.")
       context.actorOf(Props(classOf[FileDeleter], uri, 'ExpirationPersister))
+    case ExpirationPerformed(uri) =>
       scheduledExpirations = scheduledExpirations - uri
+      saveSnapshot(scheduledExpirations)
   }
 
 }
