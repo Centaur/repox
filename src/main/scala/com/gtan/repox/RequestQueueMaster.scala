@@ -52,7 +52,9 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging with ConfigF
       val (valid, invalid) = Config.resourceBases.partition { base =>
         Paths.get(base).toFile.exists()
       }
-      log.debug(s"Excluded invalid base(s) (${invalid.mkString(",")})")
+      if (invalid.nonEmpty) {
+        log.debug(s"Excluded invalid base(s) (${invalid.mkString(",")})")
+      }
       val extra = for (rb <- valid) yield {
         val resourceManager: FileResourceManager = new FileResourceManager(Paths.get(rb).toFile, 100 * 1024)
         val resourceHandler = Handlers.resource(resourceManager)
