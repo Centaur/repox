@@ -74,3 +74,5 @@ assemblyMergeStrategy in assembly := {
   case x =>
     (assemblyMergeStrategy in assembly).value.apply(x)
 }
+
+mainClass in assembly := Some("com.gtan.repox.Main")

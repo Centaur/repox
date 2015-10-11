@@ -118,10 +118,11 @@ class ExpirationManager extends PersistentActor with ActorLogging {
       context.actorOf(Props(classOf[FileDeleter], uri, 'ExpirationPersister))
     case e@ExpirationPerformed(uri) =>
       scheduledExpirations = scheduledExpirations.filterKeys(_.uri != uri)
-      val performed = unperformed.find(_.uri == uri)
-      unperformed = unperformed.filterNot(_ == performed)
-      persist(performed) { _ =>
-        saveSnapshot(unperformed)
+      unperformed.find(_.uri == uri).foreach { performed =>
+        unperformed = unperformed.filterNot(_ == performed)
+        persist(performed) { _ =>
+          saveSnapshot(unperformed)
+        }
       }
   }
 
