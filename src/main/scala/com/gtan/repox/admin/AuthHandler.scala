@@ -3,6 +3,7 @@ package com.gtan.repox.admin
 import java.util.Date
 
 import com.gtan.repox.Repox
+import com.gtan.repox.config.ConfigPersister.SaveSnapshot
 import com.gtan.repox.config.{ParameterPersister, ConfigPersister, Config}
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.server.HttpServerExchange
@@ -12,6 +13,8 @@ import play.api.libs.json.Json
 import akka.pattern.ask
 import concurrent.duration._
 import scala.language.postfixOps
+import scala.util.{Failure, Success}
+import concurrent.ExecutionContext.Implicits.global
 
 object AuthHandler extends RestHandler with LazyLogging {
 
@@ -27,9 +30,9 @@ object AuthHandler extends RestHandler with LazyLogging {
       exchange.setStatusCode(StatusCodes.OK)
       if (Config.password == pass) {
         exchange.setResponseCookie(new CookieImpl("authenticated", "true").setPath("/admin"))
-        exchange.getResponseSender.send("""{"success": true}""")
+        exchange.getResponseSender.send( """{"success": true}""")
       } else {
-        exchange.getResponseSender.send("""{"success": false}""")
+        exchange.getResponseSender.send( """{"success": false}""")
       }
     case (Methods.POST, "logout") =>
       exchange.setStatusCode(StatusCodes.OK)
@@ -37,6 +40,10 @@ object AuthHandler extends RestHandler with LazyLogging {
       exchange.getRequestCookies.remove("authenticated")
       exchange.getResponseChannel
       exchange.endExchange()
+    case (Methods.POST, "saveSnapshot") =>
+      (Repox.configPersister ? SaveSnapshot).onComplete { result =>
+        exchange.getResponseSender.send( s"""{"success": ${result.isSuccess}}""")
+      }
     case (Methods.PUT, "password") =>
       val v = exchange.getQueryParameters.get("v").getFirst
       val json = Json.parse(v)

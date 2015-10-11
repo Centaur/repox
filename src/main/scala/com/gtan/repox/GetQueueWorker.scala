@@ -4,6 +4,7 @@ import java.nio.file.Path
 
 import akka.actor._
 import com.gtan.repox.ExpirationManager.CreateExpiration
+import com.gtan.repox.RequestQueueMaster.KillMe
 import com.gtan.repox.config.Config
 import com.gtan.repox.data.Repo
 import io.undertow.server.HttpServerExchange
@@ -69,12 +70,10 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
       if (found) {
         log.debug(s"flushWaiting $exchange 200. Sending file $uri")
         Repox.sendFile(Repox.resourceHandlers.get().apply(Repox.storageManager), exchange)
-        if(deleteFileAfterResponse) {
+        if (deleteFileAfterResponse) {
           context.actorOf(Props(classOf[FileDeleter], uri, 'GetQueueWorker))
-        } else Config.enabledExpireRules.find(rule => uri.matches(rule.pattern)) match {
-          case Some(r) =>
-            Repox.expirationPersister ! CreateExpiration(uri, r.duration)
-          case _ =>
+        } else Config.enabledExpireRules.find(rule => uri.matches(rule.pattern)).foreach { r =>
+          Repox.expirationPersister ! CreateExpiration(uri, r.duration)
         }
       } else {
         log.debug(s"flushWaiting $exchange 404")
@@ -85,8 +84,7 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
   }
 
   private def suicide(): Unit = {
-    context.parent ! RequestQueueMaster.Dead(Queue('get, uri))
-//    self ! PoisonPill
+    context.parent ! KillMe(Queue('get, uri))
   }
 
 }

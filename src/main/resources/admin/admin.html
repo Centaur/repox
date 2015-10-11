@@ -16,7 +16,7 @@
     </span>
 </h1>
 <div id="app" ng-app="repoxApp">
-    <nav class="ui pointing menu" id="mainMenu" ng-controller="MenuCtrl">
+    <nav class="ui pointing menu" id="mainMenu" ng-controller="MenuCtrl" ng-init="init()">
         <a class="{{activeOn('/upstreams')}} teal item" href="#/upstreams">
             <i class="vertically flipped sitemap icon"></i> Upstream Repositories
         </a>
@@ -36,8 +36,9 @@
             <i class="tasks icon"></i> Parameters
         </a>
         <div class="right menu">
-            <a class="item" ng-click="modifyPassword()"> <i class="icon write"></i> Modify Password</a>
-            <a class="item" ng-click="logout()"> <i class="icon power"></i>  Logout</a>
+            <a class="item" data-content="And delete older ones" ng-click="saveSnapshot()" id="saveSnapshot"> <i class="icon save"></i>Save Snapshot</a>
+            <a class="item" ng-click="modifyPassword()"> <i class="icon write"></i>Modify Password</a>
+            <a class="item" ng-click="logout()"> <i class="icon power"></i>Logout</a>
         </div>
     </nav>
     <section id="channel-content" ng-view>

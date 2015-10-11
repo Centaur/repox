@@ -27,7 +27,8 @@ object Repox extends LazyLogging {
 
   def nextId: Long = idGenerator.getAndIncrement()
 
-  val configQuery = new ConfigQuery(system)
+  // uncomment his to view config data modification history
+  //  val configQuery = new ConfigQuery(system)
   val configPersister = system.actorOf(Props[ConfigPersister], "ConfigPersister")
   val expirationPersister = system.actorOf(Props[ExpirationManager], "ExpirationPersister")
   val head404Cache = system.actorOf(Props[Head404Cache], "HeaderCache")
@@ -115,14 +116,14 @@ object Repox extends LazyLogging {
         s"/$organization/$artifactId/scala_$scalaVersion/sbt_$sbtVersion/$version/${typ}s/$peerFile" :: Nil
       } else if (scalaVersion == null && sbtVersion == null) {
         val guessedMavenArtifacts = for (scala <- supportedScalaVersion; sbt <- supportedSbtVersion) yield
-          s"$groupIds/${artifactId}_${scala}_$sbt/$version/$fileName"
+        s"$groupIds/${artifactId}_${scala}_$sbt/$version/$fileName"
         s"/$organization/$artifactId/$version/${typ}s/$peerFile" :: guessedMavenArtifacts
       } else List(s"/$organization/$artifactId/$version/${typ}s/$peerFile")
       Success(result)
     case IvyFormat(organization, module, _, scalaVersion, _, sbtVersion, revision, typ, fileName, artifact, _, classifier, ext) =>
       val result = if (scalaVersion == null && sbtVersion == null) {
         for (scala <- supportedScalaVersion; sbt <- supportedSbtVersion) yield
-          s"/${organization.split("\\.").mkString("/")}/${module}_${scala}_$sbt/$revision/$module-$revision.$ext"
+        s"/${organization.split("\\.").mkString("/")}/${module}_${scala}_$sbt/$revision/$module-$revision.$ext"
       } else Nil
       Success(result)
     case _ =>
@@ -169,7 +170,7 @@ object Repox extends LazyLogging {
     val method = exchange.getRequestMethod
     Repox.peer(uri) match {
       case Success(_) =>
-         method match {
+        method match {
           case Methods.HEAD =>
             requestQueueMaster ! Requests.Head(exchange)
           case Methods.GET =>

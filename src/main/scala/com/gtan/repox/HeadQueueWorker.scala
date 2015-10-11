@@ -1,6 +1,7 @@
 package com.gtan.repox
 
 import akka.actor._
+import com.gtan.repox.RequestQueueMaster.KillMe
 import com.gtan.repox.config.Config
 import com.gtan.repox.data.Repo
 import io.undertow.server.HttpServerExchange
@@ -86,8 +87,6 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
   }
 
   def suicide(): Unit = {
-    val queue = Queue('head, uri)
-    log.debug(s"$queue suicide.")
-    context.parent ! RequestQueueMaster.Dead(queue)
+    context.parent ! KillMe(Queue('head, uri))
   }
 }

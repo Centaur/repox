@@ -9,12 +9,7 @@ import com.ning.http.client._
 
 import scala.language.postfixOps
 
-/**
- * Created by IntelliJ IDEA.
- * User: xf
- * Date: 14/11/21
- * Time: 下午8:22
- */
+
 object GetWorker {
 
   case class UnsuccessResponseStatus(responseStatus: HttpResponseStatus)
@@ -33,9 +28,8 @@ object GetWorker {
 
   case object Cleanup
 
-  case object LanternGiveup
-
   // same effect as ReceiveTimeout
+  case object LanternGiveup
 
   case class PartialDataReceived(length: Int)
 
@@ -47,8 +41,8 @@ object GetWorker {
  * 负责某一个 uri 在 某一个 upstream Repo 中的获取
  * @param upstream 上游 Repo
  * @param uri 要获取的uri
- * @param tempFilePath 已下载但未完成的临时文件路径
- * @param totalLength 文件的真实长度
+ * @param tempFilePath 已下载但未完成的临时文件路径,tempFilePath.isDefined时为续传,否则为新的下载任务
+ * @param totalLength 文件的真实长度, 仅当tempFilePath.isDefined时使用
  */
 class GetWorker(val upstream: Repo,
                 val uri: String,
@@ -70,7 +64,7 @@ class GetWorker(val upstream: Repo,
   val requestHeaders = tempFilePath match {
     case None => new FluentCaseInsensitiveStringsMap()
       .add("Host", List(upstream.host).asJava)
-      .add("Accept-Encoding", List("identity").asJava) // 禁止压缩
+      .add("Accept-Encoding", List("identity").asJava) // 禁止压缩, jar文件没有压缩的必要, 其它文件太小不值得.
     case Some(file) =>
       downloaded = new File(file).length()
       contentLength = totalLength
@@ -86,7 +80,6 @@ class GetWorker(val upstream: Repo,
 
   override def receive = {
     case AsyncHandlerThrows(t) =>
-
       log.debug(s"AsyncHandler throws -- ${t.getMessage}")
       tempFilePath match {
         case None =>
@@ -112,8 +105,8 @@ class GetWorker(val upstream: Repo,
       self ! PoisonPill
       if (acceptByteRange || tempFilePath.isDefined) {
         context.parent ! Resume(upstream,
-          tempFilePath.fold(handler.tempFile.getAbsolutePath)(identity),
-          tempFilePath.fold(contentLength)(_ => totalLength))
+                                 tempFilePath.fold(handler.tempFile.getAbsolutePath)(identity),
+                                 tempFilePath.fold(contentLength)(_ => totalLength))
       } else {
         context.parent ! Failed(new RuntimeException("Chosen worker timeout or lantern giveup"))
       }

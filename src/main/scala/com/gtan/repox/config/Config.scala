@@ -6,6 +6,7 @@ import akka.agent.Agent
 import com.gtan.repox.data._
 import com.ning.http.client.{ProxyServer => JProxyServer}
 import com.typesafe.scalalogging.LazyLogging
+import play.api.libs.json.Json
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -23,14 +24,14 @@ case class Config(proxies: Seq[ProxyServer],
                   headTimeout: Duration,
                   headRetryTimes: Int,
                   password: String,
-                  extraResources: Seq[String])
+                  extraResources: Seq[String]) extends Jsonable
 
 object Config extends LazyLogging with ConfigFormats {
 
-  val defaultProxies                 = List(
+  val defaultProxies = List(
     ProxyServer(id = Some(1), name = "Lantern", protocol = JProxyServer.Protocol.HTTP, host = "localhost", port = 8787)
   )
-  val defaultConnectors              = Set(
+  val defaultConnectors = Set(
     Connector(id = Some(1),
       name = "default",
       connectionTimeout = 5 seconds,
@@ -82,7 +83,8 @@ object Config extends LazyLogging with ConfigFormats {
     Immediate404Rule(Some(12), """/org/ow2/ow2/.+\.jar"""),
     Immediate404Rule(Some(13), """/org\.ow2/ow2/.+\.jar"""),
     Immediate404Rule(Some(14), """(/.+)+/((.+?-site)(_(.+?)(_(.+))?)?)/(.+?)/\3-\8(-(.+?))?\.jar"""), // maven x-site have no jar
-    Immediate404Rule(Some(15), """/.+?/(.+?-site)/.+/\1\.jar""", // ivy x-site have no jar
+    Immediate404Rule(Some(15),
+      """/.+?/(.+?-site)/.+/\1\.jar""", // ivy x-site have no jar
       Some( """/com\.typesafe\.sbt/sbt-site/.*""")), // except 'sbt-site', being used by akka
     Immediate404Rule(Some(16), """/org/fusesource/leveldbjni/.+-sources\.jar"""),
     Immediate404Rule(Some(17), """/org\.fusesource\.leveldbjni/.+-sources\.jar"""),

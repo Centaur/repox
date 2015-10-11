@@ -16,7 +16,7 @@ trait SerializationSupport {
 class JsonSerializer extends Serializer with LazyLogging with SerializationSupport {
   val ConfigChangedClass = classOf[ConfigChanged].getName
 
-  val serializationSupports: Seq[_ <: SerializationSupport] = Seq(RepoPersister, ProxyPersister, ParameterPersister, Immediate404RulePersister, ExpireRulePersister, ConnectorPersister, ExpirationManager)
+  val serializationSupports: Seq[_ <: SerializationSupport] = Seq(RepoPersister, ProxyPersister, ParameterPersister, Immediate404RulePersister, ExpireRulePersister, ConnectorPersister, ExpirationManager, ConfigPersister)
 
   override val reader: JsValue => PartialFunction[String, Jsonable] = { jsValue =>
     serializationSupports.map(_.reader(jsValue)).reduce(_ orElse _) orElse {

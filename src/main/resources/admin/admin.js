@@ -72,6 +72,11 @@ repoxControllers.controller('MenuCtrl', ['$scope', '$location', '$http', '$route
         return str.indexOf(suffix, str.length - suffix.length) !== -1;
     }
 
+    $scope.init = function() {
+       jQuery('#saveSnapshot').popup({
+           hoverable: true
+       })
+    };
     $scope.activeOn = function (uri) {
         if (endsWith($location.path(), uri))
             return 'active';
@@ -91,6 +96,15 @@ repoxControllers.controller('MenuCtrl', ['$scope', '$location', '$http', '$route
     $scope.logout = function () {
         $http.post('logout', {}).success(function () {
             $location.path('/login')
+        })
+    };
+    $scope.saveSnapshot = function() {
+        $http.post('saveSnapshot', {}).success(function(resp) {
+            if (resp.success) {
+                window.alert('Config snapshot successfully saved.')
+            } else {
+                window.alert('Something is wrong saving snapshot. See log or consult service provider.')
+            }
         })
     };
     $scope.modifyPassword = function () {

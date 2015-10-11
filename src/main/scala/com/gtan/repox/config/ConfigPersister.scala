@@ -2,13 +2,15 @@ package com.gtan.repox.config
 
 import java.nio.file.Paths
 
-import akka.actor.{ActorLogging, ActorRef}
-import akka.persistence.{PersistentActor, RecoveryCompleted}
-import com.gtan.repox.{Repox, RequestQueueMaster}
+import akka.actor.{Status, ActorLogging, ActorRef}
+import akka.persistence._
+import com.gtan.repox.config.ConfigPersister.SaveSnapshot
+import com.gtan.repox.{SerializationSupport, Repox, RequestQueueMaster}
 import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
 import io.undertow.Handlers
 import io.undertow.server.handlers.resource.{FileResourceManager, ResourceManager}
 import io.undertow.util.StatusCodes
+import play.api.libs.json.{Json, JsValue}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -27,6 +29,21 @@ case class ConfigChanged(config: Config, configCmd: Jsonable) extends Evt
 
 case object UseDefault extends Evt
 
+object ConfigPersister extends SerializationSupport {
+
+  case object SaveSnapshot
+
+  val ConfigClass = classOf[Config].getName
+
+  override val reader: (JsValue) => PartialFunction[String, Jsonable] = payload => {
+    case ConfigClass => payload.as[Config]
+  }
+
+  override val writer: PartialFunction[Jsonable, JsValue] = {
+    case o: Config => Json.toJson(o)
+  }
+}
+
 class ConfigPersister extends PersistentActor with ActorLogging {
 
   import com.gtan.repox.config.ConnectorPersister._
@@ -36,6 +53,7 @@ class ConfigPersister extends PersistentActor with ActorLogging {
   override def persistenceId = "Config"
 
   var config: Config = _
+  var saveSnapshotRequester: Option[ActorRef] = None
 
   def onConfigSaved(sender: ActorRef, c: ConfigChanged) = {
     log.debug(s"event caused by cmd: ${c.configCmd}")
@@ -97,6 +115,28 @@ class ConfigPersister extends PersistentActor with ActorLogging {
           Repox.requestQueueMaster ! RequestQueueMaster.ConfigLoaded
         }
       }
+    case SaveSnapshot =>
+      saveSnapshot(config)
+      saveSnapshotRequester = Some(sender())
+    case SaveSnapshotSuccess(metadata) =>
+      log.debug(s"Config snapshot saved. Delete old ones.")
+      deleteSnapshots(SnapshotSelectionCriteria(maxSequenceNr = metadata.sequenceNr - 1))
+    case f@SaveSnapshotFailure(metadata, cause) =>
+      log.debug(f.toString)
+      for (requester <- saveSnapshotRequester) {
+        requester ! Status.Failure(cause)
+        saveSnapshotRequester = None
+      }
+    case DeleteSnapshotsSuccess(criteria) =>
+      for (requester <- saveSnapshotRequester) {
+        requester ! criteria.maxTimestamp
+        saveSnapshotRequester = None
+      }
+    case DeleteSnapshotsFailure(criteria, cause) =>
+      for (requester <- saveSnapshotRequester) {
+        requester ! Status.Failure(cause)
+        saveSnapshotRequester = None
+      }
   }
 
   val receiveRecover: Receive = {
@@ -107,8 +147,10 @@ class ConfigPersister extends PersistentActor with ActorLogging {
     case UseDefault =>
       config = Config.default
 
+    case SnapshotOffer(metadata, offeredSnapshot) =>
+      config = offeredSnapshot.asInstanceOf[Config]
+
     case RecoveryCompleted =>
-      println(s"ReceoveryCompleted")
       if (config == null) {
         // no config history, save default data as snapshot
         self ! UseDefault

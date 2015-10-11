@@ -21,7 +21,7 @@ object RequestQueueMaster {
   case object ClientsInitialized
 
   // send by QueueWorker
-  case class Dead(queue: Queue)
+  case class KillMe(queue: Queue)
 
   // send by FileDeleter
   case class Quarantine(uri: String)
@@ -88,7 +88,7 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging with ConfigF
     //      log.debug(s"Redownloading $uri and $uri.sha1")
     //      self ! Requests.Download(uri, Config.enabledRepos)
 
-    case Dead(queue) =>
+    case KillMe(queue) =>
       for (worker <- children.get(queue)) {
         log.debug(s"RequestQueueMaster stopping worker ${worker.path.name}")
         worker ! PoisonPill
