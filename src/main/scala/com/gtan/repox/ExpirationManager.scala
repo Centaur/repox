@@ -23,20 +23,26 @@ object ExpirationManager extends SerializationSupport {
 
   case class Expiration(uri: String, timestamp: DateTime) extends Jsonable with Evt
 
+  case class ExpirationSeq(expirations: Seq[Expiration]) extends Jsonable with Evt
+
   implicit val expirationFormat = Json.format[Expiration]
   implicit val expirationPerformedFormat = Json.format[ExpirationPerformed]
+  implicit val expirationSeqFormat = Json.format[ExpirationSeq]
 
   val ExpirationClass = classOf[Expiration].getName
   val ExpirationPerformedClass = classOf[ExpirationPerformed].getName
+  val ExpirationSeqClass = classOf[ExpirationSeq].getName
 
   override val reader: JsValue => PartialFunction[String, Jsonable] = payload => {
     case ExpirationClass => payload.as[Expiration]
     case ExpirationPerformedClass => payload.as[ExpirationPerformed]
+    case ExpirationSeqClass => payload.as[ExpirationSeq]
   }
 
   override val writer: PartialFunction[Jsonable, JsValue] = {
     case o: Expiration => Json.toJson(o)
     case o: ExpirationPerformed => Json.toJson(o)
+    case o: ExpirationSeq => Json.toJson(o)
   }
 }
 
@@ -57,7 +63,7 @@ class ExpirationManager extends PersistentActor with ActorLogging {
   // memory only
   var scheduledExpirations: Map[Expiration, Cancellable] = Map.empty
   // persistent
-  var unperformed: Vector[Expiration] = Vector.empty
+  var unperformed: ExpirationSeq = ExpirationSeq(Vector.empty)
 
   def scheduleFileDelete(expiration: Expiration): Unit = {
     if (expiration.timestamp.isAfterNow) {
@@ -81,19 +87,19 @@ class ExpirationManager extends PersistentActor with ActorLogging {
         expiration
     }.toSet
     scheduledExpirations = scheduledExpirations.filterKeys(canceled.contains)
-    unperformed = unperformed.filterNot(_.uri.matches(pattern))
+    unperformed = unperformed.copy(expirations = unperformed.expirations.filterNot(_.uri.matches(pattern)))
   }
 
   override def receiveRecover: Receive = {
     case e@Expiration(uri, timestamp) =>
-      unperformed = unperformed :+ e
+      unperformed = unperformed.copy(expirations = unperformed.expirations :+ e)
       scheduleFileDelete(e)
     case CancelExpiration(pattern) =>
       cancelExpirations(pattern)
     case SnapshotOffer(metadata, saved) =>
-      this.unperformed = saved.asInstanceOf[Vector[Expiration]]
-      for(u <- unperformed) {
-        scheduleFileDelete(u)
+      this.unperformed = saved.asInstanceOf[ExpirationSeq]
+      for(expiration <- unperformed.expirations) {
+        scheduleFileDelete(expiration)
       }
   }
 
@@ -103,7 +109,7 @@ class ExpirationManager extends PersistentActor with ActorLogging {
         val timestamp = DateTime.now().plusMillis(duration.toMillis.toInt)
         val expiration = Expiration(uri, timestamp)
         persist(expiration) { _ => }
-        unperformed = unperformed :+ expiration
+        unperformed = unperformed.copy(expirations = unperformed.expirations :+ expiration)
         scheduleFileDelete(expiration)
       } else {
         // this can only happen when there were multiple request in lined in GetQueueWorker stash queue
@@ -118,8 +124,8 @@ class ExpirationManager extends PersistentActor with ActorLogging {
       context.actorOf(Props(classOf[FileDeleter], uri, 'ExpirationPersister))
     case e@ExpirationPerformed(uri) =>
       scheduledExpirations = scheduledExpirations.filterKeys(_.uri != uri)
-      unperformed.find(_.uri == uri).foreach { performed =>
-        unperformed = unperformed.filterNot(_ == performed)
+      unperformed.expirations.find(_.uri == uri).foreach { performed =>
+        unperformed = unperformed.copy(expirations = unperformed.expirations.filterNot(_ == performed))
         persist(performed) { _ =>
           saveSnapshot(unperformed)
         }

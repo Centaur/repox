@@ -3,9 +3,10 @@ package com.gtan.repox
 import java.io.NotSerializableException
 
 import akka.serialization.Serializer
+import com.gtan.repox.ExpirationManager.ExpirationSeq
 import com.gtan.repox.config._
 import com.typesafe.scalalogging.LazyLogging
-import play.api.libs.json.{JsObject, JsString, JsValue, Json}
+import play.api.libs.json._
 
 trait SerializationSupport {
   val reader: JsValue => PartialFunction[String, Jsonable]

@@ -19,6 +19,7 @@ trait ConfigCmd extends Jsonable {
   def transform(old: Config): Config = old
 }
 
+
 // Everything can be command or Jsonable, but only Evt will be persisted.
 trait Evt
 
