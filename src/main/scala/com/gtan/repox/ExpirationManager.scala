@@ -19,24 +19,32 @@ object ExpirationManager extends SerializationSupport {
 
   case class PerformExpiration(uri: String)
 
-  case class ExpirationPerformed(uri: String)
+  case class ExpirationPerformed(uri: String) extends Jsonable with Evt
 
   case class Expiration(uri: String, timestamp: DateTime) extends Jsonable with Evt
 
   implicit val expirationFormat = Json.format[Expiration]
+  implicit val expirationPerformedFormat = Json.format[ExpirationPerformed]
 
   val ExpirationClass = classOf[Expiration].getName
+  val ExpirationPerformedClass = classOf[ExpirationPerformed].getName
 
   override val reader: JsValue => PartialFunction[String, Jsonable] = payload => {
     case ExpirationClass => payload.as[Expiration]
+    case ExpirationPerformedClass => payload.as[ExpirationPerformed]
   }
 
   override val writer: PartialFunction[Jsonable, JsValue] = {
     case o: Expiration => Json.toJson(o)
+    case o: ExpirationPerformed => Json.toJson(o)
   }
 }
 
 
+/**
+ * This actor always recover the latest snapshot so that performed or canceled expirations will not be seen in the future.
+ * To exam the detailed history, use another persistence query to recovery all events.
+ */
 class ExpirationManager extends PersistentActor with ActorLogging {
 
   import com.gtan.repox.ExpirationManager._
@@ -45,6 +53,7 @@ class ExpirationManager extends PersistentActor with ActorLogging {
 
   override def persistenceId: String = "Expiration"
 
+  // The following 2 states are kept in-sync during each repox process.
   // memory only
   var scheduledExpirations: Map[Expiration, Cancellable] = Map.empty
   // persistent
@@ -94,6 +103,7 @@ class ExpirationManager extends PersistentActor with ActorLogging {
         val timestamp = DateTime.now().plusMillis(duration.toMillis.toInt)
         val expiration = Expiration(uri, timestamp)
         persist(expiration) { _ => }
+        unperformed = unperformed :+ expiration
         scheduleFileDelete(expiration)
       } else {
         // this can only happen when there were multiple request in lined in GetQueueWorker stash queue
@@ -106,10 +116,13 @@ class ExpirationManager extends PersistentActor with ActorLogging {
     case PerformExpiration(uri) =>
       log.debug(s"$uri expired, trigger FileDelete now.")
       context.actorOf(Props(classOf[FileDeleter], uri, 'ExpirationPersister))
-    case ExpirationPerformed(uri) =>
+    case e@ExpirationPerformed(uri) =>
       scheduledExpirations = scheduledExpirations.filterKeys(_.uri != uri)
-      unperformed = unperformed.filterNot(_.uri == uri)
-      saveSnapshot(unperformed)
+      val performed = unperformed.find(_.uri == uri)
+      unperformed = unperformed.filterNot(_ == performed)
+      persist(performed) { _ =>
+        saveSnapshot(unperformed)
+      }
   }
 
 }

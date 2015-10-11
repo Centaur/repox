@@ -24,7 +24,7 @@ object AuthHandler extends RestHandler with LazyLogging {
   override def route(implicit exchange: HttpServerExchange) = {
     case (Methods.POST, "login") =>
       val pass = exchange.getQueryParameters.get("v").getFirst
-      exchange.setResponseCode(StatusCodes.OK)
+      exchange.setStatusCode(StatusCodes.OK)
       if (Config.password == pass) {
         exchange.setResponseCookie(new CookieImpl("authenticated", "true").setPath("/admin"))
         exchange.getResponseSender.send("""{"success": true}""")
@@ -32,7 +32,7 @@ object AuthHandler extends RestHandler with LazyLogging {
         exchange.getResponseSender.send("""{"success": false}""")
       }
     case (Methods.POST, "logout") =>
-      exchange.setResponseCode(StatusCodes.OK)
+      exchange.setStatusCode(StatusCodes.OK)
       exchange.setResponseCookie(new CookieImpl("authenticated", "true").setPath("/admin").setMaxAge(0))
       exchange.getRequestCookies.remove("authenticated")
       exchange.getResponseChannel

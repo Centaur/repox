@@ -52,7 +52,7 @@ object WebConfigHandler {
   def isStaticRequest(target: String) = Set(".html", ".css", ".js", ".ico", ".ttf", ".map", "woff", ".svg", "otf", "png", "jpg", "gif").exists(target.endsWith)
 
   def respondJson[T: Format](exchange: HttpServerExchange, data: T): Unit = {
-    exchange.setResponseCode(StatusCodes.OK)
+    exchange.setStatusCode(StatusCodes.OK)
     val respondHeaders = exchange.getResponseHeaders
     respondHeaders.put(Headers.CONTENT_TYPE, "application/json")
     val json = implicitly[Format[T]].writes(data)
@@ -61,13 +61,13 @@ object WebConfigHandler {
   }
 
   def respondError(exchange: HttpServerExchange, t: Throwable): Unit = {
-    exchange.setResponseCode(StatusCodes.INTERNAL_SERVER_ERROR)
+    exchange.setStatusCode(StatusCodes.INTERNAL_SERVER_ERROR)
     exchange.getResponseChannel
     exchange.endExchange()
   }
 
   def respondEmptyOK(exchange: HttpServerExchange): Unit = {
-    exchange.setResponseCode(StatusCodes.OK)
+    exchange.setStatusCode(StatusCodes.OK)
     exchange.getResponseChannel
     exchange.endExchange()
   }

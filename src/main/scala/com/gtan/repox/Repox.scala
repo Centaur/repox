@@ -62,7 +62,7 @@ object Repox extends LazyLogging {
     candidates.groupBy(_.priority).toSeq.sortBy(_._1).map(_._2)
 
   def respond404(exchange: HttpServerExchange): Unit = {
-    exchange.setResponseCode(StatusCodes.NOT_FOUND)
+    exchange.setStatusCode(StatusCodes.NOT_FOUND)
     exchange.getResponseChannel // just to avoid mysterious setting Content-length to 0 in endExchange, ugly
     exchange.endExchange()
   }
@@ -141,7 +141,7 @@ object Repox extends LazyLogging {
   }
 
   def respondHead(exchange: HttpServerExchange, headers: ResponseHeaders): Unit = {
-    exchange.setResponseCode(StatusCodes.NO_CONTENT)
+    exchange.setStatusCode(StatusCodes.NO_CONTENT)
     val target = exchange.getResponseHeaders
     for ((k, v) <- headers)
       target.putAll(new HttpString(k), v)
@@ -152,7 +152,7 @@ object Repox extends LazyLogging {
   def immediateHead(resourceManager: ResourceManager, exchange: HttpServerExchange): Unit = {
     val uri = exchange.getRequestURI
     val resource = resourceManager.getResource(uri)
-    exchange.setResponseCode(StatusCodes.NO_CONTENT)
+    exchange.setStatusCode(StatusCodes.NO_CONTENT)
     val headers = exchange.getResponseHeaders
     headers.put(Headers.CONTENT_LENGTH, resource.getContentLength)
       .put(Headers.SERVER, "repox")

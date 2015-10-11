@@ -19,6 +19,7 @@ trait ConfigCmd extends Jsonable {
   def transform(old: Config): Config = old
 }
 
+// Everything can be command or Jsonable, but only Evt will be persisted.
 trait Evt
 
 case class ConfigChanged(config: Config, configCmd: Jsonable) extends Evt
@@ -115,7 +116,5 @@ class ConfigPersister extends PersistentActor with ActorLogging {
           Repox.requestQueueMaster ! RequestQueueMaster.ConfigLoaded
         }
       }
-    case msg =>
-      log.debug(s"msg: $msg")
   }
 }
