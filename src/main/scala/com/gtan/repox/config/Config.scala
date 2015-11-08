@@ -59,7 +59,7 @@ object Config extends LazyLogging with ConfigFormats {
     Repo(Some(3), "sonatype", "http://oss.sonatype.org/content/repositories/releases", priority = 2),
     Repo(Some(4), "typesafe", "http://repo.typesafe.com/typesafe/releases", priority = 2),
     Repo(Some(2), "oschina", "http://maven.oschina.net/content/groups/public",
-      priority = 2, getOnly = true, maven = true),
+      priority = 2, getOnly = true, maven = true, parentId = Some(8)),
     Repo(Some(5), "sbt-plugin", "http://dl.bintray.com/sbt/sbt-plugin-releases", priority = 4),
     Repo(Some(6), "scalaz", "http://dl.bintray.com/scalaz/releases", priority = 4),
     Repo(Some(9), "scalajs", "http://dl.bintray.com/content/scala-js/scala-js-releases", priority = 4),

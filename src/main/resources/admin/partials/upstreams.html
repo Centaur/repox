@@ -6,6 +6,7 @@
             <th>Name</th>
             <th>Priority</th>
             <th>Base Url</th>
+            <th>Parent</th>
             <th data-content="Many repositories use maven-only uri layout, we call these 'Pure Maven', repositories that built with sbt in mind serve ivy layout as well."
                 class="withPopup">Pure Maven
             </th>
@@ -36,6 +37,7 @@
             <td ng-class="{disabled: upstream.repo.disabled}">{{upstream.repo.name}}</td>
             <td ng-class="{disabled: upstream.repo.disabled}">{{upstream.repo.priority}}</td>
             <td ng-class="{disabled: upstream.repo.disabled}">{{upstream.repo.base}}</td>
+            <td>{{getRepoNameById(upstream.repo.parentId)}}</td>
             <td ng-class="{positive: upstream.repo.maven}">
                 {{upstream.repo.maven ? 'Yes' : 'No'}}
             </td>
@@ -49,7 +51,7 @@
         </tbody>
         <tfoot class="full-width">
         <tr>
-            <th colspan="7">
+            <th colspan="8">
                 <a class="ui right floated labeled icon teal button" ng-click="showNewRepoDialog()">
                     <i class="plus icon"></i> Add Repo
                 </a>
@@ -71,9 +73,19 @@
                 <label for="new-repo-name">Name</label>
                 <input id="new-repo-name" type="text" ng-model="newUpstream.repo.name"/>
             </div>
-            <div class="required field">
-                <label for="new-repo-base">Base Url</label>
-                <input id="new-repo-base" type="text" ng-model="newUpstream.repo.base"/>
+            <div class="two fields">
+                <div class="required field">
+                    <label for="new-repo-base">Base Url</label>
+                    <input id="new-repo-base" type="text" ng-model="newUpstream.repo.base"/>
+                </div>
+                <div class="field">
+                    <label for="new-repo-parent">Parent</label>
+                    <select id="new-repo-parent"
+                            ng-model="newUpstream.repo.parentId"
+                            ng-options="upstream.repo.id as upstream.repo.name for upstream in upstreams">
+                        <option value="">无</option>
+                    </select>
+                </div>
             </div>
             <div class="required field">
                 <label for="new-repo-priority">Priority</label>
@@ -120,8 +132,9 @@
     </div>
 </div>
 
-<div class="ui modal" id="editRepoDialog"  ng-keyup="escapeToClose($event)" ng-class="{active: editUpstreamDialogVisible}">
-    <i class="teal close icon"  ng-click="editUpstreamDialogVisible = false"></i>
+<div class="ui modal" id="editRepoDialog" ng-keyup="escapeToClose($event)"
+     ng-class="{active: editUpstreamDialogVisible}">
+    <i class="teal close icon" ng-click="editUpstreamDialogVisible = false"></i>
 
     <div class="ui dividing center aligned header">
         Edit Upstream Repo
@@ -132,9 +145,19 @@
                 <label for="edit-repo-name">Name</label>
                 <input id="edit-repo-name" type="text" ng-model="editUpstream.repo.name"/>
             </div>
-            <div class="required field">
-                <label for="edit-repo-base">Base Url</label>
-                <input id="edit-repo-base" type="text" ng-model="editUpstream.repo.base"/>
+            <div class="two fields">
+                <div class="required field">
+                    <label for="edit-repo-base">Base Url</label>
+                    <input id="edit-repo-base" type="text" ng-model="editUpstream.repo.base"/>
+                </div>
+                <div class="field">
+                    <label for="edit-repo-parent">Parent</label>
+                    <select id="edit-repo-parent"
+                            ng-model="editUpstream.repo.parentId"
+                            ng-options="upstream.repo.id as upstream.repo.name for upstream in otherUpstreams">
+                        <option value="">无</option>
+                    </select>
+                </div>
             </div>
             <div class="field">
                 <label for="edit-repo-priority">Priority</label>

@@ -35,10 +35,10 @@ object RepoPersister extends SerializationSupport {
       val oldRepos = old.repos
       val oldConnectorUsage = old.connectorUsage
       old.copy(repos = oldRepos.map {
-        case o@Repo(Some(`id`), _, _, _, _, _, _) => o.copy(disabled = true)
+        case o@Repo(Some(`id`), _, _, _, _, _, _, _) => o.copy(disabled = true)
         case o => o
       }, connectorUsage = oldConnectorUsage.map {
-        case (o@Repo(Some(`id`), _, _, _, _, _, _), connector) => o.copy(disabled = true) -> connector
+        case (o@Repo(Some(`id`), _, _, _, _, _, _, _), connector) => o.copy(disabled = true) -> connector
         case u => u
       })
     }
@@ -51,10 +51,10 @@ object RepoPersister extends SerializationSupport {
       val oldRepos = old.repos
       val oldConnectorUsage = old.connectorUsage
       old.copy(repos = oldRepos.map {
-        case o@Repo(Some(`id`), _, _, _, _, _, _) => o.copy(disabled = false)
+        case o@Repo(Some(`id`), _, _, _, _, _, _, _) => o.copy(disabled = false)
         case o => o
       }, connectorUsage = oldConnectorUsage.map {
-        case (o@Repo(Some(`id`), _, _, _, _, _, _), connector) => o.copy(disabled = false) -> connector
+        case (o@Repo(Some(`id`), _, _, _, _, _, _, _), connector) => o.copy(disabled = false) -> connector
         case u => u
       })
     }
@@ -112,7 +112,7 @@ object RepoPersister extends SerializationSupport {
               case `_repo` => _repo.copy(priority = _repo.priority - 1)
               case r => r
             }, connectorUsage = oldConnectorUsage.map {
-              case (o@Repo(Some(`id`), _, _, oldPriority, _, _, _), connector) => o.copy(priority = oldPriority - 1) -> connector
+              case (o@Repo(Some(`id`), _, _, oldPriority, _, _, _, _), connector) => o.copy(priority = oldPriority - 1) -> connector
               case u => u
             })
         } else {
@@ -134,7 +134,7 @@ object RepoPersister extends SerializationSupport {
                 case `_repo` => _repo.copy(priority = _repo.priority - 1)
                 case r => r
               }, connectorUsage = oldConnectorUsage.map {
-                case (o@Repo(Some(`id`), _, _, oldPriority, _, _, _), connector) => o.copy(priority = oldPriority - 1) -> connector
+                case (o@Repo(Some(`id`), _, _, oldPriority, _, _, _, _), connector) => o.copy(priority = oldPriority - 1) -> connector
                 case u => u
               })
           }

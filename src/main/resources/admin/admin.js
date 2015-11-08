@@ -137,6 +137,16 @@ repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', '$route', 'auth
                 return upstream;
             });
         });
+        $scope.getRepoNameById = function (repoId) {
+            if(repoId) {
+                var found = _.find($scope.upstreams, function (upstream) {
+                    return upstream.repo.id == repoId
+                });
+                return found.repo.name;
+            } else {
+                return "无";
+            }
+        };
         $scope.moveUp = function (repo) {
             $http.post('upstream/up?v=' + repo.id, {}).success(function () {
                 $route.reload();
@@ -181,6 +191,7 @@ repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', '$route', 'auth
         };
         $scope.showEditRepoDialog = function (upstream) {
             $scope.editUpstream = {repo: _.clone(upstream.repo), connector: upstream.connector};
+            $scope.otherUpstreams = _.without($scope.upstreams, upstream)
             $scope.editUpstreamDialogVisible = true;
             $timeout(function () {
                 $('#edit-repo-name').select().focus();
