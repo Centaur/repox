@@ -92,6 +92,7 @@ object Repox extends LazyLogging {
   val MavenFormat = """(/.+)+/((.+?)(_(.+?)(_(.+))?)?)/(.+?)/(\3-\8(-(.+?))?\.(.+))""".r
   val IvyFormat = """/(.+?)/(.+?)/(scala_(.+?)/)?(sbt_(.+?)/)?(.+?)/(.+?)s/((.+?)(-(.+))?\.(.+))""".r
   val MetaDataFormat = """.+/maven-metadata\.xml""".r
+  val MD5Request = """.+\.md5""".r
   val supportedScalaVersion = List("2.10", "2.11")
   val supportedSbtVersion = List("0.13")
 
@@ -101,6 +102,8 @@ object Repox extends LazyLogging {
    * @return maven format if is ivy format, or ivy format if is maven format
    */
   def peer(uri: String): Try[List[String]] = uri match {
+    case MD5Request() =>
+      Failure(new RuntimeException("We do not support md5 checksum now."))
     case MetaDataFormat() => Success(Nil)
     case MavenFormat(groupIds, _, artifactId, _, scalaVersion, _, sbtVersion, version, fileName, _, classifier, ext) =>
       val organization = groupIds.split("/").filter(_.nonEmpty).mkString(".")
