@@ -39,9 +39,8 @@ class HeadAsyncHandler(val worker: ActorRef,val uri: String, val repo: Repo) ext
       statusCode match {
         case StatusCodes.NOT_FOUND =>
           Repox.head404Cache ! Head404Cache.NotFound(uri, repo)
-          if(repo.name == "ibiblio") {
-            // Todo: this is a hack, try generalize
-            Repox.head404Cache ! Head404Cache.NotFound(uri, Config.repos.find(_.name == "oschina").get)
+          for(child <- Config.repos.filter(_.parentId.exists(repo.id.contains))){
+            Repox.head404Cache ! Head404Cache.NotFound(uri, child)
           }
         case _ =>
       }

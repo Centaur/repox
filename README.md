@@ -1,9 +1,6 @@
-:exclamation: Repox新增断点续传功能, 广谈公服重新开放, 详情请见wiki.
+:exclamation: 广谈公服没有配置任何SNAPSHOT仓库, 因此所有SNAPSHOT artifacts都会404.
 
-:exclamation: OSChina仓库于2015年8月4日重开服务, 请自行更新Upstreams配置
-
-:exclamation: OpenKoala仓库似乎已经停止公开服务, 请自行更新Upstreams配置
-
+:exclamation: twitter 的项目很多依赖仅在twitter自己的仓库中托管, 由于 GFW, 广谈公服无法连接此仓库, 因此无法解析这些依赖.
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Centaur/repox?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
@@ -13,7 +10,7 @@ Repox的主要目标是改善sbt解决依赖的速度，但由于它的服务方
 如果对Repox的背景不感兴趣，希望快速脏手，可立即前往[入门指南](https://github.com/Centaur/repox/wiki/入门指南)
 
 ### 为什么需要Repox
-* 每次sbt项目的依赖发生变更，或是sbt版本升级时，sbt会先resolve很长时间，然后download很长时间，甚至有时显示downloading，但你发现事实上没有网络流量产生，sbt假死。
+* 每次sbt项目的依赖发生变更，或是sbt版本升级时，sbt会先resolve很长时间，然后download很长时间，甚至有时显示downloading，但你发现事实上没有网络流量产生，sbt假活。
 * 为了对已经下载过的依赖进行缓存，保证后续请求能够快速完成，你安装了nexus，并把所有sbt可能用到的仓库以及国内的代理仓库（如oschina等）都设置为nexus的上游，却发现它对于sbt更新依赖慢的问题并没有什么改善。
 * 你试图安装typesafe官方使用的Artifactory，却发现其开源版本不支持sbt所使用的自定义url格式。
 
