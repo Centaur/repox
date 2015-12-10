@@ -21,7 +21,8 @@ object GetMaster extends LazyLogging {
 
 /**
  * 负责某一个 uri 的 Get, 可能由多个 upstream Repo 生成多个 GetWorker
- * @param uri 要获取的 uri
+  *
+  * @param uri 要获取的 uri
  * @param from 可能的 Repo
  */
 class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLogging {
@@ -132,11 +133,19 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
         for(child <- children) {
           child ! PoisonPill
         }
-        downloadedTempFilePath = path
-        chosenRepo = repo
-        chosenWorker = startAWorker(repo, uri + ".sha1")
-        children = chosenWorker :: Nil
-        context become gettingChecksum
+        if (!uri.endsWith(".sha1")) {
+          downloadedTempFilePath = path
+          chosenRepo = repo
+          chosenWorker = startAWorker(repo, uri + ".sha1")
+          children = chosenWorker :: Nil
+          context become gettingChecksum
+        } else {
+          log.debug(s"A standalone .sha1 request, stop trying to retrieve its checksum.")
+          resolvedPath.getParent.toFile.mkdirs()
+          java.nio.file.Files.move(path, resolvedPath, REPLACE_EXISTING, ATOMIC_MOVE)
+          context.parent ! GetQueueWorker.Completed(path, repo, checksumSuccess = true)
+          self ! PoisonPill
+        }
       } else {
         sender ! Cleanup
       }
