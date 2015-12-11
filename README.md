@@ -1,3 +1,5 @@
+:exclamation: ibiblio 镜像近来改变策略，如果请求的artifact在镜像中不存在，最新的行为是返回状态码 200，内容是镜像首页列表（旧的行为，也是更正确的行为是返回状态码 404）。由于这一改变，使ibiblio镜像完全不适合作为 repox 上游仓库。建议禁用。建议用 central 替代.
+
 :exclamation: 广谈公服没有配置任何SNAPSHOT仓库, 因此所有SNAPSHOT artifacts都会404.
 
 :exclamation: twitter 的项目很多依赖仅在twitter自己的仓库中托管, 由于 GFW, 广谈公服无法连接此仓库, 因此无法解析这些依赖.
