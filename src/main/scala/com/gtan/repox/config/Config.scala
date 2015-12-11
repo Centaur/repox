@@ -64,7 +64,7 @@ object Config extends LazyLogging with ConfigFormats {
     Repo(Some(6), "scalaz", "http://dl.bintray.com/scalaz/releases", priority = 4),
     Repo(Some(9), "scalajs", "http://dl.bintray.com/content/scala-js/scala-js-releases", priority = 4),
     Repo(Some(7), "central", "http://repo1.maven.org/maven2", priority = 4, maven = true),
-    Repo(Some(8), "ibiblio", "http://mirrors.ibiblio.org/maven2", priority = 5, maven = true)
+    Repo(Some(8), "ibiblio", "http://mirrors.ibiblio.org/maven2", priority = 5, maven = true, disabled = true)
   )
 
 

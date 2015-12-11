@@ -16,7 +16,7 @@ libraryDependencies ++= {
   val scalaLoggingVer = "3.1.0"
   val ningVer = "1.8.16"
   val protobufVer = "2.6.1"
-  val guavaVer = "18.0"
+  val guavaVer = "19.0"
   Seq(
     "io.undertow" % "undertow-core" % undertowVer,
     ("com.ning" % "async-http-client" % ningVer)
