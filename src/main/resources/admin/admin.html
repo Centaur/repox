@@ -16,6 +16,7 @@
     </span>
 </h1>
 <div id="app" ng-app="repoxApp">
+    <div id="progressBar"></div>
     <nav class="ui pointing menu" id="mainMenu" ng-controller="MenuCtrl" ng-init="init()">
         <a class="{{activeOn('/upstreams')}} teal item" href="#/upstreams">
             <i class="vertically flipped sitemap icon"></i> Upstream Repositories
@@ -42,9 +43,11 @@
                     <a class="item" href="exportConfig" id="exportConfig">
                         <i class="icon download"></i>Export
                     </a>
-                    <a class="item" ng-click="importConfig()" id="importConfig">
-                        <i class="icon upload"></i>Import
-                    </a>
+                    <div class="item" type="file" ngf-select="importConfig($file, $invalidFiles)"
+                         accept="application/json" ngf-max-size="1MB" id="importConfig">
+                        <i class="icon upload"></i>
+                        Import
+                    </div>
                     <div class="divider"></div>
                     <a class="item" data-content="And delete older ones" ng-click="saveSnapshot()" id="saveSnapshot">
                         <i class="icon save"></i>Save Snapshot

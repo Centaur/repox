@@ -28,3 +28,10 @@
     margin: 0 auto;
 }
 
+#progressBar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 2px;
+    background-color: seagreen;
+}

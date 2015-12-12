@@ -21,6 +21,9 @@ trait ConfigCmd extends Jsonable {
   def transform(old: Config): Config = old
 }
 
+case class ImportConfig(uploaded: Config) extends ConfigCmd {
+  override def transform(old: Config): Config = uploaded.copy(password = old.password)
+}
 
 // Everything can be command or Jsonable, but only Evt will be persisted.
 trait Evt
@@ -88,6 +91,18 @@ class ConfigPersister extends PersistentActor with ActorLogging {
             resourceManager -> resourceHandler
           }).toMap)
           Future {
+            Map.empty[String, AsyncHttpClient]
+          }
+        case ImportConfig(_) =>
+          for(client <- Repox.clients.get.valuesIterator) {
+            client.closeAsynchronously()
+          }
+          for(manager <- Repox.resourceHandlers.get.keysIterator) {
+            manager.close()
+          }
+          val fut1 = Repox.initClients()
+          val fut2 = Repox.initResourceManagers()
+          for (both <- fut1 zip fut2) yield {
             Map.empty[String, AsyncHttpClient]
           }
         case _ => Future {

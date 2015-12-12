@@ -45,22 +45,8 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging with ConfigF
   def initializing: Receive = {
     case ConfigLoaded =>
       log.info("Config loaded.")
-      val fut1 = Repox.clients.alter(Config.connectors.map { connector =>
-        connector.name -> connector.createClient
-      }.toMap)
-      val storage = Repox.storageManager -> Handlers.resource(Repox.storageManager)
-      val (valid, invalid) = Config.resourceBases.partition { base =>
-        Paths.get(base).toFile.exists()
-      }
-      if (invalid.nonEmpty) {
-        log.debug(s"Excluded invalid base(s) (${invalid.mkString(",")})")
-      }
-      val extra = for (rb <- valid) yield {
-        val resourceManager: FileResourceManager = new FileResourceManager(Paths.get(rb).toFile, 100 * 1024)
-        val resourceHandler = Handlers.resource(resourceManager)
-        resourceManager -> resourceHandler
-      }
-      val fut2 = Repox.resourceHandlers.alter((extra :+ storage).toMap)
+      val fut1 = Repox.initClients()
+      val fut2 = Repox.initResourceManagers()
       for (both <- fut1 zip fut2) {
         self ! ClientsInitialized
       }

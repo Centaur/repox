@@ -65,9 +65,9 @@ repoxApp.filter('displayParameter', function () {
     }
 });
 
-var repoxControllers = angular.module('repoxControllers', []);
+var repoxControllers = angular.module('repoxControllers', ['ngFileUpload']);
 
-repoxControllers.controller('MenuCtrl', ['$scope', '$location', '$http', '$route', function ($scope, $location, $http, $route) {
+repoxControllers.controller('MenuCtrl', ['$scope', '$location', '$http', '$route', '$timeout', 'Upload', function ($scope, $location, $http, $route, $timeout, Upload) {
     function endsWith(str, suffix) {
         return str.indexOf(suffix, str.length - suffix.length) !== -1;
     }
@@ -111,12 +111,31 @@ repoxControllers.controller('MenuCtrl', ['$scope', '$location', '$http', '$route
             }
         })
     };
-    $scope.exportConfig = function() {
-        $http.get('exportConfig').success(function (resp) {
-
-        })
-    }
-    $scope.importConfig = function() {
+    $scope.importConfig = function(file, errFiles) {
+        $scope.f = file
+        if (file) {
+            Upload.http({
+                url: 'importConfig',
+                data: file
+            }).then(function (response) {
+                $timeout(function () {
+                    alert("Config data imported.");
+                });
+            }, function (response) {
+                if (response.status > 0) {
+                    var errorMsg = response.status + ': ' + response.data
+                    alert(errorMsg)
+                }
+            }, function (evt) {
+                file.progress = Math.min(100, parseInt(100.0 *
+                    evt.loaded / evt.total));
+                if(file.progress == 100) {
+                    jQuery('#progressBar').width(0);
+                } else {
+                    jQuery('#progressBar').width(file.progress);
+                }
+            });
+        }
     }
     $scope.modifyPassword = function () {
         $location.path('/modifyPassword')

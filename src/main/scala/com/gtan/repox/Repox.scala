@@ -1,5 +1,6 @@
 package com.gtan.repox
 
+import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicLong
 
 import akka.actor.{ActorSystem, Props}
@@ -8,6 +9,7 @@ import com.gtan.repox.config.{Config, ConfigPersister, ConfigQuery}
 import com.gtan.repox.data.{Connector, ExpireRule, Repo}
 import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
 import com.typesafe.scalalogging.LazyLogging
+import io.undertow.Handlers
 import io.undertow.server.HttpServerExchange
 import io.undertow.server.handlers.resource.{FileResourceManager, ResourceHandler, ResourceManager}
 import io.undertow.util._
@@ -47,7 +49,27 @@ object Repox extends LazyLogging {
       connector -> clients.get().apply(connector.name)
   }
 
-  val storageManager = new FileResourceManager(Config.storagePath.toFile, 100 * 1024)
+  def initClients() = Repox.clients.alter(Config.connectors.map { connector =>
+    connector.name -> connector.createClient
+  }.toMap)
+
+  def initResourceManagers() = {
+    val storage = Repox.storageManager -> Handlers.resource(Repox.storageManager)
+    val (valid, invalid) = Config.resourceBases.partition { base =>
+      Paths.get(base).toFile.exists()
+    }
+    if (invalid.nonEmpty) {
+      logger.debug(s"Excluded invalid base(s) (${invalid.mkString(",")})")
+    }
+    val extra = for (rb <- valid) yield {
+      val resourceManager: FileResourceManager = new FileResourceManager(Paths.get(rb).toFile, 100 * 1024)
+      val resourceHandler = Handlers.resource(resourceManager)
+      resourceManager -> resourceHandler
+    }
+
+    Repox.resourceHandlers.alter((extra :+ storage).toMap)
+  }
+    val storageManager = new FileResourceManager(Config.storagePath.toFile, 100 * 1024)
 
   type StatusCode = Int
   type ResponseHeaders = Map[String, java.util.List[String]]
@@ -80,7 +102,8 @@ object Repox extends LazyLogging {
 
   /**
    * this is the one and only truth
-   * @param uri resource to get or query
+    *
+    * @param uri resource to get or query
    * @return
    */
   def downloaded(uri: String): Option[(ResourceManager, ResourceHandler)] = {
@@ -98,7 +121,8 @@ object Repox extends LazyLogging {
 
   /**
    * transform between uri formats
-   * @param uri
+    *
+    * @param uri
    * @return maven format if is ivy format, or ivy format if is maven format
    */
   def peer(uri: String): Try[List[String]] = uri match {
