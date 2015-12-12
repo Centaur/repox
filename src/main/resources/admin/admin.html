@@ -36,7 +36,21 @@
             <i class="tasks icon"></i> Parameters
         </a>
         <div class="right menu">
-            <a class="item" data-content="And delete older ones" ng-click="saveSnapshot()" id="saveSnapshot"> <i class="icon save"></i>Save Snapshot</a>
+            <div class="ui dropdown link item">Config Data
+                <i class="dropdown icon"></i>
+                <div class="menu">
+                    <a class="item" href="exportConfig" id="exportConfig">
+                        <i class="icon download"></i>Export
+                    </a>
+                    <a class="item" ng-click="importConfig()" id="importConfig">
+                        <i class="icon upload"></i>Import
+                    </a>
+                    <div class="divider"></div>
+                    <a class="item" data-content="And delete older ones" ng-click="saveSnapshot()" id="saveSnapshot">
+                        <i class="icon save"></i>Save Snapshot
+                    </a>
+                </div>
+            </div>
             <a class="item" ng-click="modifyPassword()"> <i class="icon write"></i>Modify Password</a>
             <a class="item" ng-click="logout()"> <i class="icon power"></i>Logout</a>
         </div>
@@ -50,6 +64,7 @@
 <script src="/admin/bower_components/underscore/underscore-min.js"></script>
 <script src="/admin/bower_components/angular/angular.js"></script>
 <script src="/admin/bower_components/angular-route/angular-route.js"></script>
+<script src="/admin/bower_components/ng-file-upload/ng-file-upload.min.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>

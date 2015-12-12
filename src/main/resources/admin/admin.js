@@ -2,41 +2,41 @@ var repoxApp = angular.module('repoxApp', ['ngRoute', 'repoxControllers']);
 
 repoxApp.config(['$routeProvider', function ($routeProvider) {
     $routeProvider.
-        when('/upstreams', {
-            templateUrl: 'partials/upstreams.html',
-            controller: 'UpstreamsCtrl'
-        }).
-        when('/connectors', {
-            templateUrl: 'partials/connectors.html',
-            controller: 'ConnectorsCtrl'
-        }).
-        when('/proxies', {
-            templateUrl: 'partials/proxies.html',
-            controller: 'ProxiesCtrl'
-        }).
-        when('/immediate404Rules', {
-            templateUrl: 'partials/immediate404Rules.html',
-            controller: 'Immediate404RulesCtrl'
-        }).
-        when('/expireRules', {
-            templateUrl: 'partials/expireRules.html',
-            controller: 'ExpireRulesCtrl'
-        }).
-        when('/parameters', {
-            templateUrl: 'partials/parameters.html',
-            controller: 'ParametersCtrl'
-        }).
-        when('/login', {
-            templateUrl: 'partials/login.html',
-            controller: 'LoginCtrl'
-        }).
-        when('/modifyPassword', {
-            templateUrl: 'partials/modifyPassword.html',
-            controller: 'ModifyPwdCtrl'
-        }).
-        otherwise({
-            redirectTo: '/login'
-        })
+    when('/upstreams', {
+        templateUrl: 'partials/upstreams.html',
+        controller: 'UpstreamsCtrl'
+    }).
+    when('/connectors', {
+        templateUrl: 'partials/connectors.html',
+        controller: 'ConnectorsCtrl'
+    }).
+    when('/proxies', {
+        templateUrl: 'partials/proxies.html',
+        controller: 'ProxiesCtrl'
+    }).
+    when('/immediate404Rules', {
+        templateUrl: 'partials/immediate404Rules.html',
+        controller: 'Immediate404RulesCtrl'
+    }).
+    when('/expireRules', {
+        templateUrl: 'partials/expireRules.html',
+        controller: 'ExpireRulesCtrl'
+    }).
+    when('/parameters', {
+        templateUrl: 'partials/parameters.html',
+        controller: 'ParametersCtrl'
+    }).
+    when('/login', {
+        templateUrl: 'partials/login.html',
+        controller: 'LoginCtrl'
+    }).
+    when('/modifyPassword', {
+        templateUrl: 'partials/modifyPassword.html',
+        controller: 'ModifyPwdCtrl'
+    }).
+    otherwise({
+        redirectTo: '/login'
+    })
 }]);
 
 repoxApp.filter('displayProxy', function () {
@@ -51,9 +51,9 @@ repoxApp.filter('displayProxy', function () {
     }
 });
 
-repoxApp.filter('displayCredentials', function(){
-    return function(credential) {
-        return credential.scheme+':'+credential.user+':'+ credential.password.replace(/./g,'*')
+repoxApp.filter('displayCredentials', function () {
+    return function (credential) {
+        return credential.scheme + ':' + credential.user + ':' + credential.password.replace(/./g, '*')
     }
 });
 
@@ -72,10 +72,14 @@ repoxControllers.controller('MenuCtrl', ['$scope', '$location', '$http', '$route
         return str.indexOf(suffix, str.length - suffix.length) !== -1;
     }
 
-    $scope.init = function() {
-       jQuery('#saveSnapshot').popup({
-           hoverable: true
-       })
+    $scope.init = function () {
+        jQuery('#saveSnapshot').popup({
+        })
+        jQuery('.dropdown').dropdown({
+            transition: 'drop',
+            on: 'hover'
+        })
+
     };
     $scope.activeOn = function (uri) {
         if (endsWith($location.path(), uri))
@@ -98,8 +102,8 @@ repoxControllers.controller('MenuCtrl', ['$scope', '$location', '$http', '$route
             $location.path('/login')
         })
     };
-    $scope.saveSnapshot = function() {
-        $http.post('saveSnapshot', {}).success(function(resp) {
+    $scope.saveSnapshot = function () {
+        $http.post('saveSnapshot', {}).success(function (resp) {
             if (resp.success) {
                 window.alert('Config snapshot successfully saved.')
             } else {
@@ -107,6 +111,13 @@ repoxControllers.controller('MenuCtrl', ['$scope', '$location', '$http', '$route
             }
         })
     };
+    $scope.exportConfig = function() {
+        $http.get('exportConfig').success(function (resp) {
+
+        })
+    }
+    $scope.importConfig = function() {
+    }
     $scope.modifyPassword = function () {
         $location.path('/modifyPassword')
     }
@@ -138,7 +149,7 @@ repoxControllers.controller('UpstreamsCtrl', ['$scope', '$http', '$route', 'auth
             });
         });
         $scope.getRepoNameById = function (repoId) {
-            if(repoId) {
+            if (repoId) {
                 var found = _.find($scope.upstreams, function (upstream) {
                     return upstream.repo.id == repoId
                 });
@@ -249,7 +260,7 @@ repoxControllers.controller('ConnectorsCtrl', ['$scope', '$http', '$route', 'aut
         };
         $scope.submitNewConnector = function () {
             var current = $scope.newConnector.connector;
-            if(current.scheme !== 'None') {
+            if (current.scheme !== 'None') {
                 current.credentials = {
                     scheme: current.scheme,
                     user: current.user,
@@ -266,7 +277,7 @@ repoxControllers.controller('ConnectorsCtrl', ['$scope', '$http', '$route', 'aut
         };
         $scope.showEditConnectorDialog = function (connectorVO) {
             var current = _.clone(connectorVO.connector);
-            if(current.credentials) {
+            if (current.credentials) {
                 current.user = current.credentials.user;
                 current.password = current.credentials.password;
                 current.scheme = current.credentials.scheme;
@@ -282,7 +293,7 @@ repoxControllers.controller('ConnectorsCtrl', ['$scope', '$http', '$route', 'aut
         };
         $scope.submitEditConnector = function () {
             var current = $scope.editConnector.connector;
-            if(current.scheme !== 'None') {
+            if (current.scheme !== 'None') {
                 current.credentials = {
                     scheme: current.scheme,
                     user: current.user,
@@ -519,9 +530,9 @@ repoxControllers.controller('ModifyPwdCtrl', ['$scope', '$http', '$route', '$win
         $scope.password = '';
         $scope.submitNewPwd = function () {
             $http.put('password?v=' + encodeURIComponent(JSON.stringify({
-                p1: $scope.password,
-                p2: $scope.confirm
-            })), {}).success(function () {
+                    p1: $scope.password,
+                    p2: $scope.confirm
+                })), {}).success(function () {
                 $window.alert('Success. Relogin.');
                 $location.path('/login')
             }).error(function () {
