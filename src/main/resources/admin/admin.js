@@ -115,11 +115,12 @@ repoxControllers.controller('MenuCtrl', ['$scope', '$location', '$http', '$route
         $scope.f = file
         if (file) {
             Upload.http({
+                method: 'put',
                 url: 'importConfig',
                 data: file
             }).then(function (response) {
                 $timeout(function () {
-                    alert("Config data imported.");
+                    alert("Config data imported. \n A good pratice is to save snapshot now to have a cleaner/faster startup process in the future.");
                 });
             }, function (response) {
                 if (response.status > 0) {

@@ -25,6 +25,10 @@ case class ImportConfig(uploaded: Config) extends ConfigCmd {
   override def transform(old: Config): Config = uploaded.copy(password = old.password)
 }
 
+object ImportConfig {
+  implicit val formats = Json.format[ImportConfig]
+}
+
 // Everything can be command or Jsonable, but only Evt will be persisted.
 trait Evt
 
@@ -37,13 +41,16 @@ object ConfigPersister extends SerializationSupport {
   case object SaveSnapshot
 
   val ConfigClass = classOf[Config].getName
+  val ImportConfigClass = classOf[ImportConfig].getName
 
   override val reader: (JsValue) => PartialFunction[String, Jsonable] = payload => {
     case ConfigClass => payload.as[Config]
+    case ImportConfigClass => payload.as[ImportConfig]
   }
 
   override val writer: PartialFunction[Jsonable, JsValue] = {
     case o: Config => Json.toJson(o)
+    case o: ImportConfig => Json.toJson(o)
   }
 }
 
@@ -103,6 +110,8 @@ class ConfigPersister extends PersistentActor with ActorLogging {
           val fut1 = Repox.initClients()
           val fut2 = Repox.initResourceManagers()
           for (both <- fut1 zip fut2) yield {
+            log.debug(s"ResourceBases (${Repox.resourceHandlers.get().keys.map(_.getBase).mkString(",")}) initialized.")
+            log.debug(s"AHC clients (${Repox.clients.get().keys.mkString(",")}) initialized.")
             Map.empty[String, AsyncHttpClient]
           }
         case _ => Future {

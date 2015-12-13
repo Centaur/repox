@@ -68,7 +68,7 @@ object AuthHandler extends RestHandler with LazyLogging with ConfigFormats {
         exchange.getResponseHeaders.add(Headers.CONTENT_TYPE, "application/force-download")
         exchange.getResponseHeaders.add(Headers.CONTENT_DISPOSITION, """attachment; filename="repox.config.json""")
         exchange.getResponseSender.send(Json.toJson(Config.get.copy(password = "not exported")).toString)
-      case (Methods.POST, "importConfig") =>
+      case (Methods.PUT, "importConfig") =>
         val contentType = exchange.getRequestHeaders.getFirst(Headers.CONTENT_TYPE)
         if (contentType.startsWith("application/json")) {
           val splitted = contentType.split("charset=")
