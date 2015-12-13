@@ -18,8 +18,9 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 
-object Repox extends LazyLogging {
-  def lookForExpireRule(uri: String): Option[ExpireRule] = Config.expireRules.find(rule => !rule.disabled && uri.matches(rule.pattern))
+object Repox extends LazyLogging with HttpHelpers {
+  def lookForExpireRule(uri: String): Option[ExpireRule] = Config.expireRules.find(
+    rule => !rule.disabled && uri.matches(rule.pattern))
 
 
   import concurrent.ExecutionContext.Implicits.global
@@ -69,11 +70,8 @@ object Repox extends LazyLogging {
 
     Repox.resourceHandlers.alter((extra :+ storage).toMap)
   }
-    val storageManager = new FileResourceManager(Config.storagePath.toFile, 100 * 1024)
 
-  type StatusCode = Int
-  type ResponseHeaders = Map[String, java.util.List[String]]
-  type HeaderResponse = (Repo, StatusCode, ResponseHeaders)
+  val storageManager = new FileResourceManager(Config.storagePath.toFile, 100 * 1024)
 
   implicit val timeout = akka.util.Timeout(1 second)
 
@@ -84,28 +82,13 @@ object Repox extends LazyLogging {
   def orderByPriority(candidates: Seq[Repo]): Seq[Seq[Repo]] =
     candidates.groupBy(_.priority).toSeq.sortBy(_._1).map(_._2)
 
-  def respond404(exchange: HttpServerExchange): Unit = {
-    exchange.setStatusCode(StatusCodes.NOT_FOUND)
-    exchange.getResponseChannel // just to avoid mysterious setting Content-length to 0 in endExchange, ugly
-    exchange.endExchange()
-  }
-
-  def immediate404(exchange: HttpServerExchange): Unit = {
-    logger.info(s"Immediate 404 ${exchange.getRequestURI}.")
-    respond404(exchange)
-  }
-
-  def smart404(exchange: HttpServerExchange): Unit = {
-    logger.info(s"Smart 404 ${exchange.getRequestURI}.")
-    respond404(exchange)
-  }
 
   /**
-   * this is the one and only truth
+    * this is the one and only truth
     *
     * @param uri resource to get or query
-   * @return
-   */
+    * @return
+    */
   def downloaded(uri: String): Option[(ResourceManager, ResourceHandler)] = {
     resourceHandlers.get().find { case (resourceManager, handler) =>
       resourceManager.getResource(uri.tail) != null
@@ -120,11 +103,11 @@ object Repox extends LazyLogging {
   val supportedSbtVersion = List("0.13")
 
   /**
-   * transform between uri formats
+    * transform between uri formats
     *
     * @param uri
-   * @return maven format if is ivy format, or ivy format if is maven format
-   */
+    * @return maven format if is ivy format, or ivy format if is maven format
+    */
   def peer(uri: String): Try[List[String]] = uri match {
     case MD5Request() =>
       Failure(new RuntimeException("We do not support md5 checksum now."))
@@ -143,14 +126,14 @@ object Repox extends LazyLogging {
         s"/$organization/$artifactId/scala_$scalaVersion/sbt_$sbtVersion/$version/${typ}s/$peerFile" :: Nil
       } else if (scalaVersion == null && sbtVersion == null) {
         val guessedMavenArtifacts = for (scala <- supportedScalaVersion; sbt <- supportedSbtVersion) yield
-        s"$groupIds/${artifactId}_${scala}_$sbt/$version/$fileName"
+          s"$groupIds/${artifactId}_${scala}_$sbt/$version/$fileName"
         s"/$organization/$artifactId/$version/${typ}s/$peerFile" :: guessedMavenArtifacts
       } else List(s"/$organization/$artifactId/$version/${typ}s/$peerFile")
       Success(result)
     case IvyFormat(organization, module, _, scalaVersion, _, sbtVersion, revision, typ, fileName, artifact, _, classifier, ext) =>
       val result = if (scalaVersion == null && sbtVersion == null) {
         for (scala <- supportedScalaVersion; sbt <- supportedSbtVersion) yield
-        s"/${organization.split("\\.").mkString("/")}/${module}_${scala}_$sbt/$revision/$module-$revision.$ext"
+          s"/${organization.split("\\.").mkString("/")}/${module}_${scala}_$sbt/$revision/$module-$revision.$ext"
       } else Nil
       Success(result)
     case _ =>
@@ -159,61 +142,29 @@ object Repox extends LazyLogging {
 
   val resourceHandlers: Agent[Map[FileResourceManager, ResourceHandler]] = Agent(null)
 
-  def sendFile(resourceHandler: ResourceHandler, exchange: HttpServerExchange): Unit = {
-    resourceHandler.handleRequest(exchange)
-  }
-
-  def immediateFile(resourceHandler: ResourceHandler, exchange: HttpServerExchange): Unit = {
-    logger.debug(s"Immediate file ${exchange.getRequestURI}")
-    sendFile(resourceHandler, exchange)
-  }
-
-  def respondHead(exchange: HttpServerExchange, headers: ResponseHeaders): Unit = {
-    exchange.setStatusCode(StatusCodes.NO_CONTENT)
-    val target = exchange.getResponseHeaders
-    for ((k, v) <- headers)
-      target.putAll(new HttpString(k), v)
-    exchange.getResponseChannel // just to avoid mysterious setting Content-length to 0 in endExchange, ugly
-    exchange.endExchange()
-  }
-
-  def immediateHead(resourceManager: ResourceManager, exchange: HttpServerExchange): Unit = {
-    val uri = exchange.getRequestURI
-    val resource = resourceManager.getResource(uri)
-    exchange.setStatusCode(StatusCodes.NO_CONTENT)
-    val headers = exchange.getResponseHeaders
-    headers.put(Headers.CONTENT_LENGTH, resource.getContentLength)
-      .put(Headers.SERVER, "repox")
-      .put(Headers.CONNECTION, Headers.KEEP_ALIVE.toString)
-      .put(Headers.CONTENT_TYPE, resource.getContentType(MimeMappings.DEFAULT))
-      .put(Headers.LAST_MODIFIED, resource.getLastModifiedString)
-    exchange.getResponseChannel // just to avoid mysterious setting Content-length to 0 in endExchange, ugly
-    exchange.endExchange()
-    logger.debug(s"Immediate head $uri. ")
-  }
-
   def handle(exchange: HttpServerExchange): Unit = {
     val uri = exchange.getRequestURI
     val method = exchange.getRequestMethod
-    if(uri == "/") {
-      exchange.setStatusCode(StatusCodes.TEMPORARY_REDIRECT)
-      exchange.getResponseHeaders.put(Headers.LOCATION, "/admin/index.html")
-      exchange.endExchange()
-    } else {
-      Repox.peer(uri) match {
-        case Success(_) =>
-          method match {
-            case Methods.HEAD =>
-              requestQueueMaster ! Requests.Head(exchange)
-            case Methods.GET =>
-              requestQueueMaster ! Requests.Get(exchange)
-            case _ =>
-              immediate404(exchange)
-          }
-        case Failure(_) =>
-          Repox.respond404(exchange)
-          logger.debug(s"Invalid request $method $uri. 404.")
-      }
+    uri match {
+      case "/" =>
+        redirectTo(exchange, "/admin/index.html")
+      case "/favicon.ico" =>
+        redirectTo(exchange, "/admin/favicon.ico")
+      case _ =>
+        Repox.peer(uri) match {
+          case Success(_) =>
+            method match {
+              case Methods.HEAD =>
+                requestQueueMaster ! Requests.Head(exchange)
+              case Methods.GET =>
+                requestQueueMaster ! Requests.Get(exchange)
+              case _ =>
+                immediate404(exchange)
+            }
+          case Failure(_) =>
+            Repox.respond404(exchange)
+            logger.debug(s"Invalid request $method $uri. 404.")
+        }
     }
   }
 
