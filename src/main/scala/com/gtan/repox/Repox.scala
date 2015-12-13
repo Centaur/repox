@@ -195,19 +195,25 @@ object Repox extends LazyLogging {
   def handle(exchange: HttpServerExchange): Unit = {
     val uri = exchange.getRequestURI
     val method = exchange.getRequestMethod
-    Repox.peer(uri) match {
-      case Success(_) =>
-        method match {
-          case Methods.HEAD =>
-            requestQueueMaster ! Requests.Head(exchange)
-          case Methods.GET =>
-            requestQueueMaster ! Requests.Get(exchange)
-          case _ =>
-            immediate404(exchange)
-        }
-      case Failure(_) =>
-        Repox.respond404(exchange)
-        logger.debug(s"Invalid request $method $uri. 404.")
+    if(uri == "/") {
+      exchange.setStatusCode(StatusCodes.TEMPORARY_REDIRECT)
+      exchange.getResponseHeaders.put(Headers.LOCATION, "/admin/index.html")
+      exchange.endExchange()
+    } else {
+      Repox.peer(uri) match {
+        case Success(_) =>
+          method match {
+            case Methods.HEAD =>
+              requestQueueMaster ! Requests.Head(exchange)
+            case Methods.GET =>
+              requestQueueMaster ! Requests.Get(exchange)
+            case _ =>
+              immediate404(exchange)
+          }
+        case Failure(_) =>
+          Repox.respond404(exchange)
+          logger.debug(s"Invalid request $method $uri. 404.")
+      }
     }
   }
 
