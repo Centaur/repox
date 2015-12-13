@@ -62,8 +62,9 @@ fork := true
 
 assemblyMergeStrategy in assembly := {
   case str@PathList("admin", "bower_components", remains@_*) => remains match {
-    case Seq("angular", "angular.js") => MergeStrategy.deduplicate
-    case Seq("angular-route", "angular-route.js") => MergeStrategy.deduplicate
+    case Seq("angular", "angular.min.js") => MergeStrategy.deduplicate
+    case Seq("angular-route", "angular-route.min.js") => MergeStrategy.deduplicate
+    case Seq("ng-file-upload", "ng-file-upload.min.js") => MergeStrategy.deduplicate
     case Seq("underscore", "underscore-min.js") => MergeStrategy.deduplicate
     case Seq("jquery", "dist", "jquery.min.js") => MergeStrategy.deduplicate
     case Seq("semantic-ui", "dist", "semantic.min.css") => MergeStrategy.deduplicate
