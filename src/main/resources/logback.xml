@@ -4,14 +4,22 @@
         <!-- encoders are assigned the type
              ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
         <encoder>
-            <pattern>%d{MM-dd HH:mm:ss.SSS} %highlight(%-5level) %logger{36} %X{akkaSource} %n %blue(%msg) %n %n</pattern>
+            <pattern>%d{MM-dd HH:mm:ss.SSS} %highlight(%-5level) %logger{36} %X{akkaSource} %n %blue(%msg) %n %n
+            </pattern>
             <!--<pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} %X{akkaSource} %n%msg%n%n</pattern>-->
         </encoder>
     </appender>
 
-    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}/.repox/repox.log</file>
-        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>${user.home}/.repox/repox.log.%i</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>9</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>100MB</maxFileSize>
+        </triggeringPolicy>
         <!-- encoders are assigned the type
              ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
         <encoder>
@@ -21,7 +29,7 @@
     <logger name="com.gtan.repox" level="debug"/>
 
     <root level="info">
-        <appender-ref ref="STDOUT" />
-        <appender-ref ref="FILE" />
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE"/>
     </root>
 </configuration>
