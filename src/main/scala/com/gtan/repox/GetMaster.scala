@@ -1,9 +1,12 @@
 package com.gtan.repox
 
+import java.net.URLEncoder
+import java.nio.charset.Charset
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption._
 
 import akka.actor._
+import com.google.common.base.Charsets
 import com.google.common.hash.Hashing
 import com.gtan.repox.GetWorker.{Cleanup, PeerChosen}
 import com.gtan.repox.Head404Cache.{NotFound, Query}
@@ -68,7 +71,7 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
   private[this] def startAWorker(upstream: Repo, target: String): ActorRef = {
     context.actorOf(
       Props(classOf[GetWorker], upstream, target, None, -1L),
-      name = s"GetWorker_${upstream.name}_${Repox.nextId}"
+      name = s"GetWorker_${URLEncoder.encode(upstream.name, "UTF-8")}_${Repox.nextId}"
     )
   }
 

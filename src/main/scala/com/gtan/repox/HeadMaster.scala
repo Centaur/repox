@@ -1,5 +1,7 @@
 package com.gtan.repox
 
+import java.net.URLEncoder
+
 import akka.actor.Actor.Receive
 import akka.actor._
 import com.gtan.repox.Head404Cache.Query
@@ -60,7 +62,7 @@ class HeadMaster(val exchange: HttpServerExchange) extends Actor with ActorLoggi
         self ! PoisonPill
       }
       children = for (upstream <- candidateRepos) yield {
-        val childName = s"HeadWorker_${upstream.name}_${Repox.nextId}"
+        val childName = s"HeadWorker_${URLEncoder.encode(upstream.name, "UTF-8")}_${Repox.nextId}"
         context.actorOf(
           Props(classOf[HeadWorker], upstream, uri, requestHeaders),
           name = childName)
