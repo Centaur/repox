@@ -8,7 +8,6 @@ import akka.agent.Agent
 import com.gtan.repox.config.{Config, ConfigPersister, ConfigQuery}
 import com.gtan.repox.data.{Connector, ExpireRule, Repo}
 import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
-import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.Handlers
 import io.undertow.server.HttpServerExchange
@@ -26,11 +25,7 @@ object Repox extends LazyLogging with HttpHelpers {
 
   import concurrent.ExecutionContext.Implicits.global
 
-  val system=System.getProperties().getProperty("os.name") match {
-    case osnames if(osnames.startsWith("Windows")) =>
-      ActorSystem("repox",ConfigFactory.load("application-win.conf"))
-    case _ => ActorSystem("repox")
-  }
+  val system=ActorSystem("repox")
 
   private[this] val idGenerator = new AtomicLong(1)
 
