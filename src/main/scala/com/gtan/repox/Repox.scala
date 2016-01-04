@@ -25,7 +25,8 @@ object Repox extends LazyLogging with HttpHelpers {
 
   import concurrent.ExecutionContext.Implicits.global
 
-  val system = ActorSystem("repox")
+  val system=ActorSystem("repox")
+
   private[this] val idGenerator = new AtomicLong(1)
 
   def nextId: Long = idGenerator.getAndIncrement()
