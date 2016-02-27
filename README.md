@@ -1,4 +1,4 @@
-:exclamation: 广谈公服因硬件故障自 2016 年 2 月 9 日起暂停.
+:exclamation: 公服 2016 年 2 月 27 日重新上线. 旧版的 async-http-client 中有 bug 导致无法正确处理 typesafe repository 中的重定向链接, 所以建议所有在本地或组织内运行 Repox 的童鞋立即升级至最新版本.
 
 :exclamation: ibiblio 镜像近来改变策略，如果请求的artifact在镜像中不存在，最新的行为是返回状态码 200，内容是镜像首页列表（旧的行为，也是更正确的行为是返回状态码 404）。由于这一改变，使ibiblio镜像完全不适合作为 repox 上游仓库。建议禁用。建议用 central 替代.
 
