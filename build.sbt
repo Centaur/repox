@@ -4,17 +4,17 @@ organization := "com.gtan"
 
 scalaVersion := "2.11.7"
 
-val akkaVersion = "2.4.1"
+val akkaVersion = "2.4.2"
 
 libraryDependencies ++= {
-  val undertowVer = "1.3.6.Final"
+  val undertowVer = "1.3.17.Final"
   val logbackVer = "1.1.3"
   val leveldbVer = "0.7"
   val leveldbjniVer = "1.8"
   val scalaTestVer = "2.2.5"
-  val playJsonVer = "2.4.4"
+  val playJsonVer = "2.4.6"
   val scalaLoggingVer = "3.1.0"
-  val ningVer = "1.8.16"
+  val ningVer = "1.9.33"
   val protobufVer = "2.6.1"
   val guavaVer = "19.0"
   Seq(

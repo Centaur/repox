@@ -13,10 +13,10 @@ class ConfigQuery(val system: ActorSystem) extends LazyLogging {
   val queries = PersistenceQuery(system).readJournalFor[LeveldbReadJournal](
   LeveldbReadJournal.Identifier)
 
-  val src: Source[EventEnvelope, Unit] =
+  val src =
     queries.eventsByPersistenceId("Config", 0L, Long.MaxValue)
 
-  val events: Source[Any, Unit] = src.map(_.event)
+  val events = src.map(_.event)
   events.runForeach {
     case ConfigChanged(_, cmd) => logger.debug(s"ConfigView received event caused by cmd: $cmd")
     case UseDefault => logger.debug(s"ConfigView received UseDefault evt")
