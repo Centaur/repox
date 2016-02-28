@@ -22,22 +22,31 @@ libraryDependencies ++= {
     ("com.ning" % "async-http-client" % ningVer)
       .exclude("org.slf4j", "slf4j-api"),
     ("com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVer)
-      .exclude("org.scala-lang", "scala-library"),
+      .exclude("org.scala-lang", "scala-library")
+      .exclude("org.scala-lang", "scala-reflect"),
     ("ch.qos.logback" % "logback-classic" % logbackVer)
       .exclude("org.slf4j", "slf4j-api"),
     ("com.typesafe.akka" %% "akka-actor" % akkaVersion)
-      .exclude("org.slf4j", "slf4j-api"),
+      .exclude("org.scala-lang", "scala-library")
+      .exclude("org.slf4j", "slf4j-api")
+      .exclude("com.typesafe", "config"),
     ("com.typesafe.akka" %% "akka-slf4j" % akkaVersion)
+      .exclude("org.scala-lang", "scala-library")
       .exclude("org.slf4j", "slf4j-api"),
     ("com.typesafe.akka" %% "akka-agent" % akkaVersion)
       .exclude("org.scala-lang", "scala-library"),
     ("com.typesafe.akka" %% "akka-persistence" % akkaVersion)
       .exclude("org.scala-lang", "scala-library"),
-    "org.iq80.leveldb" % "leveldb" % leveldbVer,
+    ("org.iq80.leveldb" % "leveldb" % leveldbVer)
+      .exclude("com.google.guava", "guava"),
     "org.fusesource.leveldbjni" % "leveldbjni-all" % leveldbjniVer,
-    "com.typesafe.akka" %% "akka-persistence-query-experimental" % akkaVersion,
+    ("com.typesafe.akka" %% "akka-persistence-query-experimental" % akkaVersion)
+      .exclude("org.scala-lang", "scala-library")
+      .exclude("com.typesafe", "config"),
     ("com.typesafe.play" %% "play-json" % playJsonVer)
-      .exclude("org.scala-lang", "scala-library"),
+      .exclude("org.scala-lang", "scala-library")
+      .exclude("com.fasterxml.jackson.core", "jackson-annotations"),
+    "com.fasterxml.jackson.core" % "jackson-annotations" % "2.5.4",
     "com.google.protobuf" % "protobuf-java" % protobufVer,
     "com.google.guava" % "guava" % guavaVer,
     "org.scalatest" %% "scalatest" % scalaTestVer % "test"
