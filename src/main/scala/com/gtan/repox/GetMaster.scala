@@ -203,7 +203,7 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
       } else {
         log.debug(s"Upstream has artifact but not checksum. Response 404 but save downloaded artifact. May generate on repox manually in the future.")
         java.nio.file.Files.move(downloadedTempFilePath, resolvedPath, REPLACE_EXISTING, ATOMIC_MOVE)
-        context.parent ! GetQueueWorker.Get404
+        context.parent ! GetQueueWorker.Get404(uri)
         self ! PoisonPill
       }
     case msg =>
