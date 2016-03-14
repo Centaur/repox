@@ -195,10 +195,17 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
       chosenWorker = startAWorker(chosenRepo, uri + ".sha1")
       children = chosenWorker :: Nil
     case GetWorker.UnsuccessResponseStatus(status) =>
-      log.debug(s"GetWorker get UnsuccessResponseStatus in gettingChecksum state: $status. Restart.")
-      sender ! PoisonPill
-      chosenWorker = startAWorker(chosenRepo, uri + ".sha1")
-      children = chosenWorker :: Nil
+      if(status.getStatusCode != 404) {
+        log.debug(s"GetWorker get UnsuccessResponseStatus in gettingChecksum state: $status. Restart.")
+        sender ! PoisonPill
+        chosenWorker = startAWorker(chosenRepo, uri + ".sha1")
+        children = chosenWorker :: Nil
+      } else {
+        log.debug(s"Upstream has artifact but not checksum. Response 404 but save downloaded artifact. May generate on repox manually in the future.")
+        java.nio.file.Files.move(downloadedTempFilePath, resolvedPath, REPLACE_EXISTING, ATOMIC_MOVE)
+        context.parent ! GetQueueWorker.Get404
+        self ! PoisonPill
+      }
     case msg =>
       log.debug(s"Received message in gettingChecksum state: $msg. Ignore.")
   }

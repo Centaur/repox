@@ -19,7 +19,7 @@ class HeadAsyncHandler(val worker: ActorRef,val uri: String, val repo: Repo) ext
 
   override def onThrowable(t: Throwable): Unit = {
     if(!canceled) {
-      t.printStackTrace()
+      logger.debug("HeadAsyncHandler throws ", t)
       worker ! HeadWorker.Failed(t)
     }
   }
