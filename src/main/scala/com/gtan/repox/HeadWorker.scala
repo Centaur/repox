@@ -48,7 +48,7 @@ class HeadWorker(val repo: Repo,
           context.parent ! HeadMaster.NotFound(repo)
         case _ =>
           // server error? further feature may use failed time information
-          log.debug(s"HeadWorker ${repo.name} got undetermined result. $uri")
+          log.debug(s"HeadWorker ${repo.name} got undetermined result $statusCode for $uri.")
           context.parent ! HeadMaster.HeadTimeout(repo)
       }
       self ! PoisonPill

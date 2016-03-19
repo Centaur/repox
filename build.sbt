@@ -2,17 +2,17 @@ name := "repox"
 
 organization := "com.gtan"
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.11.8"
 
 val akkaVersion = "2.4.2"
 
 libraryDependencies ++= {
-  val undertowVer = "1.3.17.Final"
-  val logbackVer = "1.1.3"
+  val undertowVer = "1.3.18.Final"
+  val logbackVer = "1.1.6"
   val leveldbVer = "0.7"
   val leveldbjniVer = "1.8"
-  val scalaTestVer = "2.2.5"
-  val playJsonVer = "2.4.6"
+  val scalaTestVer = "2.2.6"
+  val playJsonVer = "2.5.0"
   val scalaLoggingVer = "3.1.0"
   val ningVer = "1.9.33"
   val protobufVer = "2.6.1"
@@ -52,9 +52,6 @@ libraryDependencies ++= {
     "org.scalatest" %% "scalatest" % scalaTestVer % "test"
   )
 }
-
-// to use repox, this option must be false, or when retry updateClassifiers, it will not download srcs
-//updateOptions := updateOptions.value.withCachedResolution(false)
 
 transitiveClassifiers := Seq("sources")
 
