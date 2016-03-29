@@ -44,9 +44,7 @@ libraryDependencies ++= {
       .exclude("org.scala-lang", "scala-library")
       .exclude("com.typesafe", "config"),
     ("com.typesafe.play" %% "play-json" % playJsonVer)
-      .exclude("org.scala-lang", "scala-library")
-      .exclude("com.fasterxml.jackson.core", "jackson-annotations"),
-    "com.fasterxml.jackson.core" % "jackson-annotations" % "2.5.4",
+      .exclude("org.scala-lang", "scala-library"),
     "com.google.protobuf" % "protobuf-java" % protobufVer,
     "com.google.guava" % "guava" % guavaVer,
     "org.scalatest" %% "scalatest" % scalaTestVer % "test"
