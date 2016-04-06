@@ -16,7 +16,7 @@ object ExpireRule {
 
   import DurationFormat._
 
-  lazy val nextId: AtomicLong = new AtomicLong(Config.expireRules.flatMap(_.id).max)
+  lazy val nextId: AtomicLong = new AtomicLong(Config.expireRules.flatMap(_.id).reduceOption[Long](math.max).getOrElse(1))
 
   implicit val format = Json.format[ExpireRule]
 }

@@ -28,7 +28,7 @@ case class Immediate404Rule(id: Option[Long], include: String, exclude: Option[S
 }
 
 object Immediate404Rule {
-  lazy val nextId: AtomicLong = new AtomicLong(Config.immediate404Rules.flatMap(_.id).max)
+  lazy val nextId: AtomicLong = new AtomicLong(Config.immediate404Rules.flatMap(_.id).reduceOption[Long](math.max).getOrElse(1))
   implicit val format = Json.format[Immediate404Rule]
 }
 

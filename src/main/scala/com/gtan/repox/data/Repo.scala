@@ -18,7 +18,7 @@ case class Repo(id: Option[Long], name: String, base: String, priority: Int, get
 }
 
 object Repo {
-  lazy val nextId: AtomicLong = new AtomicLong(Config.repos.flatMap(_.id).max)
+  lazy val nextId: AtomicLong = new AtomicLong(Config.repos.flatMap(_.id).reduceOption[Long](math.max).getOrElse(1))
 
   implicit val format = Json.format[Repo]
 }

@@ -16,7 +16,7 @@ case class ProxyServer(id: Option[Long], name: String, protocol: JProxyServer.Pr
 }
 
 object ProxyServer {
-  lazy val nextId: AtomicLong = new AtomicLong(Config.proxies.flatMap(_.id).max)
+  lazy val nextId: AtomicLong = new AtomicLong(Config.proxies.flatMap(_.id).reduceOption[Long](math.max).getOrElse(1))
 
   implicit val protocolFormat = new Format[JProxyServer.Protocol] {
     override def reads(json: JsValue):JsResult[JProxyServer.Protocol] = json match {

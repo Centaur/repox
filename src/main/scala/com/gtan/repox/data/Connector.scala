@@ -46,7 +46,7 @@ case class Connector(id: Option[Long],
 }
 
 object Connector {
-  lazy val nextId: AtomicLong = new AtomicLong(Config.connectors.flatMap(_.id).max)
+  lazy val nextId: AtomicLong = new AtomicLong(Config.connectors.flatMap(_.id).reduceOption[Long](math.max).getOrElse(1L))
 
   import DurationFormat._
 
