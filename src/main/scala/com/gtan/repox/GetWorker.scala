@@ -80,7 +80,7 @@ class GetWorker(val upstream: Repo,
 
   override def receive = {
     case AsyncHandlerThrows(t) =>
-      log.debug(s"AsyncHandler throws -- ${t.getMessage}")
+      log.debug(s"AsyncHandler throws -- ${t.getStackTrace.mkString("\n")}")
       tempFilePath match {
         case None =>
           context.parent ! Failed(t)
