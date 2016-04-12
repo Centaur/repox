@@ -101,15 +101,16 @@ class GetWorker(val upstream: Repo,
 
     case ReceiveTimeout | LanternGiveup =>
       log.debug("GetWorker timeout (or lantern giveup).")
-      handler.cancel(deleteTempFile = false)
-      self ! PoisonPill
       if (acceptByteRange || tempFilePath.isDefined) {
+        handler.cancel(deleteTempFile = false)
         context.parent ! Resume(upstream,
                                  tempFilePath.fold(handler.tempFile.getAbsolutePath)(identity),
                                  tempFilePath.fold(contentLength)(_ => totalLength))
       } else {
+        handler.cancel(deleteTempFile = true)
         context.parent ! Failed(new RuntimeException("Chosen worker timeout or lantern giveup"))
       }
+      self ! PoisonPill
 
     case PartialDataReceived(length) =>
       downloaded += length

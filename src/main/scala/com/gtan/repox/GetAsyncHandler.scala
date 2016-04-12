@@ -108,11 +108,11 @@ class GetAsyncHandler(val uri: String,
   }
 
   def cleanup(deleteTempFile: Boolean = true): Unit = {
-    logger.debug(s"Cleaning up ${tempFile.toPath.toString}")
     if (tempFileOs != null) {
       tempFileOs.close()
     }
     if (tempFile != null && deleteTempFile) {
+      logger.debug(s"Cleaning up ${tempFile.toPath.toString}")
       tempFile.delete()
     }
   }
