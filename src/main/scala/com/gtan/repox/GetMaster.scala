@@ -5,7 +5,6 @@ import java.nio.file.StandardCopyOption._
 import java.nio.file.{Files, Path}
 
 import akka.actor._
-import com.google.common.hash.Hashing
 import com.gtan.repox.GetWorker.{Cleanup, PeerChosen}
 import com.gtan.repox.Head404Cache.{NotFound, Query}
 import com.gtan.repox.data.Repo
@@ -170,9 +169,10 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
 
   def gettingChecksum: Receive = {
     case GetWorker.Completed(path, repo) =>
-      val computed = com.google.common.io.Files.hash(downloadedTempFilePath.toFile, Hashing.sha1()).toString
-      val downloaded = scala.io.Source.fromFile(path.toFile).mkString
-      val checksumSuccess: Boolean = computed == downloaded
+      import better.files._
+      val computed = downloadedTempFilePath.toFile.toScala.checksum("sha1")
+      val downloaded = path.toFile.toScala.contentAsString
+      val checksumSuccess: Boolean = computed.equalsIgnoreCase(downloaded)
       if (checksumSuccess || candidateRepos.flatten.size == 1) {
         Files.createDirectories(resolvedPath.getParent)
         log.info(s"GetWorker ${sender().path.name} completed $uri. Checksum ${if (checksumSuccess) "success" else "failed"}")
