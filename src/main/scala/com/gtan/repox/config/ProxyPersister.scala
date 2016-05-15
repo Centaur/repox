@@ -2,9 +2,15 @@ package com.gtan.repox.config
 
 import com.gtan.repox.SerializationSupport
 import com.gtan.repox.data.{Connector, ProxyServer, Repo}
-import play.api.libs.json.{JsValue, Json}
+import io.circe.Decoder.Result
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.parser._
+import io.circe.syntax._
 
 object ProxyPersister extends SerializationSupport {
+
+  import com.gtan.repox.CirceCodecs.{protocolDecoder, protocolEncoder}
 
   case class NewOrUpdateProxy(proxy: ProxyServer) extends ConfigCmd {
     override def transform(old: Config) = {
@@ -24,7 +30,6 @@ object ProxyPersister extends SerializationSupport {
     }
   }
 
-  implicit val newOrUpdateProxyformat = Json.format[NewOrUpdateProxy]
 
   case class EnableProxy(id: Long) extends ConfigCmd {
     override def transform(old: Config) = {
@@ -34,8 +39,6 @@ object ProxyPersister extends SerializationSupport {
       })
     }
   }
-
-  implicit val enableProxyFormat = Json.format[EnableProxy]
 
   case class DisableProxy(id: Long) extends ConfigCmd {
     override def transform(old: Config) = {
@@ -48,8 +51,6 @@ object ProxyPersister extends SerializationSupport {
     }
   }
 
-  implicit val disableProxyFormat = Json.format[DisableProxy]
-
   case class DeleteProxy(id: Long) extends ConfigCmd {
     override def transform(old: Config) = {
       old.copy(
@@ -59,24 +60,23 @@ object ProxyPersister extends SerializationSupport {
     }
   }
 
-  implicit val deleteProxyFormat = Json.format[DeleteProxy]
-
   val NewOrUpdateProxyClass = classOf[NewOrUpdateProxy].getName
   val EnableProxyClass = classOf[EnableProxy].getName
   val DisableProxyClass = classOf[DisableProxy].getName
   val DeleteProxyClass = classOf[DeleteProxy].getName
 
-  override val reader: (JsValue) => PartialFunction[String, Jsonable] = payload => {
+
+  override val reader: Json => PartialFunction[String, Result[Jsonable]] = payload => {
     case NewOrUpdateProxyClass => payload.as[NewOrUpdateProxy]
     case DisableProxyClass => payload.as[DisableProxy]
     case EnableProxyClass => payload.as[EnableProxy]
     case DeleteProxyClass => payload.as[DeleteProxy]
   }
 
-  override val writer: PartialFunction[Jsonable, JsValue] = {
-    case o: NewOrUpdateProxy => Json.toJson(o)
-    case o: DisableProxy => Json.toJson(o)
-    case o: EnableProxy => Json.toJson(o)
-    case o: DeleteProxy => Json.toJson(o)
+  override val writer: PartialFunction[Jsonable, Json] = {
+    case o: NewOrUpdateProxy => o.asJson
+    case o: DisableProxy => o.asJson
+    case o: EnableProxy => o.asJson
+    case o: DeleteProxy => o.asJson
   }
 }

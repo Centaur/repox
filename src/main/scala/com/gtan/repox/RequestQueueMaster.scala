@@ -3,10 +3,9 @@ package com.gtan.repox
 import java.nio.file.Paths
 
 import akka.actor._
-import com.gtan.repox.config.{ConfigFormats, Config}
+import com.gtan.repox.config.Config
 import io.undertow.Handlers
 import io.undertow.server.handlers.resource.{FileResourceManager, ResourceManager}
-import play.api.libs.json.Json
 
 import scala.util.Random
 
@@ -30,7 +29,7 @@ object RequestQueueMaster {
 
 }
 
-class RequestQueueMaster extends Actor with Stash with ActorLogging with ConfigFormats {
+class RequestQueueMaster extends Actor with Stash with ActorLogging {
 
   import RequestQueueMaster._
 

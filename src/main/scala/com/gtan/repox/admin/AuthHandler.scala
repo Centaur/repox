@@ -10,19 +10,23 @@ import com.gtan.repox.config._
 import com.typesafe.scalalogging.LazyLogging
 import io.undertow.io.Receiver.{ErrorCallback, FullStringCallback}
 import io.undertow.server.HttpServerExchange
-import io.undertow.server.handlers.{CookieImpl, Cookie}
+import io.undertow.server.handlers.{Cookie, CookieImpl}
 import io.undertow.util._
-import play.api.libs.json.Json
 import akka.pattern.ask
+
 import concurrent.duration._
 import scala.language.postfixOps
-import scala.util.{Failure, Success}
 import concurrent.ExecutionContext.Implicits.global
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.parser._
+import io.circe.syntax._
 
-object AuthHandler extends RestHandler with LazyLogging with ConfigFormats {
+object AuthHandler extends RestHandler with LazyLogging {
 
   import WebConfigHandler._
   import ParameterPersister._
+  import com.gtan.repox.CirceCodecs._
 
   implicit val timeout = akka.util.Timeout(1 second)
 
@@ -54,7 +58,7 @@ object AuthHandler extends RestHandler with LazyLogging with ConfigFormats {
         exchange.setStatusCode(StatusCodes.OK)
         exchange.getResponseHeaders.add(Headers.CONTENT_TYPE, "application/force-download")
         exchange.getResponseHeaders.add(Headers.CONTENT_DISPOSITION, """attachment; filename="repox.config.json""")
-        exchange.getResponseSender.send(Json.toJson(Config.get.copy(password = "not exported")).toString)
+        exchange.getResponseSender.send(Config.get.copy(password = "not exported").asJson.noSpaces)
     }
     val needAuth: PartialFunction[(HttpString, String), Unit] = {
       case _ if !authenticated(exchange) =>
@@ -75,8 +79,9 @@ object AuthHandler extends RestHandler with LazyLogging with ConfigFormats {
           exchange.getRequestReceiver.receiveFullString(
             new FullStringCallback {
               override def handle(exchange: HttpServerExchange, message: String): Unit = {
-                val uploaded = Json.parse(message).as[Config]
-                setConfigAndRespond(exchange, Repox.configPersister ? ImportConfig(uploaded))
+                decode[Config](message).fold(
+                  throw _, config => setConfigAndRespond (exchange, Repox.configPersister ? ImportConfig (config) )
+                )
               }
             }, new ErrorCallback {
               override def error(exchange: HttpServerExchange, e: IOException): Unit = {
@@ -90,8 +95,9 @@ object AuthHandler extends RestHandler with LazyLogging with ConfigFormats {
         }
       case (Methods.PUT, "password") =>
         val v = exchange.getQueryParameters.get("v").getFirst
-        val json = Json.parse(v)
-        val (p1, p2) = ((json \ "p1").as[String], (json \ "p2").as[String])
+        val json = parse(v).getOrElse(Json.Null).hcursor
+        for{p1 <- json.downField("p1").as[String]
+            p2 <- json.downField("p2").as[String]}
         if (p1 == p2) {
           setConfigAndRespond(exchange, Repox.configPersister ? ModifyPassword(p1))
         }

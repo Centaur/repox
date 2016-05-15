@@ -3,16 +3,21 @@ package com.gtan.repox.config
 import java.nio.file.Paths
 
 import akka.agent.Agent
+import com.gtan.repox.CirceCodecs
 import com.gtan.repox.data._
 import com.ning.http.client.{ProxyServer => JProxyServer}
 import com.typesafe.scalalogging.LazyLogging
-import play.api.libs.json.Json
+import io.circe.Decoder.Result
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.Properties.userHome
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.parser._
+import io.circe.syntax._
 
 case class Config(proxies: Seq[ProxyServer],
                   repos: IndexedSeq[Repo],
@@ -26,7 +31,8 @@ case class Config(proxies: Seq[ProxyServer],
                   password: String,
                   extraResources: Seq[String]) extends Jsonable
 
-object Config extends LazyLogging with ConfigFormats {
+object Config extends LazyLogging {
+  import CirceCodecs._
 
   val defaultProxies = List(
     ProxyServer(id = Some(1), name = "Lantern", protocol = JProxyServer.Protocol.HTTP, host = "localhost", port = 8787)

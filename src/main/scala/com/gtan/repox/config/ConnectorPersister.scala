@@ -3,10 +3,15 @@ package com.gtan.repox.config
 import com.gtan.repox.SerializationSupport
 import com.gtan.repox.admin.{ConnectorVO, RepoVO}
 import com.gtan.repox.data.{Connector, Repo}
-import play.api.libs.json.{JsValue, Json}
+import io.circe.Decoder.Result
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.parser._
+import io.circe.syntax._
+
 
 object ConnectorPersister extends SerializationSupport {
-
+  import com.gtan.repox.CirceCodecs.{durationDecoder, durationEncoder, protocolDecoder, protocolEncoder, connectorUsageDecoder, connectorUsageEncoder}
   case class NewConnector(vo: ConnectorVO) extends ConfigCmd {
     override def transform(old: Config) = {
       val oldConnectors = old.connectors
@@ -20,9 +25,6 @@ object ConnectorPersister extends SerializationSupport {
       }
     }
   }
-
-  implicit val NewConnectorFormat = Json.format[NewConnector]
-
 
   case class UpdateConnector(vo: ConnectorVO) extends ConfigCmd {
     override def transform(old: Config) = {
@@ -45,8 +47,6 @@ object ConnectorPersister extends SerializationSupport {
     }
   }
 
-  implicit val updateConnectorFormat = Json.format[UpdateConnector]
-
   case class DeleteConnector(id: Long) extends ConfigCmd {
     override def transform(old: Config) = {
       val oldConnectors = old.connectors
@@ -58,20 +58,20 @@ object ConnectorPersister extends SerializationSupport {
     }
   }
 
-  implicit val DeleteConnectorFormat = Json.format[DeleteConnector]
-
   val NewConnectorClass = classOf[NewConnector].getName
   val UpdateConnectorClass = classOf[UpdateConnector].getName
   val DeleteConnectorClass = classOf[DeleteConnector].getName
 
-  override val reader: (JsValue) => PartialFunction[String, Jsonable] = payload => {
+  override val reader: Json => PartialFunction[String, Result[Jsonable]] = payload => {
     case NewConnectorClass => payload.as[NewConnector]
     case UpdateConnectorClass => payload.as[UpdateConnector]
     case DeleteConnectorClass => payload.as[DeleteConnector]
   }
-  override val writer: PartialFunction[Jsonable, JsValue] = {
-    case o: NewConnector => Json.toJson(o)
-    case o: UpdateConnector => Json.toJson(o)
-    case o: DeleteConnector => Json.toJson(o)
+
+  import io.circe.syntax._
+  override val writer: PartialFunction[Jsonable, Json] = {
+    case o: NewConnector => o.asJson
+    case o: UpdateConnector => o.asJson
+    case o: DeleteConnector => o.asJson
   }
 }

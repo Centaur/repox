@@ -1,17 +1,22 @@
 package com.gtan.repox
 
+import java.time.Instant
+
 import akka.actor.{ActorLogging, Cancellable, Props}
-import akka.persistence.SnapshotSelectionCriteria.Latest
 import akka.persistence._
-import com.gtan.repox.config.{Evt, Config, Jsonable}
-import org.joda.time.DateTime
-import play.api.libs.json.{JsValue, Json}
+import com.gtan.repox.config.{Evt, Jsonable}
+import io.circe.Decoder.Result
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.syntax._
+
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
 
 object ExpirationManager extends SerializationSupport {
+  import CirceCodecs._
 
   case class CreateExpiration(uri: String, duration: Duration)
 
@@ -21,36 +26,33 @@ object ExpirationManager extends SerializationSupport {
 
   case class ExpirationPerformed(uri: String) extends Jsonable with Evt
 
-  case class Expiration(uri: String, timestamp: DateTime) extends Jsonable with Evt
+  case class Expiration(uri: String, timestamp: Instant) extends Jsonable with Evt
 
   case class ExpirationSeq(expirations: Seq[Expiration]) extends Jsonable with Evt
 
-  implicit val expirationFormat = Json.format[Expiration]
-  implicit val expirationPerformedFormat = Json.format[ExpirationPerformed]
-  implicit val expirationSeqFormat = Json.format[ExpirationSeq]
 
   val ExpirationClass = classOf[Expiration].getName
   val ExpirationPerformedClass = classOf[ExpirationPerformed].getName
   val ExpirationSeqClass = classOf[ExpirationSeq].getName
 
-  override val reader: JsValue => PartialFunction[String, Jsonable] = payload => {
+  override val reader: Json => PartialFunction[String, Result[Jsonable]] = payload => {
     case ExpirationClass => payload.as[Expiration]
     case ExpirationPerformedClass => payload.as[ExpirationPerformed]
     case ExpirationSeqClass => payload.as[ExpirationSeq]
   }
 
-  override val writer: PartialFunction[Jsonable, JsValue] = {
-    case o: Expiration => Json.toJson(o)
-    case o: ExpirationPerformed => Json.toJson(o)
-    case o: ExpirationSeq => Json.toJson(o)
+  override val writer: PartialFunction[Jsonable, Json] = {
+    case o: Expiration => o.asJson
+    case o: ExpirationPerformed => o.asJson
+    case o: ExpirationSeq => o.asJson
   }
 }
 
 
 /**
- * This actor always recover the latest snapshot so that performed or canceled expirations will not be seen in the future.
- * To exam the detailed history, use another persistence query to recovery all events.
- */
+  * This actor always recover the latest snapshot so that performed or canceled expirations will not be seen in the future.
+  * To exam the detailed history, use another persistence query to recovery all events.
+  */
 class ExpirationManager extends PersistentActor with ActorLogging {
 
   import com.gtan.repox.ExpirationManager._
@@ -66,13 +68,13 @@ class ExpirationManager extends PersistentActor with ActorLogging {
   var unperformed: ExpirationSeq = ExpirationSeq(Vector.empty)
 
   def scheduleFileDelete(expiration: Expiration): Unit = {
-    if (expiration.timestamp.isAfterNow) {
-      val delay: Long = expiration.timestamp.getMillis - DateTime.now().getMillis
+    if (expiration.timestamp.isAfter(Instant.now)) {
+      val delay: Long = expiration.timestamp.toEpochMilli - Instant.now.toEpochMilli
       log.debug(s"Schedule expiration for ${expiration.uri} at ${expiration.timestamp} in $delay ms")
       val cancellable = Repox.system.scheduler.scheduleOnce(
-                                                             delay.millis,
-                                                             self,
-                                                             PerformExpiration(expiration.uri))
+        delay.millis,
+        self,
+        PerformExpiration(expiration.uri))
       scheduledExpirations = scheduledExpirations.updated(expiration, cancellable)
     } else {
       log.debug(s"${expiration.uri} expired, trigger FileDelete now.")
@@ -98,7 +100,7 @@ class ExpirationManager extends PersistentActor with ActorLogging {
       cancelExpirations(pattern)
     case SnapshotOffer(metadata, saved) =>
       this.unperformed = saved.asInstanceOf[ExpirationSeq]
-      for(expiration <- unperformed.expirations) {
+      for (expiration <- unperformed.expirations) {
         scheduleFileDelete(expiration)
       }
   }
@@ -106,7 +108,7 @@ class ExpirationManager extends PersistentActor with ActorLogging {
   override def receiveCommand: Receive = {
     case CreateExpiration(uri, duration) =>
       if (!scheduledExpirations.exists(_._1.uri == uri)) {
-        val timestamp = DateTime.now().plusMillis(duration.toMillis.toInt)
+        val timestamp = Instant.now.plusMillis(duration.toMillis)
         val expiration = Expiration(uri, timestamp)
         persist(expiration) { _ => }
         unperformed = unperformed.copy(expirations = unperformed.expirations :+ expiration)

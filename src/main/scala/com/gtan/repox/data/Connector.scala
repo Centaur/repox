@@ -5,7 +5,6 @@ import java.util.concurrent.atomic.AtomicLong
 import com.gtan.repox.config.Config
 import com.ning.http.client.Realm.{AuthScheme, RealmBuilder}
 import com.ning.http.client.{AsyncHttpClientConfig, AsyncHttpClient}
-import play.api.libs.json.Json
 
 import scala.concurrent.duration.Duration
 import com.ning.http.client.{Realm => JRealm}
@@ -47,9 +46,4 @@ case class Connector(id: Option[Long],
 
 object Connector {
   lazy val nextId: AtomicLong = new AtomicLong(Config.connectors.flatMap(_.id).reduceOption[Long](math.max).getOrElse(1L))
-
-  import DurationFormat._
-
-  implicit val realmFormat = Json.format[Realm]
-  implicit val format = Json.format[Connector]
 }

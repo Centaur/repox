@@ -2,15 +2,19 @@ package com.gtan.repox.config
 
 import java.nio.file.Paths
 
-import akka.actor.{Status, ActorLogging, ActorRef}
+import akka.actor.{ActorLogging, ActorRef, Status}
 import akka.persistence._
 import com.gtan.repox.config.ConfigPersister.SaveSnapshot
-import com.gtan.repox.{SerializationSupport, Repox, RequestQueueMaster}
+import com.gtan.repox.{Repox, RequestQueueMaster, SerializationSupport}
 import com.ning.http.client.{AsyncHttpClient, ProxyServer => JProxyServer}
+import io.circe.Decoder.Result
 import io.undertow.Handlers
 import io.undertow.server.handlers.resource.{FileResourceManager, ResourceManager}
 import io.undertow.util.StatusCodes
-import play.api.libs.json.{Json, JsValue}
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.parser._
+import io.circe.syntax._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -25,9 +29,6 @@ case class ImportConfig(uploaded: Config) extends ConfigCmd {
   override def transform(old: Config): Config = uploaded.copy(password = old.password)
 }
 
-object ImportConfig {
-  implicit val formats = Json.format[ImportConfig]
-}
 
 // Everything can be command or Jsonable, but only Evt will be persisted.
 trait Evt
@@ -37,20 +38,21 @@ case class ConfigChanged(config: Config, configCmd: Jsonable) extends Evt
 case object UseDefault extends Evt
 
 object ConfigPersister extends SerializationSupport {
+  import com.gtan.repox.CirceCodecs._
 
   case object SaveSnapshot
 
   val ConfigClass = classOf[Config].getName
   val ImportConfigClass = classOf[ImportConfig].getName
 
-  override val reader: (JsValue) => PartialFunction[String, Jsonable] = payload => {
+  override val reader: Json => PartialFunction[String, Result[Jsonable]] = payload => {
     case ConfigClass => payload.as[Config]
     case ImportConfigClass => payload.as[ImportConfig]
   }
 
-  override val writer: PartialFunction[Jsonable, JsValue] = {
-    case o: Config => Json.toJson(o)
-    case o: ImportConfig => Json.toJson(o)
+  override val writer: PartialFunction[Jsonable, Json] = {
+    case o: Config => o.asJson
+    case o: ImportConfig => o.asJson
   }
 }
 

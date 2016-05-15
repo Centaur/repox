@@ -4,7 +4,6 @@ import java.net.URL
 import java.util.concurrent.atomic.AtomicLong
 
 import com.gtan.repox.config.Config
-import play.api.libs.json.Json
 
 /**
  * Created by IntelliJ IDEA.
@@ -19,7 +18,5 @@ case class Repo(id: Option[Long], name: String, base: String, priority: Int, get
 
 object Repo {
   lazy val nextId: AtomicLong = new AtomicLong(Config.repos.flatMap(_.id).reduceOption[Long](math.max).getOrElse(1))
-
-  implicit val format = Json.format[Repo]
 }
 

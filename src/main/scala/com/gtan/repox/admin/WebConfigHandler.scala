@@ -4,22 +4,33 @@ import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
 import io.undertow.server.HttpServerExchange
-import io.undertow.util.{Headers, StatusCodes}
-import play.api.libs.json.Format
+import io.undertow.util.{Headers, HttpString, StatusCodes}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.parser._
+import io.circe.syntax._
 
 
 object WebConfigHandler {
   def handle(httpServerExchange: HttpServerExchange) = {
     implicit val exchange = httpServerExchange
     val (method, uriUnprefixed) = (
-      httpServerExchange.getRequestMethod,
-      httpServerExchange.getRequestURI.drop("/admin/".length))
-    restHandlers.map(_.route).reduce(_ orElse _).apply(method -> uriUnprefixed)
+      exchange.getRequestMethod,
+      exchange.getRequestURI.drop("/admin/".length))
+    try {
+      restHandlers.map(_.route).reduce(_ orElse _).apply(method -> uriUnprefixed)
+    } catch {
+      case e: Throwable =>
+        exchange.setStatusCode(400)
+        exchange.getResponseHeaders.add(Headers.CONTENT_TYPE, "text/plain")
+        exchange.getResponseSender.send(e.getMessage)
+        exchange.endExchange()
+    }
   }
 
   val restHandlers: Seq[RestHandler] = List(
@@ -45,12 +56,12 @@ object WebConfigHandler {
 
   def isStaticRequest(target: String) = Set(".html", ".css", ".js", ".json", ".ico", ".ttf", ".map", "woff", "woff2", ".svg", "otf", "png", "jpg", "gif").exists(target.endsWith)
 
-  def respondJson[T: Format](exchange: HttpServerExchange, data: T): Unit = {
+  def respondJson[T: Encoder](exchange: HttpServerExchange, data: T): Unit = {
     exchange.setStatusCode(StatusCodes.OK)
     val respondHeaders = exchange.getResponseHeaders
     respondHeaders.put(Headers.CONTENT_TYPE, "application/json")
-    val json = implicitly[Format[T]].writes(data)
-    exchange.getResponseChannel.writeFinal(ByteBuffer.wrap(json.toString().getBytes(Charset.forName("UTF-8"))))
+    val json = data.asJson
+    exchange.getResponseChannel.writeFinal(ByteBuffer.wrap(json.noSpaces.getBytes(Charset.forName("UTF-8"))))
     exchange.endExchange()
   }
 
