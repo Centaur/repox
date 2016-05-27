@@ -1,3 +1,4 @@
+:exclamation: 2016年5月27日，Repox 公服出口带宽升至2M
 :exclamation: Repox 公服正式迁移至阿里云, 名称由 "广谈公服" 改为 "社区公服". 正在募捐, [查看详情](http://centaur.github.io/repox/)
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Centaur/repox?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)

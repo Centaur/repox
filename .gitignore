@@ -4,6 +4,7 @@ build/
 *.iml
 *.log
 *.swp
+.DS_Store
 
 target/
 bower_components/
