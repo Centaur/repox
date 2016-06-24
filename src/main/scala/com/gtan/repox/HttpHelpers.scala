@@ -42,7 +42,6 @@ trait HttpHelpers { self: LazyLogging =>
     for ((k, v) <- headers)
       target.putAll(new HttpString(k), v)
     exchange.getResponseChannel // just to avoid mysterious setting Content-length to 0 in endExchange, ugly
-    exchange.setStatusCode(200)
     exchange.endExchange()
   }
 
