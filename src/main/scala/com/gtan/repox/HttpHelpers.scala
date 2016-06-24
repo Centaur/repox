@@ -37,7 +37,7 @@ trait HttpHelpers { self: LazyLogging =>
   }
 
   def respondHead(exchange: HttpServerExchange, headers: ResponseHeaders): Unit = {
-    exchange.setStatusCode(StatusCodes.NO_CONTENT)
+    exchange.setStatusCode(200)
     val target = exchange.getResponseHeaders
     for ((k, v) <- headers)
       target.putAll(new HttpString(k), v)
@@ -48,7 +48,7 @@ trait HttpHelpers { self: LazyLogging =>
   def immediateHead(resourceManager: ResourceManager, exchange: HttpServerExchange): Unit = {
     val uri = exchange.getRequestURI
     val resource = resourceManager.getResource(uri)
-    exchange.setStatusCode(StatusCodes.NO_CONTENT)
+    exchange.setStatusCode(200)
     val headers = exchange.getResponseHeaders
     headers.put(Headers.CONTENT_LENGTH, resource.getContentLength)
       .put(Headers.SERVER, "repox")
