@@ -1,13 +1,10 @@
 package com.gtan.repox
 
 import java.net.URLEncoder
-import java.nio.charset.Charset
-import java.nio.file.Path
 import java.nio.file.StandardCopyOption._
+import java.nio.file.{Files, Path}
 
 import akka.actor._
-import com.google.common.base.Charsets
-import com.google.common.hash.Hashing
 import com.gtan.repox.GetWorker.{Cleanup, PeerChosen}
 import com.gtan.repox.Head404Cache.{NotFound, Query}
 import com.gtan.repox.data.Repo
@@ -41,8 +38,8 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
   var downloadedTempFilePath: Path = _
 
   var workerChosen = false
-  var chosenWorker: ActorRef = null
-  var chosenRepo: Repo = null
+  var chosenWorker: ActorRef = _
+  var chosenRepo: Repo = _
   var childFailCount = 0
   var candidateRepos = Repox.orderByPriority(
                                               if (Repox.isIvyUri(uri))
@@ -136,18 +133,18 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
         for(child <- children) {
           child ! PoisonPill
         }
-        if (!uri.endsWith(".sha1")) {
+        if (uri.endsWith(".sha1")) {
+          log.debug(s"A standalone .sha1 request, stop trying to retrieve its checksum. $uri")
+          resolvedPath.getParent.toFile.mkdirs()
+          java.nio.file.Files.move(path, resolvedPath, REPLACE_EXISTING, ATOMIC_MOVE)
+          context.parent ! GetQueueWorker.Completed(path, repo, checksumSuccess = true)
+          self ! PoisonPill
+        } else {
           downloadedTempFilePath = path
           chosenRepo = repo
           chosenWorker = startAWorker(repo, uri + ".sha1")
           children = chosenWorker :: Nil
           context become gettingChecksum
-        } else {
-          log.debug(s"A standalone .sha1 request, stop trying to retrieve its checksum.")
-          resolvedPath.getParent.toFile.mkdirs()
-          java.nio.file.Files.move(path, resolvedPath, REPLACE_EXISTING, ATOMIC_MOVE)
-          context.parent ! GetQueueWorker.Completed(path, repo, checksumSuccess = true)
-          self ! PoisonPill
         }
       } else {
         sender ! Cleanup
@@ -171,22 +168,24 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
 
   def gettingChecksum: Receive = {
     case GetWorker.Completed(path, repo) =>
-      val computed = com.google.common.io.Files.hash(downloadedTempFilePath.toFile, Hashing.sha1()).toString
-      val downloaded = scala.io.Source.fromFile(path.toFile).mkString
-      val checksumSuccess: Boolean = computed == downloaded
-      if(checksumSuccess || candidateRepos.flatten.size == 1) {
-        resolvedPath.getParent.toFile.mkdirs()
-        log.info(s"GetWorker ${sender().path.name} completed $uri. Checksum ${if(checksumSuccess)  "success" else "failed"}")
-        java.nio.file.Files.move(downloadedTempFilePath, resolvedPath, REPLACE_EXISTING, ATOMIC_MOVE)
-        java.nio.file.Files.move(path, resolvedChecksumPath, REPLACE_EXISTING, ATOMIC_MOVE)
+      import better.files._
+      val computed = downloadedTempFilePath.toFile.toScala.checksum("sha1")
+      val downloaded = path.toFile.toScala.contentAsString
+      val checksumSuccess: Boolean = computed.equalsIgnoreCase(downloaded)
+      if (checksumSuccess || candidateRepos.flatten.size == 1) {
+        Files.createDirectories(resolvedPath.getParent)
+        log.info(s"GetWorker ${sender().path.name} completed $uri. Checksum ${if (checksumSuccess) "success" else "failed"}")
+        Files.move(downloadedTempFilePath, resolvedPath, REPLACE_EXISTING, ATOMIC_MOVE)
+        Files.move(path, resolvedChecksumPath, REPLACE_EXISTING, ATOMIC_MOVE)
         context.parent ! GetQueueWorker.Completed(path, repo, checksumSuccess)
         children.foreach(child => child ! Cleanup)
         self ! PoisonPill
       } else {
+        log.info(s"Checksum failed for $uri. Try other upstreams.")
         Repox.head404Cache ! NotFound(uri, repo)
         Repox.head404Cache ! NotFound(uri + ".sha1", repo)
-        downloadedTempFilePath.toFile.delete()
-        path.toFile.delete()
+        Files.deleteIfExists(downloadedTempFilePath)
+        Files.deleteIfExists(path)
         reset()
       }
     case GetWorker.Failed(t) =>
@@ -217,6 +216,8 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
     workerChosen = false
     for (child <- children) child ! PoisonPill
     askHead404Cache()
+    if (downloadedTempFilePath != null)
+      Files.deleteIfExists(downloadedTempFilePath)
     context become waitFor404Cache
   }
 }

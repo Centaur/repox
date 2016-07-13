@@ -1,20 +1,14 @@
 package com.gtan.repox.admin
 
 import java.nio.ByteBuffer
+import java.nio.charset.Charset
 
-import com.google.common.base.Charsets
-import com.gtan.repox.Repox
-import com.gtan.repox.config.Config
-import io.undertow.Handlers
-import io.undertow.server.handlers.resource.ClassPathResourceManager
-import io.undertow.server.{HttpHandler, HttpServerExchange}
-import io.undertow.util.{Headers, Methods, StatusCodes}
+import io.undertow.server.HttpServerExchange
+import io.undertow.util.{Headers, StatusCodes}
 import play.api.libs.json.Format
 
-import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
@@ -56,7 +50,7 @@ object WebConfigHandler {
     val respondHeaders = exchange.getResponseHeaders
     respondHeaders.put(Headers.CONTENT_TYPE, "application/json")
     val json = implicitly[Format[T]].writes(data)
-    exchange.getResponseChannel.writeFinal(ByteBuffer.wrap(json.toString().getBytes(Charsets.UTF_8)))
+    exchange.getResponseChannel.writeFinal(ByteBuffer.wrap(json.toString().getBytes(Charset.forName("UTF-8"))))
     exchange.endExchange()
   }
 

@@ -78,7 +78,10 @@ object Repox extends LazyLogging with HttpHelpers {
 
   def isIvyUri(uri: String) = uri.matches( """/[^/]+?\.[^/]+?/.+""")
 
-  def resolveToPaths(uri: String) = (Config.storagePath.resolve(uri.tail), Config.storagePath.resolve(uri.tail + ".sha1"))
+  def resolveToPaths(uri: String) = {
+    val removeSlashesAtBeginning: String = uri.dropWhile('/' ==)
+    (Config.storagePath.resolve(removeSlashesAtBeginning), Config.storagePath.resolve(removeSlashesAtBeginning + ".sha1"))
+  }
 
   def orderByPriority(candidates: Seq[Repo]): Seq[Seq[Repo]] =
     candidates.groupBy(_.priority).toSeq.sortBy(_._1).map(_._2)

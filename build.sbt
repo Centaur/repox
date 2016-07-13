@@ -4,19 +4,19 @@ organization := "com.gtan"
 
 scalaVersion := "2.11.8"
 
-val akkaVersion = "2.4.3"
+val akkaVersion = "2.4.8"
 
 libraryDependencies ++= {
-  val undertowVer = "1.3.18.Final"
-  val logbackVer = "1.1.6"
+  val undertowVer = "1.3.23.Final"
+  val logbackVer = "1.1.7"
   val leveldbVer = "0.7"
   val leveldbjniVer = "1.8"
   val scalaTestVer = "2.2.6"
-  val playJsonVer = "2.5.0"
-  val scalaLoggingVer = "3.1.0"
+  val playJsonVer = "2.5.4"
+  val scalaLoggingVer = "3.4.0"
   val ningVer = "1.9.33"
   val protobufVer = "2.6.1"
-  val guavaVer = "19.0"
+  val betterFilesVer = "2.16.0"
   Seq(
     "io.undertow" % "undertow-core" % undertowVer,
     ("com.ning" % "async-http-client" % ningVer)
@@ -42,11 +42,14 @@ libraryDependencies ++= {
     "org.fusesource.leveldbjni" % "leveldbjni-all" % leveldbjniVer,
     ("com.typesafe.akka" %% "akka-persistence-query-experimental" % akkaVersion)
       .exclude("org.scala-lang", "scala-library")
-      .exclude("com.typesafe", "config"),
+      .exclude("com.typesafe", "config")
+      .exclude("com.typesafe", "ssl-config-akka_2.11")
+      .exclude("com.typesafe.akka", "akka-testkit_2.11")
+      .exclude("com.typesafe.akka", "akka-stream-testkit_2.11"),
     ("com.typesafe.play" %% "play-json" % playJsonVer)
       .exclude("org.scala-lang", "scala-library"),
     "com.google.protobuf" % "protobuf-java" % protobufVer,
-    "com.google.guava" % "guava" % guavaVer,
+    "com.github.pathikrit" %% "better-files" % betterFilesVer,
     "org.scalatest" %% "scalatest" % scalaTestVer % "test"
   )
 }

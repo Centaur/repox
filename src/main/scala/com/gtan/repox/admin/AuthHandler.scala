@@ -4,7 +4,6 @@ import java.io.IOException
 import java.nio.charset.Charset
 import java.util.Date
 
-import com.google.common.base.Charsets
 import com.gtan.repox.Repox
 import com.gtan.repox.config.ConfigPersister.SaveSnapshot
 import com.gtan.repox.config._
@@ -72,7 +71,7 @@ object AuthHandler extends RestHandler with LazyLogging with ConfigFormats {
         val contentType = exchange.getRequestHeaders.getFirst(Headers.CONTENT_TYPE)
         if (contentType.startsWith("application/json")) {
           val splitted = contentType.split("charset=")
-          val charset = if(splitted.length == 2) Charset.forName(splitted(1)) else Charsets.UTF_8
+          val charset = if(splitted.length == 2) Charset.forName(splitted(1)) else Charset.forName("UTF-8")
           exchange.getRequestReceiver.receiveFullString(
             new FullStringCallback {
               override def handle(exchange: HttpServerExchange, message: String): Unit = {
