@@ -170,7 +170,7 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
     case GetWorker.Completed(path, repo) =>
       import better.files._
       val computed = downloadedTempFilePath.toFile.toScala.checksum("sha1")
-      val downloaded = path.toFile.toScala.contentAsString
+      val downloaded = path.toFile.toScala.contentAsString.trim
       val checksumSuccess: Boolean = computed.equalsIgnoreCase(downloaded)
       if (checksumSuccess || candidateRepos.flatten.size == 1) {
         Files.createDirectories(resolvedPath.getParent)
