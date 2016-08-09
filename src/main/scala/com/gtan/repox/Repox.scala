@@ -103,6 +103,7 @@ object Repox extends LazyLogging with HttpHelpers {
   val IvyFormat = """/(.+?)/(.+?)/(scala_(.+?)/)?(sbt_(.+?)/)?(.+?)/(.+?)s/((.+?)(-(.+))?\.(.+))""".r
   val MetaDataFormat = """.+/maven-metadata\.xml""".r
   val MD5Request = """.+\.md5""".r
+  val SHA1Request = """(.+)\.sha1""".r
   val supportedScalaVersion = List("2.10", "2.11")
   val supportedSbtVersion = List("0.13")
 
@@ -115,6 +116,8 @@ object Repox extends LazyLogging with HttpHelpers {
   def peer(uri: String): Try[List[String]] = uri match {
     case MD5Request() =>
       Failure(new RuntimeException("We do not support md5 checksum now."))
+    case SHA1Request(prefix) =>
+      peer(prefix).map(_.map(_ + ".sha1"))
     case MetaDataFormat() => Success(Nil)
     case MavenFormat(groupIds, _, artifactId, _, scalaVersion, _, sbtVersion, version, fileName, _, classifier, ext) =>
       val organization = groupIds.split("/").filter(_.nonEmpty).mkString(".")
