@@ -1,3 +1,5 @@
+:exclamation: 强烈建议使用 [Coursier](https://github.com/alexarchambault/coursier) 代替 sbt 内置功能解决依赖。支持并发下载，显示实时下载进度/速度，**Repox 完美支持**
+
 :exclamation: 2016年5月27日，Repox 公服出口带宽升至2M
 
 :exclamation: Repox 公服正式迁移至阿里云, 名称由 "广谈公服" 改为 "社区公服". 正在募捐, [查看详情](http://centaur.github.io/repox/)
