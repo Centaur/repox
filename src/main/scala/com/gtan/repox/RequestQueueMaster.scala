@@ -92,22 +92,29 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging with ConfigF
               worker ! PoisonPill
             }
           } else {
-            Repox.downloaded(uri) match {
-              case Some(Tuple2(resourceManager, resourceHandler)) =>
-                Repox.immediateFile(resourceHandler, exchange)
-                for (worker <- children.get(queue)) {
-                  worker ! PoisonPill
-                }
-              case None =>
-                children.get(queue) match {
-                  case None =>
-                    val childName = s"GetQueueWorker_${Repox.nextId}"
-                    val worker = context.actorOf(Props(classOf[GetQueueWorker], uri), name = childName)
-                    children = children.updated(Queue('get, uri), worker)
-                    worker ! req
-                  case Some(worker) =>
-                    worker ! req
-                }
+            for (peers <- Repox.peer(uri)) {
+              peers.find(p => Repox.downloaded(p).isDefined) match {
+                case Some(peer) =>
+                  Repox.smart404(exchange)
+                case None =>
+                  Repox.downloaded(uri) match {
+                    case Some(Tuple2(resourceManager, resourceHandler)) =>
+                      Repox.immediateFile(resourceHandler, exchange)
+                      for (worker <- children.get(queue)) {
+                        worker ! PoisonPill
+                      }
+                    case None =>
+                      children.get(queue) match {
+                        case None =>
+                          val childName = s"GetQueueWorker_${Repox.nextId}"
+                          val worker = context.actorOf(Props(classOf[GetQueueWorker], uri), name = childName)
+                          children = children.updated(Queue('get, uri), worker)
+                          worker ! req
+                        case Some(worker) =>
+                          worker ! req
+                      }
+                  }
+              }
             }
           }
         case Some(deleter) =>
