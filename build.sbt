@@ -4,18 +4,18 @@ organization := "com.gtan"
 
 scalaVersion := "2.11.8"
 
-val akkaVersion = "2.4.10"
+val akkaVersion = "2.4.12"
 
 libraryDependencies ++= {
-  val undertowVer = "1.4.2.Final"
+  val undertowVer = "1.4.4.Final"
   val logbackVer = "1.1.7"
   val leveldbVer = "0.7"
   val leveldbjniVer = "1.8"
-  val scalaTestVer = "2.2.6"
-  val playJsonVer = "2.5.5"
-  val scalaLoggingVer = "3.4.0"
-  val ningVer = "1.9.33"
-  val protobufVer = "2.6.1"
+  val scalaTestVer = "3.0.0"
+  val playJsonVer = "2.5.9"
+  val scalaLoggingVer = "3.5.0"
+  val ningVer = "1.9.40"
+  val protobufVer = "3.1.0"
   val betterFilesVer = "2.16.0"
   Seq(
     "io.undertow" % "undertow-core" % undertowVer,

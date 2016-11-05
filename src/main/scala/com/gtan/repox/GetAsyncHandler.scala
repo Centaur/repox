@@ -2,6 +2,8 @@ package com.gtan.repox
 
 import java.io.{File, FileOutputStream}
 import java.nio.channels.FileChannel
+import java.nio.file.{Files, Paths}
+import java.security.SecureRandom
 
 import akka.actor.{ActorRef, PoisonPill}
 import com.gtan.repox.GetWorker._
@@ -118,11 +120,17 @@ class GetAsyncHandler(val uri: String,
 
   private def newOrReuseTempFile(): File = tempFilePath match {
     case None =>
-      val parent = Config.storagePath.resolve("temp").toFile
-      parent.mkdirs()
-      File.createTempFile("repox", ".tmp", parent)
+      val tempRoot = Config.storagePath.resolve("temp")
+      val slot = GetAsyncHandler.secureRandom.nextInt(Int.MaxValue).formatted("%04d").take(4)
+      val distributedPath = tempRoot.resolve(slot)
+      Files.createDirectories(distributedPath)
+      Files.createTempFile(distributedPath, "repox", ".tmp").toFile
     case Some(file) =>
       new File(file)
   }
 
+}
+
+object GetAsyncHandler {
+  val secureRandom = new SecureRandom()
 }
