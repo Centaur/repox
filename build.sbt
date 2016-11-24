@@ -4,15 +4,15 @@ organization := "com.gtan"
 
 scalaVersion := "2.11.8"
 
-val akkaVersion = "2.4.12"
+val akkaVersion = "2.4.14"
 
 libraryDependencies ++= {
-  val undertowVer = "1.4.4.Final"
+  val undertowVer = "1.4.6.Final"
   val logbackVer = "1.1.7"
   val leveldbVer = "0.7"
   val leveldbjniVer = "1.8"
   val scalaTestVer = "3.0.0"
-  val playJsonVer = "2.5.9"
+  val playJsonVer = "2.5.10"
   val scalaLoggingVer = "3.5.0"
   val ningVer = "1.9.40"
   val protobufVer = "3.1.0"
@@ -76,7 +76,7 @@ assemblyMergeStrategy in assembly := {
     case Seq("jquery", "dist", "jquery.min.js") => MergeStrategy.deduplicate
     case Seq("semantic-ui", "dist", "semantic.min.css") => MergeStrategy.deduplicate
     case Seq("semantic-ui", "dist", "semantic.min.js") => MergeStrategy.deduplicate
-    case Seq("semantic-ui", "dist", "themes", "default", "assets", all@_*) => MergeStrategy.deduplicate
+    case Seq("semantic-ui", "dist", "themes", "default", "assets", _*) => MergeStrategy.deduplicate
     case _ => MergeStrategy.discard
   }
   case x =>
