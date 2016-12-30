@@ -1,10 +1,11 @@
 package com.gtan.repox
 
+import java.time.temporal.ChronoUnit
+import java.time.{LocalDateTime, ZoneId}
+
 import akka.actor.{ActorLogging, Cancellable, Props}
-import akka.persistence.SnapshotSelectionCriteria.Latest
 import akka.persistence._
-import com.gtan.repox.config.{Evt, Config, Jsonable}
-import org.joda.time.DateTime
+import com.gtan.repox.config.{Evt, Jsonable}
 import play.api.libs.json.{JsValue, Json}
 
 import scala.concurrent.duration._
@@ -21,7 +22,7 @@ object ExpirationManager extends SerializationSupport {
 
   case class ExpirationPerformed(uri: String) extends Jsonable with Evt
 
-  case class Expiration(uri: String, timestamp: DateTime) extends Jsonable with Evt
+  case class Expiration(uri: String, timestamp: LocalDateTime) extends Jsonable with Evt
 
   case class ExpirationSeq(expirations: Seq[Expiration]) extends Jsonable with Evt
 
@@ -66,8 +67,9 @@ class ExpirationManager extends PersistentActor with ActorLogging {
   var unperformed: ExpirationSeq = ExpirationSeq(Vector.empty)
 
   def scheduleFileDelete(expiration: Expiration): Unit = {
-    if (expiration.timestamp.isAfterNow) {
-      val delay: Long = expiration.timestamp.getMillis - DateTime.now().getMillis
+    if (expiration.timestamp.isAfter(LocalDateTime.now)) {
+      val delay: Long = expiration.timestamp.atZone(ZoneId.systemDefault).toInstant.toEpochMilli -
+                        LocalDateTime.now.atZone(ZoneId.systemDefault).toInstant.toEpochMilli
       log.debug(s"Schedule expiration for ${expiration.uri} at ${expiration.timestamp} in $delay ms")
       val cancellable = Repox.system.scheduler.scheduleOnce(
                                                              delay.millis,
@@ -106,7 +108,7 @@ class ExpirationManager extends PersistentActor with ActorLogging {
   override def receiveCommand: Receive = {
     case CreateExpiration(uri, duration) =>
       if (!scheduledExpirations.exists(_._1.uri == uri)) {
-        val timestamp = DateTime.now().plusMillis(duration.toMillis.toInt)
+        val timestamp = LocalDateTime.now().plus(duration.toMillis.toInt, ChronoUnit.MILLIS)
         val expiration = Expiration(uri, timestamp)
         persist(expiration) { _ => }
         unperformed = unperformed.copy(expirations = unperformed.expirations :+ expiration)

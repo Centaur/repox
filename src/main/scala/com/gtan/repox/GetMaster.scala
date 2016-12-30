@@ -1,8 +1,11 @@
 package com.gtan.repox
 
+import java.io.FileInputStream
 import java.net.URLEncoder
 import java.nio.file.StandardCopyOption._
 import java.nio.file.{Files, Path}
+import java.security.MessageDigest
+import javax.xml.bind.annotation.adapters.HexBinaryAdapter
 
 import akka.actor._
 import com.gtan.repox.GetWorker.{Cleanup, PeerChosen}
@@ -17,15 +20,28 @@ object GetMaster extends LazyLogging {
   import scala.concurrent.duration._
 
   implicit val timeout = new akka.util.Timeout(1 seconds)
+
+  def fileSha1Hex(path: Path): String = {
+    val sha1 = MessageDigest.getInstance("SHA-1")
+    val fis = new FileInputStream(path.toFile)
+    val buffer = new Array[Byte](8192)
+    var len = fis.read(buffer)
+    while (len != -1) {
+      sha1.update(buffer, 0, len)
+      len = fis.read(buffer)
+    }
+    new HexBinaryAdapter().marshal(sha1.digest)
+  }
 }
 
 /**
- * 负责某一个 uri 的 Get, 可能由多个 upstream Repo 生成多个 GetWorker
+  * 负责某一个 uri 的 Get, 可能由多个 upstream Repo 生成多个 GetWorker
   *
-  * @param uri 要获取的 uri
- * @param from 可能的 Repo
- */
+  * @param uri  要获取的 uri
+  * @param from 可能的 Repo
+  */
 class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLogging {
+
   import scala.concurrent.duration._
 
   override val supervisorStrategy =
@@ -42,10 +58,10 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
   var chosenRepo: Repo = _
   var childFailCount = 0
   var candidateRepos = Repox.orderByPriority(
-                                              if (Repox.isIvyUri(uri))
-                                                from.filterNot(_.maven)
-                                              else from
-                                            )
+    if (Repox.isIvyUri(uri))
+      from.filterNot(_.maven)
+    else from
+  )
 
   var children: Seq[ActorRef] = _
 
@@ -130,7 +146,7 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
       }
     case GetWorker.Completed(path, repo) =>
       if (sender() == chosenWorker) {
-        for(child <- children) {
+        for (child <- children) {
           child ! PoisonPill
         }
         if (uri.endsWith(".sha1")) {
@@ -150,7 +166,7 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
         sender ! Cleanup
       }
     case GetWorker.HeadersGot(headers) =>
-      if(children.contains(sender())) {
+      if (children.contains(sender())) {
         if (!workerChosen) {
           log.debug(s"chose ${sender().path.name}, canceling others. ")
           for (others <- children.filterNot(_ == sender())) {
@@ -168,9 +184,8 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
 
   def gettingChecksum: Receive = {
     case GetWorker.Completed(path, repo) =>
-      import better.files._
-      val computed = downloadedTempFilePath.toFile.toScala.checksum("sha1")
-      val downloaded = path.toFile.toScala.contentAsString.trim
+      val computed = GetMaster.fileSha1Hex(downloadedTempFilePath)
+      val downloaded = scala.io.Source.fromFile(path.toFile, "UTF-8").mkString.trim
       val checksumSuccess: Boolean = computed.equalsIgnoreCase(downloaded)
       if (checksumSuccess || candidateRepos.flatten.size == 1) {
         Files.createDirectories(resolvedPath.getParent)
@@ -194,7 +209,7 @@ class GetMaster(val uri: String, val from: Seq[Repo]) extends Actor with ActorLo
       chosenWorker = startAWorker(chosenRepo, uri + ".sha1")
       children = chosenWorker :: Nil
     case GetWorker.UnsuccessResponseStatus(status) =>
-      if(status.getStatusCode != 404) {
+      if (status.getStatusCode != 404) {
         log.debug(s"GetWorker get UnsuccessResponseStatus in gettingChecksum state: $status. Restart.")
         sender ! PoisonPill
         chosenWorker = startAWorker(chosenRepo, uri + ".sha1")

@@ -2,21 +2,20 @@ name := "repox"
 
 organization := "com.gtan"
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.1"
 
-val akkaVersion = "2.4.14"
+val akkaVersion = "2.4.16"
 
 libraryDependencies ++= {
-  val undertowVer = "1.4.6.Final"
-  val logbackVer = "1.1.7"
+  val undertowVer = "1.4.8.Final"
+  val logbackVer = "1.1.8"
   val leveldbVer = "0.7"
   val leveldbjniVer = "1.8"
-  val scalaTestVer = "3.0.0"
-  val playJsonVer = "2.5.10"
+  val scalaTestVer = "3.0.1"
+  val playJsonVer = "2.6.0-M1"
   val scalaLoggingVer = "3.5.0"
   val ningVer = "1.9.40"
   val protobufVer = "3.1.0"
-  val betterFilesVer = "2.16.0"
   Seq(
     "io.undertow" % "undertow-core" % undertowVer,
     ("com.ning" % "async-http-client" % ningVer)
@@ -43,13 +42,12 @@ libraryDependencies ++= {
     ("com.typesafe.akka" %% "akka-persistence-query-experimental" % akkaVersion)
       .exclude("org.scala-lang", "scala-library")
       .exclude("com.typesafe", "config")
-      .exclude("com.typesafe", "ssl-config-akka_2.11")
-      .exclude("com.typesafe.akka", "akka-testkit_2.11")
-      .exclude("com.typesafe.akka", "akka-stream-testkit_2.11"),
+      .exclude("com.typesafe", "ssl-config-akka_2.12")
+      .exclude("com.typesafe.akka", "akka-testkit_2.12")
+      .exclude("com.typesafe.akka", "akka-stream-testkit_2.12"),
     ("com.typesafe.play" %% "play-json" % playJsonVer)
       .exclude("org.scala-lang", "scala-library"),
     "com.google.protobuf" % "protobuf-java" % protobufVer,
-    "com.github.pathikrit" %% "better-files" % betterFilesVer,
     "org.scalatest" %% "scalatest" % scalaTestVer % "test"
   )
 }

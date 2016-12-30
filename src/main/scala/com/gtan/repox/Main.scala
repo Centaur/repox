@@ -2,18 +2,16 @@ package com.gtan.repox
 
 
 import com.gtan.repox.admin.WebConfigHandler
-import io.undertow.{UndertowOptions, Undertow}
-import io.undertow.predicate.{Predicates, Predicate}
+import io.undertow.predicate.Predicates
 import io.undertow.server.handlers.{PredicateContextHandler, PredicateHandler}
-import io.undertow.server.{HttpServerExchange, HttpHandler}
+import io.undertow.server.{HttpHandler, HttpServerExchange}
+import io.undertow.{Undertow, UndertowOptions}
 import org.xnio.Options
 
 object Main {
   def httpHandlerBridge(realHandler: HttpServerExchange => Unit): HttpHandler = new HttpHandler() {
-    override def handleRequest(exchange: HttpServerExchange) = {
-      exchange.dispatch(scala.concurrent.ExecutionContext.Implicits.global, new Runnable {
-        override def run(): Unit = realHandler.apply(exchange)
-      })
+    override def handleRequest(exchange: HttpServerExchange): Unit = {
+      exchange.dispatch(scala.concurrent.ExecutionContext.Implicits.global.execute, () => realHandler.apply(exchange))
     }
   }
 
