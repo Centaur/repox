@@ -4,7 +4,7 @@ organization := "com.gtan"
 
 scalaVersion := "2.12.1"
 
-val akkaVersion = "2.4.16"
+val akkaVersion = "2.4.17"
 
 libraryDependencies ++= {
   val undertowVer = "1.4.8.Final"
