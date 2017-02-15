@@ -25,7 +25,7 @@ object Repox extends LazyLogging with HttpHelpers {
 
   import concurrent.ExecutionContext.Implicits.global
 
-  val system=ActorSystem("repox")
+  val system = ActorSystem("repox")
 
   private[this] val idGenerator = new AtomicLong(1)
 
@@ -99,13 +99,13 @@ object Repox extends LazyLogging with HttpHelpers {
     }
   }
 
-  val MavenFormat = """(/.+)+/((.+?)(_(.+?)(_(.+))?)?)/(.+?)/(\3-\8(-(.+?))?\.(.+))""".r
-  val IvyFormat = """/(.+?)/(.+?)/(scala_(.+?)/)?(sbt_(.+?)/)?(.+?)/(.+?)s/((.+?)(-(.+))?\.(.+))""".r
-  val MetaDataFormat = """.+/maven-metadata\.xml""".r
-  val MD5Request = """.+\.md5""".r
-  val SHA1Request = """(.+)\.sha1""".r
-  val supportedScalaVersion = List("2.10", "2.11")
-  val supportedSbtVersion = List("0.13")
+  private[repox] val MavenFormat = """(/.+)+/((.+?)(_(.+?)(_(.+))?)?)/(.+?)/(\3-\8(-(.+?))?\.(.+))""".r
+  private[repox] val IvyFormat = """/(.+?)/(.+?)/(scala_(.+?)/)?(sbt_(.+?)/)?(.+?)/(.+?)s/((.+?)(-(.+))?\.(.+))""".r
+  private[this] val MetaDataFormat = """.+/maven-metadata\.xml""".r
+  private[this] val MD5Request = """.+\.md5""".r
+  private[this] val SHA1Request = """(.+)\.sha1""".r
+  private[this] val supportedScalaVersion = List("2.10", "2.11", "2.12")
+  private[this] val supportedSbtVersion = List("0.13")
 
   /**
     * transform between uri formats
@@ -120,29 +120,35 @@ object Repox extends LazyLogging with HttpHelpers {
       peer(prefix).map(_.map(_ + ".sha1"))
     case MetaDataFormat() => Success(Nil)
     case MavenFormat(groupIds, _, artifactId, _, scalaVersion, _, sbtVersion, version, fileName, _, classifier, ext) =>
-      val organization = groupIds.split("/").filter(_.nonEmpty).mkString(".")
-      val typ = ext match {
-        case "pom" => "ivy"
-        case _ => "jar"
+      if (version.equalsIgnoreCase("unspecified")) {
+        Failure(new RuntimeException("Gradle Version-Unspecified Request"))
+      } else {
+        val organization = groupIds.split("/").filter(_.nonEmpty).mkString(".")
+        val typ = ext match {
+          case "pom" => "ivy"
+          case _ => "jar"
+        }
+        val peerFile = ext match {
+          case "pom" => "ivy.xml"
+          case _ => s"$artifactId.$ext"
+        }
+        val result = if (scalaVersion != null && sbtVersion != null) {
+          s"/$organization/$artifactId/scala_$scalaVersion/sbt_$sbtVersion/$version/${typ}s/$peerFile" :: Nil
+        } else if (scalaVersion == null && sbtVersion == null) {
+          val guessedMavenArtifacts = for (scala <- supportedScalaVersion; sbt <- supportedSbtVersion) yield
+            s"$groupIds/${artifactId}_${scala}_$sbt/$version/$fileName"
+          s"/$organization/$artifactId/$version/${typ}s/$peerFile" :: guessedMavenArtifacts
+        } else List(s"/$organization/$artifactId/$version/${typ}s/$peerFile")
+        Success(result)
       }
-      val peerFile = ext match {
-        case "pom" => "ivy.xml"
-        case _ => s"$artifactId.$ext"
-      }
-      val result = if (scalaVersion != null && sbtVersion != null) {
-        s"/$organization/$artifactId/scala_$scalaVersion/sbt_$sbtVersion/$version/${typ}s/$peerFile" :: Nil
-      } else if (scalaVersion == null && sbtVersion == null) {
-        val guessedMavenArtifacts = for (scala <- supportedScalaVersion; sbt <- supportedSbtVersion) yield
-          s"$groupIds/${artifactId}_${scala}_$sbt/$version/$fileName"
-        s"/$organization/$artifactId/$version/${typ}s/$peerFile" :: guessedMavenArtifacts
-      } else List(s"/$organization/$artifactId/$version/${typ}s/$peerFile")
-      Success(result)
-    case IvyFormat(organization, module, _, scalaVersion, _, sbtVersion, revision, typ, fileName, artifact, _, classifier, ext) =>
+    case IvyFormat(organization, module, _, scalaVersion, _, sbtVersion, revision, typ, fileName, artifact, _, classifier, ext)
+    =>
       val result = if (scalaVersion == null && sbtVersion == null) {
         for (scala <- supportedScalaVersion; sbt <- supportedSbtVersion) yield
           s"/${organization.split("\\.").mkString("/")}/${module}_${scala}_$sbt/$revision/$module-$revision.$ext"
       } else Nil
       Success(result)
+
     case _ =>
       Failure(new RuntimeException("Invalid Request"))
   }
