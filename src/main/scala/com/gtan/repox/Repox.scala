@@ -122,6 +122,8 @@ object Repox extends LazyLogging with HttpHelpers {
     case MavenFormat(groupIds, _, artifactId, _, scalaVersion, _, sbtVersion, version, fileName, _, classifier, ext) =>
       if (version.equalsIgnoreCase("unspecified")) {
         Failure(new RuntimeException("Gradle Version-Unspecified Request"))
+      } else if(version.toUpperCase.endsWith("SNAPSHOT")) {
+        Failure(new RuntimeException("SNAPSHOT Request"))
       } else {
         val organization = groupIds.split("/").filter(_.nonEmpty).mkString(".")
         val typ = ext match {

@@ -82,3 +82,5 @@ assemblyMergeStrategy in assembly := {
 }
 
 mainClass in assembly := Some("com.gtan.repox.Main")
+
+test in assembly := {}
