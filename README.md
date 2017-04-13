@@ -1,5 +1,3 @@
-:exclamation: 阿里云将于 2017年4月12日 13:10 为 Repox 公服服务器更换硬件，届时公服将有近20分钟停服。特此通知。 
-
 :exclamation: 第一个 2.12 版发布，assembly 包减小了近 5M（11.8%）
 
 :exclamation: 2016年5月27日，Repox 公服出口带宽升至2M
