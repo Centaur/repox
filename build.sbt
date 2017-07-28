@@ -2,7 +2,7 @@ name := "repox"
 
 organization := "com.gtan"
 
-scalaVersion := "2.12.1"
+scalaVersion := "2.12.3"
 
 val akkaVersion = "2.4.17"
 
