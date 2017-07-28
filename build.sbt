@@ -7,15 +7,15 @@ scalaVersion := "2.12.3"
 val akkaVersion = "2.4.17"
 
 libraryDependencies ++= {
-  val undertowVer = "1.4.8.Final"
-  val logbackVer = "1.1.8"
+  val undertowVer = "1.4.18.Final"
+  val logbackVer = "1.2.3"
   val leveldbVer = "0.7"
   val leveldbjniVer = "1.8"
-  val scalaTestVer = "3.0.1"
-  val playJsonVer = "2.6.0-M1"
+  val scalaTestVer = "3.0.3"
+  val playJsonVer = "2.6.2"
   val scalaLoggingVer = "3.5.0"
   val ningVer = "1.9.40"
-  val protobufVer = "3.1.0"
+  val protobufVer = "3.3.1"
   Seq(
     "io.undertow" % "undertow-core" % undertowVer,
     ("com.ning" % "async-http-client" % ningVer)
