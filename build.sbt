@@ -27,8 +27,7 @@ libraryDependencies ++= {
       .exclude("org.slf4j", "slf4j-api"),
     ("com.typesafe.akka" %% "akka-actor" % akkaVersion)
       .exclude("org.scala-lang", "scala-library")
-      .exclude("org.slf4j", "slf4j-api")
-      .exclude("com.typesafe", "config"),
+      .exclude("org.slf4j", "slf4j-api"),
     ("com.typesafe.akka" %% "akka-slf4j" % akkaVersion)
       .exclude("org.scala-lang", "scala-library")
       .exclude("org.slf4j", "slf4j-api"),
