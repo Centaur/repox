@@ -41,5 +41,11 @@ object New extends ConfigFormats {
         `Content-Type`(MediaType.fromKey("application" -> "force-download")),
         `Content-Disposition`("attachment", Map("filename" -> "repox.config.json"))
       )
+    case request if request.headers.get(headers.Cookie).exists(_.values.exists(cookie => cookie.name == AuthHandler.AUTH_KEY && cookie.content == "true")) =>
+      Forbidden()
+    case PUT -> Admin / "importConfig" =>
+      Forbidden() // not implemented
+    case PUT -> Admin / "password" =>
+      Forbidden() // not implemented
   }
 }

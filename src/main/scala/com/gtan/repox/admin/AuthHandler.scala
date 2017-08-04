@@ -73,11 +73,9 @@ object AuthHandler extends RestHandler with LazyLogging with ConfigFormats {
           val splitted = contentType.split("charset=")
           val charset = if(splitted.length == 2) Charset.forName(splitted(1)) else Charset.forName("UTF-8")
           exchange.getRequestReceiver.receiveFullString(
-            new FullStringCallback {
-              override def handle(exchange: HttpServerExchange, message: String): Unit = {
-                val uploaded = Json.parse(message).as[Config]
-                setConfigAndRespond(exchange, Repox.configPersister ? ImportConfig(uploaded))
-              }
+            (exchange: HttpServerExchange, message: String) => {
+              val uploaded = Json.parse(message).as[Config]
+              setConfigAndRespond(exchange, Repox.configPersister ? ImportConfig(uploaded))
             }, new ErrorCallback {
               override def error(exchange: HttpServerExchange, e: IOException): Unit = {
                 exchange.setStatusCode(StatusCodes.INTERNAL_SERVER_ERROR)

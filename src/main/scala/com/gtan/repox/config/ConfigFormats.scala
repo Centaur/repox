@@ -76,8 +76,8 @@ trait ConfigFormats extends DurationFormat{
         "connector" -> connector.asJson
       ).asJson
     }.toSeq: _*))
-  implicit val connectorUsageDecoder: Decoder[Map[Repo, Connector]] = Decoder.decodeString.emap(str =>
-    Either.catchNonFatal(io.circe.Json.fromString(str).asArray.get.map { value: io.circe.Json =>
+  implicit val connectorUsageDecoder: Decoder[Map[Repo, Connector]] = Decoder.decodeJson.emap(json =>
+    Either.catchNonFatal(json.asArray.get.map { value: io.circe.Json =>
         val obj = value.asObject.get
         (obj("repo").get.as[Repo].right.get,
           obj("connector").get.as[Connector].right.get)
@@ -90,8 +90,8 @@ trait ConfigFormats extends DurationFormat{
         "proxy" -> proxy.asJson
       ).asJson
     }.toSeq: _*))
-  implicit val proxyUsageDecoder: Decoder[Map[Connector, ProxyServer]] = Decoder.decodeString.emap(str =>
-    Either.catchNonFatal(io.circe.Json.fromString(str).asArray.get.map { value: io.circe.Json =>
+  implicit val proxyUsageDecoder: Decoder[Map[Connector, ProxyServer]] = Decoder.decodeJson.emap(json =>
+    Either.catchNonFatal(json.asArray.get.map { value: io.circe.Json =>
         val obj = value.asObject.get
         (obj("connector").get.as[Connector].right.get,
           obj("proxy").get.as[ProxyServer].right.get)
