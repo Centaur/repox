@@ -7,7 +7,7 @@ import play.api.libs.json.{JsValue, Json}
 import scala.concurrent.duration.Duration
 
 
-object ParameterPersister extends SerializationSupport {
+object ParameterPersister extends SerializationSupport with DurationFormat {
 
   case class SetHeadTimeout(m: Duration) extends ConfigCmd {
     override def transform(old: Config) = {
@@ -15,8 +15,6 @@ object ParameterPersister extends SerializationSupport {
     }
   }
 
-
-  import DurationFormat._
   implicit val SetHeadTimeoutFormat = Json.format[SetHeadTimeout]
 
   case class SetHeadRetryTimes(m: Int) extends ConfigCmd {

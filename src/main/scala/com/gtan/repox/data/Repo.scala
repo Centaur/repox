@@ -4,6 +4,7 @@ import java.net.URL
 import java.util.concurrent.atomic.AtomicLong
 
 import com.gtan.repox.config.Config
+import io.circe.generic.JsonCodec
 import play.api.libs.json.Json
 
 /**

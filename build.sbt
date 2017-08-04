@@ -16,7 +16,13 @@ libraryDependencies ++= {
   val scalaLoggingVer = "3.5.0"
   val ningVer = "1.9.40"
   val protobufVer = "3.3.1"
+  val Http4sVersion = "0.15.16"
+  val circeVersion = "0.8.0"
   Seq(
+    "org.http4s" %% "http4s-blaze-server" % Http4sVersion,
+    "org.http4s" %% "http4s-circe" % Http4sVersion,
+    "org.http4s" %% "http4s-dsl" % Http4sVersion,
+    "io.circe" %% "circe-generic" % circeVersion,
     "io.undertow" % "undertow-core" % undertowVer,
     ("com.ning" % "async-http-client" % ningVer)
       .exclude("org.slf4j", "slf4j-api"),
@@ -54,13 +60,13 @@ libraryDependencies ++= {
 transitiveClassifiers := Seq("sources")
 
 scalacOptions ++= Seq(
-                       "-feature",
-                       "-deprecation",
-                       "-language:implicitConversions",
-                       //  "-language:higherKinds",
-                       //  "-language:existentials",
-                       "-language:postfixOps"
-                     )
+  "-feature",
+  "-deprecation",
+  "-language:implicitConversions",
+  //  "-language:higherKinds",
+  //  "-language:existentials",
+  "-language:postfixOps"
+)
 
 fork := true
 

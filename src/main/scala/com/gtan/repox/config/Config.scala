@@ -6,6 +6,7 @@ import akka.agent.Agent
 import com.gtan.repox.data._
 import com.ning.http.client.{ProxyServer => JProxyServer}
 import com.typesafe.scalalogging.LazyLogging
+import io.circe.generic.JsonCodec
 import play.api.libs.json.Json
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -13,6 +14,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.Properties.userHome
+import io.circe.generic.auto._
 
 case class Config(proxies: Seq[ProxyServer],
                   repos: IndexedSeq[Repo],
