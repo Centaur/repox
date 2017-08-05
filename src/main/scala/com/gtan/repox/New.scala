@@ -1,5 +1,6 @@
 package com.gtan.repox
 
+import com.gtan.repox.Repox.requestQueueMaster
 import com.gtan.repox.admin.{AuthHandler, ConnectorVO, RepoVO, WebConfigHandler}
 import com.gtan.repox.config.ConnectorPersister.{DeleteConnector, NewConnector, UpdateConnector}
 import com.gtan.repox.config.ExpireRulePersister.{DeleteExpireRule, DisableExpireRule, EnableExpireRule, NewOrUpdateExpireRule}
@@ -9,9 +10,9 @@ import com.gtan.repox.config.ProxyPersister.{DeleteProxy, DisableProxy, EnablePr
 import com.gtan.repox.config.RepoPersister.{DeleteRepo, DisableRepo, EnableRepo, MoveDownRepo, MoveUpRepo, NewRepo, UpdateRepo}
 import com.gtan.repox.config.{Config, ConfigFormats, ImportConfig}
 import com.gtan.repox.data.{ExpireRule, Immediate404Rule, ProxyServer}
-import io.circe.{Decoder, Json}
 import io.circe.generic.auto._
 import io.circe.syntax._
+import io.circe.{Decoder, Json}
 import org.http4s._
 import org.http4s.circe._
 import org.http4s.dsl._
@@ -53,7 +54,7 @@ object New extends ConfigFormats {
 
   object QsParamVAsExpireRule extends QueryParamDecoderMatcher[ExpireRule]("v")
 
-  object QsParamVAsId extends QueryParamDecoderMatcher[Long]("v")
+  object QsParamVAsLong extends QueryParamDecoderMatcher[Long]("v")
 
   object QsParamVAsInt extends QueryParamDecoderMatcher[Int]("v")
 
@@ -120,12 +121,12 @@ object New extends ConfigFormats {
         "connectors" -> config.connectors.filterNot(_.name == "default").asJson
       ))
     case POST -> Admin / "upstream" :? QsParamVAsRepoVO(vo) => simpleCommand(NewRepo, vo)
-    case POST -> Admin / "upstream" / "up" :? QsParamVAsId(id) => simpleCommand(MoveUpRepo, id)
-    case POST -> Admin / "upstream" / "down" :? QsParamVAsId(id) => simpleCommand(MoveDownRepo, id)
+    case POST -> Admin / "upstream" / "up" :? QsParamVAsLong(id) => simpleCommand(MoveUpRepo, id)
+    case POST -> Admin / "upstream" / "down" :? QsParamVAsLong(id) => simpleCommand(MoveDownRepo, id)
     case PUT -> Admin / "upstream" :? QsParamVAsRepoVO(vo) => simpleCommand(UpdateRepo, vo)
-    case PUT -> Admin / "upstream" / "disable" :? QsParamVAsId(id) => simpleCommand(DisableRepo, id)
-    case PUT -> Admin / "upstream" / "enable" :? QsParamVAsId(id) => simpleCommand(EnableRepo, id)
-    case DELETE -> Admin / "upstream" :? QsParamVAsId(id) => simpleCommand(DeleteRepo, id)
+    case PUT -> Admin / "upstream" / "disable" :? QsParamVAsLong(id) => simpleCommand(DisableRepo, id)
+    case PUT -> Admin / "upstream" / "enable" :? QsParamVAsLong(id) => simpleCommand(EnableRepo, id)
+    case DELETE -> Admin / "upstream" :? QsParamVAsLong(id) => simpleCommand(DeleteRepo, id)
   }
 
   val connectorsService = HttpService {
@@ -137,31 +138,31 @@ object New extends ConfigFormats {
       ))
     case POST -> Admin / "connector" :? QsParamVAsConnectorVO(vo) => simpleCommand(NewConnector, vo)
     case PUT -> Admin / "connector" :? QsParamVAsConnectorVO(vo) => simpleCommand(UpdateConnector, vo)
-    case DELETE -> Admin / "connector" :? QsParamVAsId(id) => simpleCommand(DeleteConnector, id)
+    case DELETE -> Admin / "connector" :? QsParamVAsLong(id) => simpleCommand(DeleteConnector, id)
   }
 
   val proxiesService = HttpService {
     case GET -> Admin / "proxies" => Ok(Config.proxies.asJson)
     case (POST | PUT) -> Admin / "proxy" :? QsParamVAsProxyServer(proxy) => simpleCommand(NewOrUpdateProxy, proxy)
-    case PUT -> Admin / "proxy" / "enable" :? QsParamVAsId(id) => simpleCommand(EnableProxy, id)
-    case PUT -> Admin / "proxy" / "disable" :? QsParamVAsId(id) => simpleCommand(DisableProxy, id)
-    case DELETE -> Admin / "proxy" :? QsParamVAsId(id) => simpleCommand(DeleteProxy, id)
+    case PUT -> Admin / "proxy" / "enable" :? QsParamVAsLong(id) => simpleCommand(EnableProxy, id)
+    case PUT -> Admin / "proxy" / "disable" :? QsParamVAsLong(id) => simpleCommand(DisableProxy, id)
+    case DELETE -> Admin / "proxy" :? QsParamVAsLong(id) => simpleCommand(DeleteProxy, id)
   }
 
   val immediate404RulesService = HttpService {
     case GET -> Admin / "immediate404Rules" => Ok(Config.immediate404Rules.asJson)
     case (POST | PUT) -> Admin / "immediate404Rules" :? QsParamVAsImmediate404Rule(rule) => simpleCommand(NewOrUpdateImmediate404Rule, rule)
-    case PUT -> Admin / "immediate404Rules" / "enable" :? QsParamVAsId(id) => simpleCommand(EnableImmediate404Rule, id)
-    case PUT -> Admin / "immediate404Rules" / "disable" :? QsParamVAsId(id) => simpleCommand(DisableImmediate404Rule, id)
-    case DELETE -> Admin / "immediate404Rules" :? QsParamVAsId(id) => simpleCommand(DeleteImmediate404Rule, id)
+    case PUT -> Admin / "immediate404Rules" / "enable" :? QsParamVAsLong(id) => simpleCommand(EnableImmediate404Rule, id)
+    case PUT -> Admin / "immediate404Rules" / "disable" :? QsParamVAsLong(id) => simpleCommand(DisableImmediate404Rule, id)
+    case DELETE -> Admin / "immediate404Rules" :? QsParamVAsLong(id) => simpleCommand(DeleteImmediate404Rule, id)
   }
 
   val expireRulesService = HttpService {
     case GET -> Admin / "expireRules" => Ok(Config.expireRules.asJson)
     case (POST | PUT) -> Admin / "expireRules" :? QsParamVAsExpireRule(rule) => simpleCommand(NewOrUpdateExpireRule, rule)
-    case PUT -> Admin / "expireRules" / "enable" :? QsParamVAsId(id) => simpleCommand(EnableExpireRule, id)
-    case PUT -> Admin / "expireRules" / "disable" :? QsParamVAsId(id) => simpleCommand(DisableExpireRule, id)
-    case DELETE -> Admin / "expireRules" :? QsParamVAsId(id) => simpleCommand(DeleteExpireRule, id)
+    case PUT -> Admin / "expireRules" / "enable" :? QsParamVAsLong(id) => simpleCommand(EnableExpireRule, id)
+    case PUT -> Admin / "expireRules" / "disable" :? QsParamVAsLong(id) => simpleCommand(DisableExpireRule, id)
+    case DELETE -> Admin / "expireRules" :? QsParamVAsLong(id) => simpleCommand(DeleteExpireRule, id)
   }
 
   val parametersService = HttpService {
@@ -174,10 +175,27 @@ object New extends ConfigFormats {
   val resetService = HttpService {
     case POST -> Admin / "resetMainClient" => NoContent()
     case POST -> Admin / "resetProxyClients" => NoContent()
+    case _ -> "admin" /: _ => NotFound()
+  }
+
+
+  val repoxService = HttpService {
+    case GET -> Root => TemporaryRedirect(uri("/admin/index.html"))
+    case GET -> Root / "favicon.ico" => TemporaryRedirect(uri("/admin/favicon.ico"))
+    case request@HEAD -> u =>
+      Repox.peer(u.toString).fold(_ => NotFound(),
+        _ => (requestQueueMaster ? Requests.Head4s(request)).toTask.asInstanceOf[Task[Response]]
+      )
+    case request@GET -> u =>
+      Repox.peer(u.toString).fold(_ => NotFound(),
+        _ => for {
+          taskResponse <- (requestQueueMaster ? Requests.Get4s(request)).toTask
+          response <- taskResponse.asInstanceOf[Task[Response]]
+        } yield response)
     case _ => NotFound()
   }
 
-  val service = List(staticAssetService,
+  val service: HttpService = List(staticAssetService,
     authService,
     upstreamsService,
     connectorsService,
@@ -185,6 +203,7 @@ object New extends ConfigFormats {
     immediate404RulesService,
     expireRulesService,
     parametersService,
-    resetService
+    resetService,
+    repoxService,
   ).reduce(_ orElse _)
 }

@@ -1,6 +1,8 @@
 package com.gtan.repox
 
-import java.nio.file.Paths
+import java.io.File
+import java.net.URL
+import java.nio.file.{Files, Paths}
 import java.util.concurrent.atomic.AtomicLong
 
 import akka.actor.{ActorSystem, Props}
@@ -97,6 +99,9 @@ object Repox extends LazyLogging with HttpHelpers {
     resourceHandlers.get().find { case (resourceManager, handler) =>
       resourceManager.getResource(uri.tail) != null
     }
+  }
+  def downloaded4s(uri: String): Option[File] = {
+    Config.resourceBases.map(root => Paths.get(root).resolve(uri).toFile).find(_.exists)
   }
 
   private[repox] val MavenFormat = """(/.+)+/((.+?)(_(.+?)(_(.+))?)?)/(.+?)/(\3-\8(-(.+?))?\.(.+))""".r

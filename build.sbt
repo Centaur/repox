@@ -23,7 +23,6 @@ libraryDependencies ++= {
     "org.http4s" %% "http4s-circe" % Http4sVersion,
     "org.http4s" %% "http4s-dsl" % Http4sVersion,
     "io.circe" %% "circe-generic" % circeVersion,
-    "io.circe" %% "circe-optics" % circeVersion,
     "io.verizon.delorean" %% "core" % "1.2.40-scalaz-7.1",
     "io.undertow" % "undertow-core" % undertowVer,
     ("com.ning" % "async-http-client" % ningVer)

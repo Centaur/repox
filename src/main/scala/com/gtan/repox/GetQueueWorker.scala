@@ -11,8 +11,6 @@ import io.undertow.server.HttpServerExchange
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.util.Random
-import scala.util.Random
 
 object GetQueueWorker {
 
@@ -41,15 +39,28 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
           self ! msg
           context become working
       }
+    case msg@Requests.Get4s(request) =>
+      Repox.downloaded4s(uri) match {
+        case Some(file) =>
+          log.info(s"$uri downloaded. Serve immediately.")
+          Repox.immediateFile4s(sender, request, file)
+          suicide()
+        case None =>
+          log.info(s"$uri not downloaded. Downloading.")
+          context.actorOf(Props(classOf[GetMaster], uri, Config.enabledRepos), s"GetMaster_${Repox.nextId}")
+          self ! msg
+          context become working
+      }
   }
+
 
   var found = false
 
   var deleteFileAfterResponse = false
 
   def working: Receive = {
-    case Requests.Get(_) =>
-      stash()
+    case Requests.Get(_) => stash()
+    case Requests.Get4s(_) => stash()
     case result@Completed(path, repo, checksumSuccess) =>
       log.debug(s"GetQueueWorker completed $uri")
       found = true
@@ -79,6 +90,21 @@ class GetQueueWorker(val uri: String) extends Actor with Stash with ActorLogging
         log.debug(s"flushWaiting $exchange 404")
         Repox.respond404(exchange)
       }
+    case Requests.Get4s(request) =>
+      import org.http4s.dsl.{uri => _, _}
+      if (found) {
+        log.debug(s"flushWaiting $request 200. Sending file $uri")
+        Repox.sendFile4s(sender(), request, Config.storagePath)
+        if (deleteFileAfterResponse) {
+          context.actorOf(Props(classOf[FileDeleter], uri, 'GetQueueWorker))
+        } else Config.enabledExpireRules.find(rule => uri.matches(rule.pattern)).foreach { r =>
+          Repox.expirationPersister ! CreateExpiration(uri, r.duration)
+        }
+      } else {
+        log.debug(s"flushWaiting $request 404")
+        sender ! NotFound()
+      }
+
     case ReceiveTimeout =>
       suicide()
   }

@@ -5,11 +5,9 @@ import com.gtan.repox.RequestQueueMaster.KillMe
 import com.gtan.repox.config.Config
 import com.gtan.repox.data.Repo
 import io.undertow.server.HttpServerExchange
-import org.w3c.dom.html.HTMLScriptElement
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.util.Random
 
 object HeadQueueWorker {
 

@@ -1,14 +1,7 @@
 package com.gtan.repox
 
-import java.nio.file.Paths
-
 import akka.actor._
-import com.gtan.repox.config.{ConfigFormats, Config}
-import io.undertow.Handlers
-import io.undertow.server.handlers.resource.{FileResourceManager, ResourceManager}
-import play.api.libs.json.Json
-
-import scala.util.Random
+import com.gtan.repox.config.{Config, ConfigFormats}
 
 case class Queue(method: Symbol, uri: String)
 
@@ -121,6 +114,47 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging with ConfigF
           // file quarantined, 404
           Repox.respond404(exchange)
       }
+    case Requests.Get4s(request) =>
+      import org.http4s.dsl.{uri => _, _}
+      val uri = request.uri.toString
+      quarantined.get(uri) match {
+        case None =>
+          val queue = Queue('get, uri)
+          if (Config.immediate404Rules.filterNot(_.disabled).exists(_.matches(uri))) {
+            Repox.immediate4044s(sender, uri)
+            for (worker <- children.get(queue)) {
+              worker ! PoisonPill
+            }
+          } else {
+            for (peers <- Repox.peer(uri)) {
+              peers.find(p => Repox.downloaded4s(p).isDefined) match {
+                case Some(peer) =>
+                  Repox.smart4044s(sender, uri)
+                case None =>
+                  Repox.downloaded4s(uri) match {
+                    case Some(file) =>
+                      Repox.immediateFile4s(sender, request, file)
+                      for (worker <- children.get(queue)) {
+                        worker ! PoisonPill
+                      }
+                    case None =>
+                      children.get(queue) match {
+                        case None =>
+                          val childName = s"GetQueueWorker_${Repox.nextId}"
+                          val worker = context.actorOf(Props(classOf[GetQueueWorker], uri), name = childName)
+                          children = children.updated(Queue('get, uri), worker)
+                          worker ! Requests.Get4s(request)
+                        case Some(worker) =>
+                          worker ! Requests.Get4s(request)
+                      }
+                  }
+              }
+            }
+          }
+        case Some(deleter) =>
+          // file quarantined, 404
+          sender() ! NotFound()
+      }
     case req@Requests.Head(exchange) =>
       val uri = exchange.getRequestURI
       val queue = Queue('head, uri)
@@ -159,6 +193,49 @@ class RequestQueueMaster extends Actor with Stash with ActorLogging with ConfigF
                 case Some(deleter) =>
                   // file quarantined, 404
                   Repox.respond404(exchange)
+              }
+          }
+        }
+      }
+    case Requests.Head4s(request) =>
+      import org.http4s.dsl.{uri => _, _}
+      val uri = request.uri.toString()
+      val queue = Queue('head, uri)
+      if (Config.immediate404Rules.filterNot(_.disabled).exists(_.matches(uri))) {
+        Repox.immediate4044s(sender(), uri)
+        for (worker <- children.get(queue)) {
+          worker ! PoisonPill
+        }
+      } else {
+        for (peers <- Repox.peer(uri)) {
+          peers.find(p => Repox.downloaded4s(p).isDefined) match {
+            case Some(peer) =>
+              Repox.smart4044s(sender(), uri)
+            case _ =>
+              quarantined.get(uri) match {
+                case None =>
+                  Repox.downloaded4s(uri) match {
+                    case Some(file) =>
+                      Repox.immediateHead4s(sender(), file, request)
+                      for (worker <- children.get(queue)) {
+                        worker ! PoisonPill
+                      }
+                    case None =>
+                      children.get(queue) match {
+                        case None =>
+                          val workerActorName = s"HeadQueueWorker_${Repox.nextId}"
+                          val worker = context.actorOf(Props(classOf[HeadQueueWorker], uri), workerActorName)
+                          log.debug(s"create HeadQueueWorker $workerActorName")
+                          children = children.updated(queue, worker)
+                          worker ! Requests.Head4s(request)
+                        case Some(worker) =>
+                          log.debug(s"Enqueue to HeadQueueWorker ${worker.path.name} $uri")
+                          worker ! Requests.Head4s(request)
+                      }
+                  }
+                case Some(deleter) =>
+                  // file quarantined, 404
+                  sender() ! NotFound()
               }
           }
         }
