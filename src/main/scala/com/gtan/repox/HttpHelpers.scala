@@ -54,8 +54,8 @@ trait HttpHelpers {
 
   def sendFile4s(sender: ActorRef, request: org.http4s.Request, root: Path): Unit = {
     sender ! StaticFile.fromFile(root.resolve(request.uri.toString).toFile, Some(request))
-             .map(Task.now)
-             .fold(NotFound())(identity)
+      .map(Task.now)
+      .fold(NotFound())(identity)
   }
 
   def immediateFile(resourceHandler: ResourceHandler, exchange: HttpServerExchange): Unit = {
@@ -83,10 +83,10 @@ trait HttpHelpers {
     exchange.setStatusCode(200)
     val headers = exchange.getResponseHeaders
     headers.put(Headers.CONTENT_LENGTH, resource.getContentLength)
-    .put(Headers.SERVER, "repox")
-    .put(Headers.CONNECTION, Headers.KEEP_ALIVE.toString)
-    .put(Headers.CONTENT_TYPE, resource.getContentType(MimeMappings.DEFAULT))
-    .put(Headers.LAST_MODIFIED, resource.getLastModifiedString)
+      .put(Headers.SERVER, "repox")
+      .put(Headers.CONNECTION, Headers.KEEP_ALIVE.toString)
+      .put(Headers.CONTENT_TYPE, resource.getContentType(MimeMappings.DEFAULT))
+      .put(Headers.LAST_MODIFIED, resource.getLastModifiedString)
     exchange.getResponseChannel // just to avoid mysterious setting Content-length to 0 in endExchange, ugly
     exchange.endExchange()
     logger.debug(s"Immediate head $uri. ")
@@ -100,7 +100,7 @@ trait HttpHelpers {
       Header("Server", "repox"),
       Connection("keep-alive".ci),
       `Content-Type`(MediaType.forExtension(uri.drop(uri.lastIndexOf('.') + 1))
-                     .getOrElse(MediaType.`application/octet-stream`)),
+        .getOrElse(MediaType.`application/octet-stream`)),
       `Last-Modified`(Files.getLastModifiedTime(file.toPath).toInstant)
     )
     logger.debug(s"Immediate head $uri. ")

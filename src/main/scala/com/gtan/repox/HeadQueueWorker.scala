@@ -53,7 +53,7 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
       log.debug(s"Recevied Head request of ${exchange.getRequestURI} in WORKING state")
       assert(exchange.getRequestURI == uri)
       stash()
-    case result@FoundIn(repo, headers, exchange) =>
+    case FoundIn(repo, headers, exchange) =>
       found = true
       resultHeaders = headers
       Repox.respondHead(exchange, headers)
@@ -61,7 +61,7 @@ class HeadQueueWorker(val uri: String) extends Actor with Stash with ActorLoggin
       unstashAll()
       context.setReceiveTimeout(1 second)
       context become flushWaiting
-    case result@NotFound(exchange) =>
+    case NotFound(exchange) =>
       found = false
       Repox.respond404(exchange)
       log.info(s"Tried ${Config.headRetryTimes} times. Give up. Respond with 404. $uri")
