@@ -10,6 +10,7 @@ import com.gtan.repox.config.ProxyPersister.{DeleteProxy, DisableProxy, EnablePr
 import com.gtan.repox.config.RepoPersister.{DeleteRepo, DisableRepo, EnableRepo, MoveDownRepo, MoveUpRepo, NewRepo, UpdateRepo}
 import com.gtan.repox.config.{Config, ConfigFormats, ImportConfig}
 import com.gtan.repox.data.{ExpireRule, Immediate404Rule, ProxyServer}
+import fs2.{Task, Strategy}
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Json}
@@ -19,30 +20,27 @@ import org.http4s.dsl._
 import org.http4s.headers.{`Content-Disposition`, `Content-Type`}
 import org.http4s.server.syntax._
 
+import fs2.interop.cats._
+
 import scala.util.Try
-import scalaz.ValidationNel
-import scalaz.concurrent.Task
 
 
 object New extends ConfigFormats {
 
   import akka.pattern.ask
-  import delorean._
 
   import concurrent.ExecutionContext.Implicits.global
   import concurrent.duration._
 
   implicit val timeout = akka.util.Timeout(1 second)
+  implicit val strategy = Strategy.fromExecutionContext(global)
 
   val Admin: Path = Root / "admin"
 
   object QsParamV extends QueryParamDecoderMatcher[String]("v")
 
-  implicit def jsonQueryParamDecoder[T: Decoder] = new QueryParamDecoder[T] {
-    override def decode(value: QueryParameterValue): ValidationNel[ParseFailure, T] =
-      QueryParamDecoder.decodeBy[T, String](str => Json.fromString(str).as[T].right.get)
-      .decode(value)
-  }
+  implicit def jsonQueryParamDecoder[T: Decoder]: QueryParamDecoder[T] =
+    QueryParamDecoder[String].map(str => Json.fromString(str).as[T].right.get)
 
   object QsParamVAsRepoVO extends QueryParamDecoderMatcher[RepoVO]("v")
 
@@ -59,11 +57,10 @@ object New extends ConfigFormats {
   object QsParamVAsInt extends QueryParamDecoderMatcher[Int]("v")
 
   val staticAssetService = HttpService {
-    case request@GET -> "admin" /: suburi if WebConfigHandler.isStaticRequest(suburi.toString) =>
-      StaticFile.fromResource(suburi.toString, Some(request))
-      .map(Task.now)
-      .getOrElse(NotFound())
+    case request@GET -> "admin" /: suburi if WebConfigHandler.isStaticRequest(suburi.toString) => StaticFile.fromResource(suburi.toString, Some(request))
+      .getOrElseF(NotFound())
   }
+
   val authService = HttpService {
     case POST -> Admin / "login" :? QsParamV(pass) =>
       if (Config.password == pass) {
@@ -81,7 +78,7 @@ object New extends ConfigFormats {
         `Content-Disposition`("attachment", Map("filename" -> "repox.config.json"))
       )
     case request if !request.headers.get(headers.Cookie)
-                     .exists(_.values.exists(cookie => cookie.name == AuthHandler.AUTH_KEY && cookie.content == "true")) =>
+      .exists(_.values.exists(cookie => cookie.name == AuthHandler.AUTH_KEY && cookie.content == "true")) =>
       Forbidden()
     case request@PUT -> Admin / "importConfig" =>
       Try {
@@ -89,7 +86,7 @@ object New extends ConfigFormats {
         require(contentType.exists(_.mediaType == MediaType.`application/json`))
         for {
           uploaded <- request.as(jsonOf[Config])
-          _ <- (Repox.configPersister ? ImportConfig(uploaded)).toTask
+          _ <- Task.fromFuture(Repox.configPersister ? ImportConfig(uploaded))
           response <- NoContent()
         } yield response
       } getOrElse BadRequest()
@@ -99,7 +96,7 @@ object New extends ConfigFormats {
         val (Right(p1), Right(p2)) = (json.hcursor.get[String]("p1"), json.hcursor.get[String]("p2"))
         require(p1 == p2)
         for {
-          _ <- (Repox.configPersister ? ModifyPassword(p1)).toTask
+          _ <- Task.fromFuture(Repox.configPersister ? ModifyPassword(p1))
           response <- NoContent()
         } yield response
       } getOrElse BadRequest()
@@ -108,7 +105,7 @@ object New extends ConfigFormats {
   def simpleCommand[T](cmd: T => Any, payload: T): Task[Response] =
     Try {
       for {
-        _ <- (Repox.configPersister ? cmd(payload)).toTask
+        _ <- Task.fromFuture(Repox.configPersister ? cmd(payload))
         response <- NoContent()
       } yield response
     } getOrElse BadRequest()
@@ -178,20 +175,21 @@ object New extends ConfigFormats {
     case _ -> "admin" /: _ => NotFound()
   }
 
-
   val repoxService = HttpService {
     case GET -> Root => TemporaryRedirect(uri("/admin/index.html"))
     case GET -> Root / "favicon.ico" => TemporaryRedirect(uri("/admin/favicon.ico"))
     case request@HEAD -> u =>
       Repox.peer(u.toString).fold(_ => NotFound(),
-        _ => (requestQueueMaster ? Requests.Head4s(request)).toTask.asInstanceOf[Task[Response]]
+        _ => Task
+          .fromFuture(requestQueueMaster ? Requests.Head4s(request))
+          .flatMap(_ => NoContent())
       )
     case request@GET -> u =>
       Repox.peer(u.toString).fold(_ => NotFound(),
-        _ => for {
-          taskResponse <- (requestQueueMaster ? Requests.Get4s(request)).toTask
-          response <- taskResponse.asInstanceOf[Task[Response]]
-        } yield response)
+        _ => Task
+          .fromFuture(requestQueueMaster ? Requests.Get4s(request))
+          .flatMap(_ => NoContent())
+      )
     case _ => NotFound()
   }
 

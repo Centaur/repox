@@ -6,15 +6,13 @@ import java.nio.file.{Files, Path, Paths}
 import akka.actor.ActorRef
 import com.gtan.repox.data.Repo
 import com.typesafe.scalalogging.LazyLogging
+import fs2.Task
 import io.undertow.server.HttpServerExchange
 import io.undertow.server.handlers.resource.{ResourceHandler, ResourceManager}
 import io.undertow.util.{Headers, HttpString, MimeMappings, StatusCodes}
 import org.http4s._
 import org.http4s.dsl.{uri => _, _}
 import org.http4s.headers._
-import org.http4s.util.NonEmptyList
-
-import scalaz.concurrent.Task
 
 trait HttpHelpers {
   self: LazyLogging =>
@@ -54,8 +52,6 @@ trait HttpHelpers {
 
   def sendFile4s(sender: ActorRef, request: org.http4s.Request, root: Path): Unit = {
     sender ! StaticFile.fromFile(root.resolve(request.uri.toString).toFile, Some(request))
-      .map(Task.now)
-      .fold(NotFound())(identity)
   }
 
   def immediateFile(resourceHandler: ResourceHandler, exchange: HttpServerExchange): Unit = {
@@ -65,7 +61,7 @@ trait HttpHelpers {
 
   def immediateFile4s(sender: ActorRef, request: org.http4s.Request, file: File): Unit = {
     logger.debug(s"Immediate file ${request.uri}")
-    sender ! StaticFile.fromFile(file, Some(request)).map(Task.now).fold(NotFound())(identity)
+//    sender ! StaticFile.fromFile(file, Some(request)).map(Task.now).fold(NotFound())(identity)
   }
 
   def respondHead(exchange: HttpServerExchange, headers: ResponseHeaders): Unit = {
@@ -93,15 +89,18 @@ trait HttpHelpers {
   }
 
   def immediateHead4s(sender: ActorRef, file: File, request: org.http4s.Request): Unit = {
-    import org.http4s.util.string._
+    import org.http4s.syntax.string._
     val uri = request.uri.toString()
     sender ! Ok().putHeaders(
-      `Content-Length`(file.length()),
+      `Content-Length`.unsafeFromLong(file.length()),
       Header("Server", "repox"),
       Connection("keep-alive".ci),
       `Content-Type`(MediaType.forExtension(uri.drop(uri.lastIndexOf('.') + 1))
         .getOrElse(MediaType.`application/octet-stream`)),
-      `Last-Modified`(Files.getLastModifiedTime(file.toPath).toInstant)
+      Header("Last-Modified",
+        HttpDate
+          .fromInstant(Files.getLastModifiedTime(file.toPath).toInstant)
+          .toString)
     )
     logger.debug(s"Immediate head $uri. ")
   }

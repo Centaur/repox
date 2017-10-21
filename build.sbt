@@ -2,7 +2,7 @@ name := "repox"
 
 organization := "com.gtan"
 
-scalaVersion := "2.12.3"
+scalaVersion := "2.12.4"
 
 val akkaVersion = "2.4.17"
 
@@ -16,14 +16,13 @@ libraryDependencies ++= {
   val scalaLoggingVer = "3.5.0"
   val ningVer = "1.9.40"
   val protobufVer = "3.3.1"
-  val Http4sVersion = "0.15.16"
+  val Http4sVersion = "0.17.5"
   val circeVersion = "0.8.0"
   Seq(
     "org.http4s" %% "http4s-blaze-server" % Http4sVersion,
     "org.http4s" %% "http4s-circe" % Http4sVersion,
     "org.http4s" %% "http4s-dsl" % Http4sVersion,
     "io.circe" %% "circe-generic" % circeVersion,
-    "io.verizon.delorean" %% "core" % "1.2.40-scalaz-7.1",
     "io.undertow" % "undertow-core" % undertowVer,
     ("com.ning" % "async-http-client" % ningVer)
       .exclude("org.slf4j", "slf4j-api"),
@@ -70,6 +69,8 @@ scalacOptions ++= Seq(
 )
 
 fork := true
+
+updateOptions := updateOptions.value.withGigahorse(false)
 
 assemblyMergeStrategy in assembly := {
   case str@PathList("admin", "bower_components", remains@_*) => remains match {

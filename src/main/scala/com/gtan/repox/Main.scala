@@ -1,24 +1,24 @@
 package com.gtan.repox
 
 
-import java.util.concurrent.{ExecutorService, Executors}
+import java.util.concurrent.{Executor, ExecutorService, Executors}
 
 import com.gtan.repox.admin.WebConfigHandler
+import fs2.Task
 import io.undertow.predicate.Predicates
 import io.undertow.server.handlers.{PredicateContextHandler, PredicateHandler}
 import io.undertow.server.{HttpHandler, HttpServerExchange}
 import io.undertow.{Undertow, UndertowOptions}
-import org.http4s.server.ServerApp
+import org.http4s.util.StreamApp
 import org.xnio.Options
 
 import scala.util.Properties.envOrNone
-import scalaz.concurrent.Task
 
 object Main {
-  def httpHandlerBridge(realHandler: HttpServerExchange => Unit): HttpHandler = new HttpHandler() {
-    override def handleRequest(exchange: HttpServerExchange): Unit = {
-      exchange.dispatch(scala.concurrent.ExecutionContext.Implicits.global.execute, () => realHandler.apply(exchange))
-    }
+  def httpHandlerBridge(realHandler: HttpServerExchange => Unit): HttpHandler = (exchange: HttpServerExchange) => {
+    exchange.dispatch(
+      scala.concurrent.ExecutionContext.Implicits.global.execute,
+      () => realHandler.apply(exchange))
   }
 
   def main(args: Array[String]) {
@@ -41,19 +41,17 @@ object Main {
 }
 
 
-object Http4sMain extends ServerApp {
+object Http4sMain extends StreamApp {
 
-  import org.http4s.server.Server
   import org.http4s.server.blaze.BlazeBuilder
 
   val port: Int = envOrNone("HTTP_PORT") map (_.toInt) getOrElse 8078
   val ip: String = "0.0.0.0"
   val pool: ExecutorService = Executors.newCachedThreadPool()
 
-  override def server(args: List[String]): Task[Server] =
+  override def stream(args: List[String]): fs2.Stream[Task, Nothing] =
     BlazeBuilder
-      .bindHttp(port, ip)
+      .bindHttp(port = port, host = ip)
       .mountService(New.service)
-      .withServiceExecutor(pool)
-      .start
+      .serve
 }
