@@ -118,11 +118,15 @@ object Repox extends LazyLogging with HttpHelpers {
       Failure(new RuntimeException("We do not support md5 checksum now."))
     case SHA1Request(prefix) =>
       peer(prefix).map(_.map(_ + ".sha1"))
-    case MetaDataFormat() => Success(Nil)
+    case MetaDataFormat() =>
+      if (uri.toUpperCase.endsWith("SNAPSHOT/MAVEN-METADATA.XML"))
+        Failure(new RuntimeException("SNAPSHOT Request"))
+      else
+        Success(Nil)
     case MavenFormat(groupIds, _, artifactId, _, scalaVersion, _, sbtVersion, version, fileName, _, classifier, ext) =>
       if (version.equalsIgnoreCase("unspecified")) {
         Failure(new RuntimeException("Gradle Version-Unspecified Request"))
-      } else if(version.toUpperCase.endsWith("SNAPSHOT")) {
+      } else if (version.toUpperCase.endsWith("SNAPSHOT")) {
         Failure(new RuntimeException("SNAPSHOT Request"))
       } else {
         val organization = groupIds.split("/").filter(_.nonEmpty).mkString(".")
@@ -149,8 +153,11 @@ object Repox extends LazyLogging with HttpHelpers {
         for (scala <- supportedScalaVersion; sbt <- supportedSbtVersion) yield
           s"/${organization.split("\\.").mkString("/")}/${module}_${scala}_$sbt/$revision/$module-$revision.$ext"
       } else Nil
-      Success(result)
-
+      if (revision.toUpperCase.endsWith("SNAPSHOT")) {
+        Failure(new RuntimeException("SNAPSHOT Request"))
+      } else {
+        Success(result)
+      }
     case _ =>
       Failure(new RuntimeException("Invalid Request"))
   }

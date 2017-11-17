@@ -2,20 +2,20 @@ name := "repox"
 
 organization := "com.gtan"
 
-scalaVersion := "2.12.3"
+scalaVersion := "2.12.4"
 
-val akkaVersion = "2.4.17"
+val akkaVersion = "2.5.6"
 
 libraryDependencies ++= {
-  val undertowVer = "1.4.18.Final"
+  val undertowVer = "1.4.20.Final"
   val logbackVer = "1.2.3"
   val leveldbVer = "0.7"
   val leveldbjniVer = "1.8"
-  val scalaTestVer = "3.0.3"
-  val playJsonVer = "2.6.2"
-  val scalaLoggingVer = "3.5.0"
+  val scalaTestVer = "3.0.4"
+  val playJsonVer = "2.6.7"
+  val scalaLoggingVer = "3.7.2"
   val ningVer = "1.9.40"
-  val protobufVer = "3.3.1"
+  val protobufVer = "3.4.0"
   Seq(
     "io.undertow" % "undertow-core" % undertowVer,
     ("com.ning" % "async-http-client" % ningVer)
@@ -38,7 +38,7 @@ libraryDependencies ++= {
     ("org.iq80.leveldb" % "leveldb" % leveldbVer)
       .exclude("com.google.guava", "guava"),
     "org.fusesource.leveldbjni" % "leveldbjni-all" % leveldbjniVer,
-    ("com.typesafe.akka" %% "akka-persistence-query-experimental" % akkaVersion)
+    ("com.typesafe.akka" %% "akka-persistence-query" % akkaVersion)
       .exclude("org.scala-lang", "scala-library")
       .exclude("com.typesafe", "config")
       .exclude("com.typesafe", "ssl-config-akka_2.12")
