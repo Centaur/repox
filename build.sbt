@@ -4,7 +4,7 @@ organization := "com.gtan"
 
 scalaVersion := "2.12.4"
 
-val akkaVersion = "2.5.6"
+val akkaVersion = "2.5.7"
 
 libraryDependencies ++= {
   val undertowVer = "1.4.20.Final"
@@ -52,7 +52,7 @@ libraryDependencies ++= {
 }
 
 transitiveClassifiers := Seq("sources")
-
+updateOptions := updateOptions.value.withGigahorse(false)
 scalacOptions ++= Seq(
                        "-feature",
                        "-deprecation",
