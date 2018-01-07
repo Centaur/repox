@@ -5,7 +5,6 @@ import java.net.URLEncoder
 import java.nio.file.StandardCopyOption._
 import java.nio.file.{Files, Path}
 import java.security.MessageDigest
-import javax.xml.bind.annotation.adapters.HexBinaryAdapter
 
 import akka.actor._
 import com.gtan.repox.GetWorker.{Cleanup, PeerChosen}
@@ -30,7 +29,8 @@ object GetMaster extends LazyLogging {
       sha1.update(buffer, 0, len)
       len = fis.read(buffer)
     }
-    new HexBinaryAdapter().marshal(sha1.digest)
+    val ba: Array[Byte] = sha1.digest
+    ba.map(b => "%02x".format(b)).mkString("")
   }
 }
 
