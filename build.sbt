@@ -2,20 +2,20 @@ name := "repox"
 
 organization := "com.gtan"
 
-scalaVersion := "2.12.4"
+scalaVersion := "2.12.6"
 
-val akkaVersion = "2.5.7"
+val akkaVersion = "2.5.14"
 
 libraryDependencies ++= {
-  val undertowVer = "1.4.20.Final"
+  val undertowVer = "2.0.11.Final"
   val logbackVer = "1.2.3"
   val leveldbVer = "0.7"
   val leveldbjniVer = "1.8"
-  val scalaTestVer = "3.0.4"
+  val scalaTestVer = "3.0.5"
   val playJsonVer = "2.6.7"
-  val scalaLoggingVer = "3.7.2"
+  val scalaLoggingVer = "3.9.0"
   val ningVer = "1.9.40"
-  val protobufVer = "3.4.0"
+  val protobufVer = "3.6.1"
   Seq(
     "io.undertow" % "undertow-core" % undertowVer,
     ("com.ning" % "async-http-client" % ningVer)
